@@ -1,4 +1,3 @@
-
 """
 AgriConnect API entrypoint.
 
@@ -11,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from database import engine, Base
-import models  # noqa: F401
+import models
 from routers import auth, posts, notifications, users
 
 # Create database tables
@@ -25,16 +24,15 @@ app = FastAPI(
 # -----------------------------
 # CORS Configuration
 # -----------------------------
-origins = [
-    "http://localhost:5173",                   # Local Vite frontend
-    "http://127.0.0.1:5173",
-    "https://agrii-33v0ykdl0-subbu8.vercel.app",  # Your deployed frontend
-    "https://agrii-woad.vercel.app",              # Previous deployment (optional)
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "https://agrii-git-main-subbu8.vercel.app",
+        "https://agrii-woad.vercel.app",
+        "https://agrii-33v0ykdl0-subbu8.vercel.app",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -46,12 +44,21 @@ app.add_middleware(
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # -----------------------------
-# Routers
+# API Routers
 # -----------------------------
 app.include_router(auth.router)
 app.include_router(posts.router)
 app.include_router(notifications.router)
 app.include_router(users.router)
+
+# -----------------------------
+# Root Endpoint
+# -----------------------------
+@app.get("/")
+def root():
+    return {
+        "message": "AgriConnect Backend is Running 🚀"
+    }
 
 # -----------------------------
 # Health Check
@@ -61,14 +68,4 @@ def health_check():
     return {
         "status": "ok",
         "service": "AgriConnect API"
-    }
-
-
-# -----------------------------
-# Root Endpoint
-# -----------------------------
-@app.get("/")
-def root():
-    return {
-        "message": "AgriConnect Backend is Running 🚀"
     }
