@@ -1,0 +1,367 @@
+{
+  "app": {
+    "name": "एग्रीकनेक्ट",
+    "tagline": "किसान और उद्योग, सीधे जुड़े हुए",
+    "welcomeTagline": "किसानों को उद्योगों से सीधे जोड़ रहा है",
+    "loadingAria": "एग्रीकनेक्ट लोड हो रहा है"
+  },
+  "nav": {
+    "home": "होम",
+    "post": "पोस्ट",
+    "alerts": "अलर्ट",
+    "profile": "प्रोफाइल"
+  },
+  "common": {
+    "back": "वापस",
+    "cancel": "रद्द करें",
+    "save": "सेव करें",
+    "continue": "जारी रखें",
+    "skip": "छोड़ें",
+    "close": "बंद करें",
+    "delete": "हटाएं",
+    "edit": "संपादित करें",
+    "search": "खोजें",
+    "notSet": "सेट नहीं है",
+    "readAloud": "जोर से पढ़ें",
+    "readAloudLabel": "{{text}} जोर से पढ़ें",
+    "addPhoto": "फोटो जोड़ें",
+    "uploading": "अपलोड हो रहा है…",
+    "imageSizeError": "इमेज 8MB से कम होनी चाहिए",
+    "uploadFailed": "अपलोड विफल रहा। फिर से कोशिश करें।",
+    "profileAlt": "प्रोफाइल",
+    "previewAlt": "पूर्वावलोकन"
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "एग्रीकनेक्ट में आपका स्वागत है",
+      "subtitle": "किसानों को उद्योगों से सीधे जोड़ रहा है",
+      "getStarted": "शुरू करें",
+      "getStartedAria": "एग्रीकनेक्ट के साथ शुरू करें",
+      "features": {
+        "fairPrices": {
+          "title": "उचित मूल्य",
+          "desc": "आपकी कमाई में कोई बिचौलिया हिस्सा नहीं लेता"
+        },
+        "directCommunication": {
+          "title": "सीधा संवाद",
+          "desc": "खरीदारों और विक्रेताओं से सीधे बात करें"
+        },
+        "trustedBuyers": {
+          "title": "विश्वसनीय खरीदार",
+          "desc": "सत्यापित उद्योग जिन पर आप भरोसा कर सकते हैं"
+        },
+        "easySelling": {
+          "title": "आसान फसल बिक्री",
+          "desc": "कुछ ही टैप में अपनी फसल सूचीबद्ध करें"
+        }
+      }
+    },
+    "language": {
+      "title": "अपनी भाषा चुनें",
+      "subtitle": "आप इसे बाद में सेटिंग्स में बदल सकते हैं",
+      "ariaLabel": "अपनी पसंदीदा भाषा चुनें",
+      "continue": "जारी रखें"
+    },
+    "voice": {
+      "title": "क्या आप वॉइस गाइडेंस चाहते हैं?",
+      "subtitle": "जो उपयोगकर्ता आराम से पढ़ नहीं पाते, उनकी मदद के लिए एग्रीकनेक्ट लेबल और बटन जोर से पढ़ सकता है।",
+      "enable": "वॉइस चालू करें",
+      "enableAria": "वॉइस गाइडेंस चालू करें",
+      "skip": "छोड़ें",
+      "skipAria": "वॉइस गाइडेंस छोड़ें"
+    }
+  },
+  "auth": {
+    "login": {
+      "appName": "एग्रीकनेक्ट",
+      "tagline": "किसान और उद्योग, सीधे जुड़े हुए",
+      "mobileLabel": "मोबाइल नंबर",
+      "mobilePlaceholder": "9876543210",
+      "passwordLabel": "पासवर्ड",
+      "passwordPlaceholder": "पासवर्ड दर्ज करें",
+      "showPassword": "पासवर्ड दिखाएं",
+      "hidePassword": "पासवर्ड छिपाएं",
+      "signIn": "साइन इन",
+      "signInAria": "साइन इन करें",
+      "formAria": "साइन इन फॉर्म",
+      "newHere": "एग्रीकनेक्ट पर नए हैं?",
+      "createAccount": "खाता बनाएं",
+      "welcomeToast": "वापसी पर स्वागत है, {{name}}!",
+      "errors": {
+        "invalidMobile": "एक सही 10 अंकों का मोबाइल नंबर दर्ज करें",
+        "passwordRequired": "अपना पासवर्ड दर्ज करें",
+        "generic": "साइन इन नहीं हो सका। फिर से कोशिश करें।"
+      }
+    },
+    "register": {
+      "title": "एग्रीकनेक्ट से जुड़ें",
+      "subtitle": "हमें बताएं आप कौन हैं",
+      "farmerLabel": "मैं एक किसान हूं",
+      "farmerDesc": "अपनी फसलें सीधे उद्योगों को बेचें",
+      "farmerAria": "किसान के रूप में पंजीकरण जारी रखें",
+      "industryLabel": "मैं एक उद्योग हूं",
+      "industryDesc": "आवश्यकताएं पोस्ट करें, किसानों से सीधे प्राप्त करें",
+      "industryAria": "उद्योग के रूप में पंजीकरण जारी रखें",
+      "alreadyHave": "पहले से खाता है?",
+      "signIn": "साइन इन करें",
+      "back": "वापस",
+      "backAria": "भूमिका चयन पर वापस जाएं",
+      "farmerRegistrationTitle": "किसान पंजीकरण",
+      "industryRegistrationTitle": "उद्योग पंजीकरण",
+      "farmerRegistrationSubtitle": "आपको जोड़ने के लिए कुछ जानकारी",
+      "industryRegistrationSubtitle": "हमें अपनी कंपनी के बारे में बताएं",
+      "formAriaFarmer": "किसान पंजीकरण फॉर्म",
+      "formAriaIndustry": "उद्योग पंजीकरण फॉर्म",
+      "photoLabelFarmer": "प्रोफाइल फोटो",
+      "photoLabelIndustry": "कंपनी लोगो",
+      "fullNameLabel": "पूरा नाम",
+      "companyNameLabel": "कंपनी का नाम",
+      "fullNamePlaceholder": "उदा. रमेश कुमार",
+      "companyNamePlaceholder": "उदा. एग्रोफूड्स प्राइवेट लिमिटेड",
+      "contactPersonLabel": "संपर्क व्यक्ति",
+      "contactPersonPlaceholder": "जिस व्यक्ति से हमें संपर्क करना चाहिए उसका नाम",
+      "mobileLabel": "मोबाइल नंबर",
+      "mobilePlaceholder": "9876543210",
+      "villageDistrictLabel": "गांव / जिला",
+      "locationLabel": "स्थान",
+      "locationPlaceholder": "उदा. नलगोंडा, तेलंगाना",
+      "passwordLabel": "पासवर्ड",
+      "passwordPlaceholder": "कम से कम 6 अक्षर",
+      "confirmLabel": "पुष्टि करें",
+      "confirmPlaceholder": "दोबारा दर्ज करें",
+      "createAccount": "खाता बनाएं",
+      "createAccountAria": "खाता बनाएं",
+      "successToast": "खाता बन गया! एग्रीकनेक्ट में आपका स्वागत है।",
+      "errors": {
+        "nameFarmer": "अपना पूरा नाम दर्ज करें",
+        "nameIndustry": "अपनी कंपनी का नाम दर्ज करें",
+        "contactPerson": "संपर्क व्यक्ति का नाम दर्ज करें",
+        "mobile": "एक सही 10 अंकों का मोबाइल नंबर दर्ज करें",
+        "passwordLength": "पासवर्ड कम से कम 6 अक्षर का होना चाहिए",
+        "passwordMismatch": "पासवर्ड मेल नहीं खाते",
+        "generic": "पंजीकरण विफल रहा। फिर से कोशिश करें।"
+      }
+    }
+  },
+  "home": {
+    "title": "एग्रीकनेक्ट",
+    "showing": "दिखा रहे हैं: {{opposite}}",
+    "nearYou": "आपके पास {{opposite}}",
+    "oppositeIndustry": "उद्योग आवश्यकताएं",
+    "oppositeFarmer": "किसान फसलें",
+    "sorts": {
+      "latest": "नवीनतम",
+      "priceLow": "मूल्य: कम से ज्यादा",
+      "priceHigh": "मूल्य: ज्यादा से कम"
+    },
+    "empty": {
+      "title": "यहां अभी कुछ नहीं है",
+      "farmerMessage": "अभी तक कोई उद्योग आवश्यकता पोस्ट नहीं हुई। जल्द ही फिर देखें।",
+      "industryMessage": "अभी तक कोई किसान फसल पोस्ट नहीं हुई। जल्द ही फिर देखें।"
+    },
+    "caughtUp": "आप सब कुछ देख चुके हैं 🌾",
+    "loadError": "फीड लोड नहीं हो सका। रीफ्रेश करें।"
+  },
+  "search": {
+    "placeholderFarmer": "उद्योग, फसल या स्थान खोजें",
+    "placeholderIndustry": "किसान, फसल या स्थान खोजें",
+    "clearAria": "खोज साफ़ करें",
+    "sorts": {
+      "latest": "नवीनतम",
+      "priceAsc": "मूल्य ↑",
+      "priceDesc": "मूल्य ↓"
+    },
+    "empty": {
+      "title": "एग्रीकनेक्ट में खोजें",
+      "farmerMessage": "फसल, उद्योग नाम या स्थान से आवश्यकताएं खोजें।",
+      "industryMessage": "नाम, किसान के नाम या स्थान से फसलें खोजें।"
+    },
+    "noResults": {
+      "title": "कोई परिणाम नहीं",
+      "message": "\"{{query}}\" से कुछ भी मेल नहीं खाया। कोई और खोज आज़माएं।"
+    },
+    "failedToast": "खोज विफल रही। फिर से कोशिश करें।"
+  },
+  "createPost": {
+    "titleFarmer": "अपनी फसल पोस्ट करें",
+    "titleIndustry": "एक आवश्यकता पोस्ट करें",
+    "subtitleFarmer": "उद्योगों को आपको खोजने दें",
+    "subtitleIndustry": "किसानों को आपको खोजने दें",
+    "photoLabelFarmer": "फसल की फोटो जोड़ें",
+    "photoLabelIndustry": "फोटो जोड़ें (वैकल्पिक)",
+    "postTitleLabel": "पोस्ट शीर्षक",
+    "requirementTitleLabel": "आवश्यकता शीर्षक",
+    "titlePlaceholderFarmer": "उदा. ताज़ा जैविक टमाटर",
+    "titlePlaceholderIndustry": "उदा. 2 टन कपास चाहिए",
+    "descriptionLabel": "विवरण",
+    "speak": "बोलें",
+    "descPlaceholderFarmer": "अपनी फसल की गुणवत्ता, कटाई का विवरण आदि बताएं।",
+    "descPlaceholderIndustry": "अपनी आवश्यकता का विस्तार से वर्णन करें",
+    "cropNameLabel": "फसल का नाम",
+    "cropNeededLabel": "चाहिए फसल",
+    "cropPlaceholder": "उदा. टमाटर",
+    "quantityLabel": "मात्रा",
+    "quantityRequiredLabel": "आवश्यक मात्रा",
+    "quantityPlaceholder": "उदा. 500 किलो",
+    "priceLabelFarmer": "अपेक्षित मूल्य (₹)",
+    "priceLabelIndustry": "दिया गया मूल्य (₹)",
+    "pricePlaceholder": "प्रति यूनिट",
+    "harvestDateLabel": "कटाई की तारीख",
+    "requiredBeforeLabel": "इस तारीख से पहले चाहिए",
+    "locationLabel": "स्थान",
+    "locationPlaceholder": "गांव / जिला",
+    "submit": "सबमिट करें",
+    "voiceComingSoon": "वॉइस इनपुट जल्द ही आ रहा है 🎙️",
+    "successToastFarmer": "फसल पोस्ट हो गई! अब उद्योग इसे देख सकेंगे।",
+    "successToastIndustry": "आवश्यकता पोस्ट हो गई! अब किसान इसे देख सकेंगे।",
+    "errors": {
+      "titleFarmer": "अपनी फसल के लिए एक संक्षिप्त शीर्षक जोड़ें",
+      "titleIndustry": "एक आवश्यकता शीर्षक जोड़ें",
+      "cropFarmer": "फसल का नाम दर्ज करें",
+      "cropIndustry": "आपको जिस फसल की जरूरत है उसे दर्ज करें",
+      "generic": "पोस्ट नहीं बन सका। फिर से कोशिश करें।"
+    }
+  },
+  "notifications": {
+  "title": "सूचनाएं",
+  "subtitleFarmer": "उद्योगों से",
+  "subtitleIndustry": "किसानों से",
+  "markAllRead": "सभी पढ़ी हुई चिह्नित करें",
+  "empty": {
+    "title": "अभी तक कोई सूचना नहीं",
+    "message": "जब कोई रुचि दिखाएगा या कुछ नया पोस्ट करेगा, तो आपको यहां अपडेट दिखेंगे।"
+  },
+  "loadError": "सूचनाएं लोड नहीं हो सकीं।",
+  "updateError": "अपडेट नहीं हो सका। फिर से कोशिश करें।",
+
+  "templates": {
+    "title": {
+      "newCropPosted": "नई फसल पोस्ट हुई",
+      "newRequirementPosted": "नई आवश्यकता पोस्ट की गई",
+      "someoneInterested": "किसी ने रुचि दिखाई"
+    },
+
+    "message": {
+      "postedCropNear": "{{name}} ने {{location}} के पास {{crop}} पोस्ट की।",
+      "postedRequirement": "{{name}} ने एक नई आवश्यकता पोस्ट की।",
+      "interestedInCrop": "{{name}} ने आपकी {{crop}} पोस्ट में रुचि दिखाई।"
+    }
+  }
+},
+  "profile": {
+    "title": "प्रोफाइल",
+    "fullNameLabel": "पूरा नाम",
+    "companyNameLabel": "कंपनी का नाम",
+    "contactPersonLabel": "संपर्क व्यक्ति",
+    "villageDistrictLabel": "गांव / जिला",
+    "locationLabel": "स्थान",
+    "changePhoto": "फोटो बदलें",
+    "farmerRole": "किसान",
+    "industryRole": "उद्योग",
+    "contactPrefix": "संपर्क: {{name}}",
+    "postsCount_one": "{{count}} पोस्ट",
+    "postsCount_other": "{{count}} पोस्ट",
+    "logout": "लॉग आउट",
+    "yourPosts": "आपकी पोस्ट",
+    "emptyPosts": {
+      "title": "अभी तक कोई पोस्ट नहीं",
+      "farmerMessage": "उद्योग की रुचि पाने के लिए अपनी पहली फसल पोस्ट करें।",
+      "industryMessage": "किसानों से जवाब पाने के लिए एक आवश्यकता पोस्ट करें।"
+    },
+    "interestedCount_one": "{{count}} व्यक्ति रुचि रखता है",
+    "interestedCount_other": "{{count}} लोग रुचि रखते हैं",
+    "deleteAria": "पोस्ट हटाएं",
+    "editAria": "प्रोफाइल संपादित करें",
+    "settingsAria": "सेटिंग्स खोलें",
+    "confirmDelete": "इस पोस्ट को हटाएं? इसे वापस नहीं लाया जा सकता।",
+    "toasts": {
+      "nameEmpty": "नाम खाली नहीं हो सकता",
+      "updated": "प्रोफाइल अपडेट हुई",
+      "updateError": "बदलाव सेव नहीं हो सके।",
+      "deleted": "पोस्ट हटाई गई",
+      "deleteError": "पोस्ट हटाई नहीं जा सकी।",
+      "loadError": "आपकी पोस्ट लोड नहीं हो सकीं।"
+    }
+  },
+  "settings": {
+    "title": "सेटिंग्स",
+    "back": "वापस",
+    "preferences": "प्राथमिकताएं",
+    "language": "भाषा",
+    "voiceGuidance": "वॉइस गाइडेंस",
+    "toggleVoiceAria": "वॉइस गाइडेंस टॉगल करें",
+    "about": "जानकारी",
+    "aboutApp": "एग्रीकनेक्ट के बारे में",
+    "privacyPolicy": "गोपनीयता नीति",
+    "logout": "लॉगआउट",
+    "chooseLanguage": "भाषा चुनें",
+    "closeAria": "बंद करें",
+    "aboutText": "एग्रीकनेक्ट किसानों को बिचौलियों के बिना अपनी फसलें सीधे उद्योगों को बेचने में मदद करता है, जिससे किसानों को बेहतर मूल्य और खरीदारों को पारदर्शी सोर्सिंग मिलती है।",
+    "privacyText": "हम केवल किसानों और उद्योगों को जोड़ने के लिए आवश्यक जानकारी एकत्र करते हैं — आपकी प्रोफाइल जानकारी, पोस्ट और संदेश। हम आपका डेटा किसी तीसरे पक्ष को नहीं बेचते।"
+  },
+  "postCard": {
+    "call": "कॉल करें",
+    "whatsapp": "व्हाट्सएप",
+    "interestedAria": "रुचि",
+    "shareAria": "शेयर करें",
+    "crop": "फसल",
+    "qty": "मात्रा",
+    "price": "मूल्य",
+    "offer": "प्रस्ताव",
+    "perUnit": "₹{{price}}/यूनिट",
+    "requirementBadge": "आवश्यकता",
+    "cropBadge": "फसल",
+    "requirementWord": "आवश्यकता",
+    "cropWord": "फसल",
+    "interestedCount_one": "{{count}} व्यक्ति रुचि रखता है",
+    "interestedCount_other": "{{count}} लोग रुचि रखते हैं",
+    "shareCopied": "पोस्ट विवरण कॉपी हुआ",
+    "likeError": "अपडेट नहीं हो सका। फिर से कोशिश करें।",
+    "whatsappMessage": "नमस्ते {{name}}, मैंने एग्रीकनेक्ट पर आपकी {{crop}} की {{label}} पोस्ट देखी। क्या यह अभी भी उपलब्ध है?"
+  },
+  "time": {
+    "justNow": "अभी अभी",
+    "minutesAgo": "{{count}} मिनट पहले",
+    "hoursAgo": "{{count}} घंटे पहले",
+    "daysAgo": "{{count}} दिन पहले",
+    "weeksAgo": "{{count}} सप्ताह पहले"
+  },
+  "crops": {
+    "rice": "चावल",
+    "cotton": "कपास",
+    "tomato": "टमाटर",
+    "potato": "आलू",
+    "banana": "केला",
+    "groundnut": "मूंगफली",
+    "onion": "प्याज",
+    "chilli": "मिर्च",
+    "maize": "मक्का",
+    "wheat": "गेहूं",
+    "paddy": "धान",
+    "mango": "आम",
+    "sugarcane": "गन्ना"
+  },
+  "units": {
+    "kg": "किलो",
+    "ton": "टन",
+    "quintal": "क्विंटल",
+    "bag": "बोरी",
+    "packet": "पैकेट",
+    "bundle": "बंडल"
+  },
+  "categories": {
+    "crop": "फसल",
+    "requirement": "आवश्यकता"
+  },
+  "roles": {
+    "farmer": "किसान",
+    "industry": "उद्योग"
+  },
+  "postStatus": {
+    "active": "सक्रिय",
+    "sold": "बिक गया",
+    "fulfilled": "पूरा हुआ",
+    "closed": "बंद",
+    "expired": "समाप्त"
+  }
+}

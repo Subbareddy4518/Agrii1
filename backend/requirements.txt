@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+pydantic
+
+# PostgreSQL driver
+psycopg2-binary==2.9.10
+
+# Use a bcrypt version compatible with passlib
+bcrypt==4.0.1
