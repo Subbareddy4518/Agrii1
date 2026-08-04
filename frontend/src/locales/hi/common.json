@@ -223,31 +223,29 @@
     }
   },
   "notifications": {
-  "title": "सूचनाएं",
-  "subtitleFarmer": "उद्योगों से",
-  "subtitleIndustry": "किसानों से",
-  "markAllRead": "सभी पढ़ी हुई चिह्नित करें",
-  "empty": {
-    "title": "अभी तक कोई सूचना नहीं",
-    "message": "जब कोई रुचि दिखाएगा या कुछ नया पोस्ट करेगा, तो आपको यहां अपडेट दिखेंगे।"
-  },
-  "loadError": "सूचनाएं लोड नहीं हो सकीं।",
-  "updateError": "अपडेट नहीं हो सका। फिर से कोशिश करें।",
-
-  "templates": {
-    "title": {
-      "newCropPosted": "नई फसल पोस्ट हुई",
-      "newRequirementPosted": "नई आवश्यकता पोस्ट की गई",
-      "someoneInterested": "किसी ने रुचि दिखाई"
+    "title": "सूचनाएं",
+    "subtitleFarmer": "उद्योगों से",
+    "subtitleIndustry": "किसानों से",
+    "markAllRead": "सभी पढ़ी हुई चिह्नित करें",
+    "empty": {
+      "title": "अभी तक कोई सूचना नहीं",
+      "message": "जब कोई रुचि दिखाएगा या कुछ नया पोस्ट करेगा, तो आपको यहां अपडेट दिखेंगे।"
     },
-
-    "message": {
-      "postedCropNear": "{{name}} ने {{location}} के पास {{crop}} पोस्ट की।",
-      "postedRequirement": "{{name}} ने एक नई आवश्यकता पोस्ट की।",
-      "interestedInCrop": "{{name}} ने आपकी {{crop}} पोस्ट में रुचि दिखाई।"
+    "loadError": "सूचनाएं लोड नहीं हो सकीं।",
+    "updateError": "अपडेट नहीं हो सका। फिर से कोशिश करें।",
+    "templates": {
+      "title": {
+        "newCropPosted": "नई फसल पोस्ट हुई",
+        "newRequirementPosted": "नई आवश्यकता पोस्ट की गई",
+        "someoneInterested": "किसी ने रुचि दिखाई"
+      },
+      "message": {
+        "postedCropNear": "{{name}} ने {{location}} के पास {{crop}} पोस्ट की।",
+        "postedRequirement": "{{name}} ने एक नई आवश्यकता पोस्ट की।",
+        "interestedInCrop": "{{name}} ने आपकी {{crop}} पोस्ट में रुचि दिखाई।"
+      }
     }
-  }
-},
+  },
   "profile": {
     "title": "प्रोफाइल",
     "fullNameLabel": "पूरा नाम",
@@ -363,5 +361,150 @@
     "fulfilled": "पूरा हुआ",
     "closed": "बंद",
     "expired": "समाप्त"
+  },
+  "admin": {
+    "nav": {
+      "dashboard": "डैशबोर्ड",
+      "users": "उपयोगकर्ता",
+      "farmers": "किसान",
+      "industries": "उद्योग",
+      "posts": "पोस्ट",
+      "analytics": "विश्लेषण",
+      "notifications": "सूचनाएं",
+      "settings": "सेटिंग्स",
+      "logout": "लॉगआउट"
+    },
+    "sidebar": {
+      "tag": "एडमिन पैनल",
+      "role": "प्रशासक"
+    },
+    "topbar": {
+      "menu": "मेनू खोलें"
+    },
+    "unauthorized": {
+      "title": "पहुंच अस्वीकृत",
+      "subtitle": "आपको इस पेज को देखने की अनुमति नहीं है। यह क्षेत्र केवल AgriConnect प्रशासकों के लिए सीमित है।",
+      "backHome": "वापस जाएं"
+    },
+    "dashboard": {
+      "title": "डैशबोर्ड",
+      "loadError": "डैशबोर्ड डेटा लोड नहीं हो सका। पुनः प्रयास करें।",
+      "totalUsers": "कुल उपयोगकर्ता",
+      "totalFarmers": "कुल किसान",
+      "totalIndustries": "कुल उद्योग",
+      "totalPosts": "कुल पोस्ट",
+      "activePosts": "सक्रिय पोस्ट",
+      "recentActivity": "हाल की गतिविधि (7 दिन)",
+      "chartFarmersVsIndustries": "किसान बनाम उद्योग",
+      "chartActiveVsClosed": "सक्रिय बनाम बंद पोस्ट",
+      "chartPostsOverTime": "समय के साथ पोस्ट (14 दिन)",
+      "chartCropDistribution": "शीर्ष फसल वितरण"
+    },
+    "users": {
+      "title": "उपयोगकर्ता",
+      "loadError": "उपयोगकर्ताओं को लोड नहीं किया जा सका। पुनः प्रयास करें।",
+      "search": "नाम, मोबाइल या स्थान से खोजें",
+      "allRoles": "सभी भूमिकाएं",
+      "allStatuses": "सभी स्थितियां",
+      "colName": "नाम",
+      "colRole": "भूमिका",
+      "colMobile": "मोबाइल",
+      "colLocation": "स्थान",
+      "colRegistered": "पंजीकृत",
+      "colStatus": "स्थिति",
+      "colActions": "कार्रवाई",
+      "view": "देखें",
+      "suspend": "निलंबित करें",
+      "activate": "सक्रिय करें",
+      "details": "उपयोगकर्ता विवरण",
+      "empty": "कोई उपयोगकर्ता नहीं मिला",
+      "suspendTitle": "उपयोगकर्ता को निलंबित करें?",
+      "activateTitle": "उपयोगकर्ता को सक्रिय करें?",
+      "suspendConfirm": "{{name}} फिर से सक्रिय होने तक साइन इन नहीं कर पाएंगे।",
+      "activateConfirm": "{{name}} फिर से साइन इन कर सकेंगे।",
+      "suspendSuccess": "उपयोगकर्ता निलंबित किया गया",
+      "activateSuccess": "उपयोगकर्ता सक्रिय किया गया",
+      "actionError": "कार्रवाई विफल रही। पुनः प्रयास करें।"
+    },
+    "farmers": {
+      "title": "किसान"
+    },
+    "industries": {
+      "title": "उद्योग",
+      "colContact": "संपर्क व्यक्ति"
+    },
+    "posts": {
+      "title": "पोस्ट",
+      "loadError": "पोस्ट लोड नहीं की जा सकीं। पुनः प्रयास करें।",
+      "search": "शीर्षक, फसल, स्थान या स्वामी से खोजें",
+      "allTypes": "सभी प्रकार",
+      "cropPost": "फसल पोस्ट",
+      "requirementPost": "आवश्यकता पोस्ट",
+      "colType": "प्रकार",
+      "colTitle": "शीर्षक",
+      "colCrop": "फसल",
+      "colOwner": "स्वामी",
+      "colOwnerPosts": "पोस्ट",
+      "colDate": "बनाई गई",
+      "colQuantity": "मात्रा",
+      "colPrice": "मूल्य",
+      "details": "पोस्ट विवरण",
+      "empty": "कोई पोस्ट नहीं मिली",
+      "close": "बंद करें",
+      "reopen": "फिर से खोलें",
+      "closeTitle": "इस पोस्ट को बंद करें?",
+      "reopenTitle": "इस पोस्ट को फिर से खोलें?",
+      "deleteTitle": "इस पोस्ट को हटाएं?",
+      "closeConfirm": "\"{{title}}\" बंद के रूप में चिह्नित होगी और फ़ीड से छिप जाएगी।",
+      "reopenConfirm": "\"{{title}}\" फिर से सक्रिय के रूप में चिह्नित होगी।",
+      "deleteConfirm": "\"{{title}}\" स्थायी रूप से हटा दी जाएगी। इसे पूर्ववत नहीं किया जा सकता।",
+      "closeSuccess": "पोस्ट बंद कर दी गई",
+      "reopenSuccess": "पोस्ट फिर से खोली गई",
+      "deleteSuccess": "पोस्ट हटा दी गई",
+      "actionError": "कार्रवाई विफल रही। पुनः प्रयास करें।"
+    },
+    "analytics": {
+      "title": "विश्लेषण",
+      "loadError": "विश्लेषण लोड नहीं हो सका। पुनः प्रयास करें।",
+      "totalUsers": "कुल उपयोगकर्ता",
+      "totalPosts": "कुल पोस्ट",
+      "interestedActions": "रुचि कार्रवाइयां",
+      "notificationsTotal": "भेजी गई सूचनाएं",
+      "userGrowth": "उपयोगकर्ता वृद्धि",
+      "userGrowthSubtitle": "पिछले 14 दिनों में नए पंजीकरण"
+    },
+    "notifications": {
+      "title": "सूचनाएं",
+      "loadError": "हाल की गतिविधि लोड नहीं हो सकी।",
+      "broadcastTitle": "सूचना भेजें",
+      "audience": "किसे भेजें",
+      "allFarmers": "सभी किसान",
+      "allIndustries": "सभी उद्योग",
+      "notificationTitle": "शीर्षक",
+      "titlePlaceholder": "जैसे प्लेटफ़ॉर्म रखरखाव सूचना",
+      "message": "संदेश",
+      "messagePlaceholder": "अपना संदेश लिखें...",
+      "send": "सूचना भेजें",
+      "sendSuccess": "{{count}} प्राप्तकर्ताओं को भेजी गई",
+      "sendError": "सूचना नहीं भेजी जा सकी।",
+      "recentActivity": "हाल की गतिविधि",
+      "empty": "अभी तक कोई सूचना नहीं",
+      "to": "प्रति"
+    },
+    "settings": {
+      "title": "सेटिंग्स",
+      "accountTitle": "एडमिन खाता",
+      "passwordHint": "एडमिन पासवर्ड बदलने के लिए, नए ADMIN_PASSWORD के साथ बैकएंड पर create_admin स्क्रिप्ट चलाएं।"
+    },
+    "status": {
+      "active": "सक्रिय",
+      "suspended": "निलंबित",
+      "closed": "बंद"
+    },
+    "pagination": {
+      "range": "{{total}} में से {{from}}-{{to}} दिखा रहे हैं",
+      "prev": "पिछला पृष्ठ",
+      "next": "अगला पृष्ठ"
+    }
   }
 }

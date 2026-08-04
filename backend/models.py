@@ -23,6 +23,17 @@ from database import Base
 class RoleEnum(str, enum.Enum):
     farmer = "farmer"
     industry = "industry"
+    admin = "admin"
+
+
+class StatusEnum(str, enum.Enum):
+    active = "active"
+    suspended = "suspended"
+
+
+class PostStatusEnum(str, enum.Enum):
+    active = "active"
+    closed = "closed"
 
 
 class User(Base):
@@ -38,6 +49,11 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     location = Column(String, nullable=True)         # Village/District or Company Location
     profile_image = Column(String, nullable=True)
+
+    # Account status, used by the admin dashboard to suspend/activate users.
+    # Stored as a plain string (not Enum) so it can be added to the existing
+    # sqlite database with a simple ALTER TABLE (see database.py run_migrations).
+    status = Column(String, nullable=False, default=StatusEnum.active.value, server_default=StatusEnum.active.value)
 
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -64,6 +80,14 @@ class Post(Base):
     target_date = Column(String, nullable=True)
 
     likes_count = Column(Integer, default=0)
+
+    # "active" | "closed" — set by the post owner is not currently supported
+    # anywhere in the app, but the admin dashboard can close a post (e.g. to
+    # hide inappropriate or stale content) without deleting it. Existing rows
+    # get this column added via a migration (see database.py) and default to
+    # "active" so current behavior is unchanged.
+    status = Column(String, nullable=False, default=PostStatusEnum.active.value, server_default=PostStatusEnum.active.value)
+
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
     owner = relationship("User", back_populates="posts")

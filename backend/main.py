@@ -9,12 +9,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from database import engine, Base
+from database import engine, Base, run_migrations
 import models
-from routers import auth, posts, notifications, users
+from routers import auth, posts, notifications, users, admin
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
+
+# Additive-only migration for columns introduced by the admin dashboard
+# (users.status, posts.status). Never drops or recreates anything.
+run_migrations()
 
 app = FastAPI(
     title="AgriConnect API",
@@ -50,6 +54,7 @@ app.include_router(auth.router)
 app.include_router(posts.router)
 app.include_router(notifications.router)
 app.include_router(users.router)
+app.include_router(admin.router)
 
 # -----------------------------
 # Root Endpoint

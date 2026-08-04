@@ -47,6 +47,7 @@ class UserOut(BaseModel):
     mobile: str
     location: Optional[str] = None
     profile_image: Optional[str] = None
+    status: str = "active"
     created_at: datetime
     posts_count: int = 0
 
@@ -134,3 +135,100 @@ class NotificationOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ---------- Admin ----------
+
+class AdminUserOut(BaseModel):
+    id: int
+    role: RoleEnum
+    name: str
+    contact_person: Optional[str] = None
+    mobile: str
+    location: Optional[str] = None
+    profile_image: Optional[str] = None
+    status: str
+    created_at: datetime
+    posts_count: int = 0
+
+    class Config:
+        from_attributes = True
+
+
+class PaginatedAdminUsers(BaseModel):
+    items: List[AdminUserOut]
+    page: int
+    page_size: int
+    total: int
+    has_more: bool
+
+
+class AdminPostOut(BaseModel):
+    id: int
+    role: RoleEnum
+    title: str
+    description: Optional[str] = None
+    crop_name: str
+    quantity: Optional[str] = None
+    price: Optional[float] = None
+    location: Optional[str] = None
+    image: Optional[str] = None
+    target_date: Optional[str] = None
+    likes_count: int
+    status: str
+    created_at: datetime
+    owner: AuthorOut
+
+    class Config:
+        from_attributes = True
+
+
+class PaginatedAdminPosts(BaseModel):
+    items: List[AdminPostOut]
+    page: int
+    page_size: int
+    total: int
+    has_more: bool
+
+
+class AdminStatsOut(BaseModel):
+    total_users: int
+    total_farmers: int
+    total_industries: int
+    total_posts: int
+    active_posts: int
+    closed_posts: int
+    crop_posts: int
+    requirement_posts: int
+    recent_notifications: int
+    suspended_users: int
+
+
+class ChartPoint(BaseModel):
+    label: str
+    value: int
+
+
+class AdminAnalyticsOut(BaseModel):
+    farmers_vs_industries: List[ChartPoint]
+    posts_over_time: List[ChartPoint]
+    crop_distribution: List[ChartPoint]
+    user_growth: List[ChartPoint]
+    active_vs_closed: List[ChartPoint]
+    interested_actions_total: int
+    notifications_total: int
+
+
+class StatusUpdate(BaseModel):
+    status: str  # "active" | "suspended" for users, "active" | "closed" for posts
+
+
+class BroadcastRequest(BaseModel):
+    audience: str  # "all_farmers" | "all_industries" | "selected"
+    user_ids: Optional[List[int]] = None
+    title: str
+    message: str
+
+
+class BroadcastResult(BaseModel):
+    sent_count: int

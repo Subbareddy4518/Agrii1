@@ -222,30 +222,30 @@
       "generic": "పోస్ట్ సృష్టించలేకపోయాము. మళ్ళీ ప్రయత్నించండి."
     }
   },
- "notifications": {
-  "title": "నోటిఫికేషన్లు",
-  "subtitleFarmer": "పరిశ్రమల నుండి",
-  "subtitleIndustry": "రైతుల నుండి",
-  "markAllRead": "అన్నీ చదివినట్లు గుర్తించు",
-  "empty": {
-    "title": "ఇంకా నోటిఫికేషన్లు లేవు",
-    "message": "ఎవరైనా ఆసక్తి చూపినప్పుడు లేదా కొత్త పోస్ట్ చేసినప్పుడు మీరు ఇక్కడ నవీకరణలను చూస్తారు."
-  },
-  "loadError": "నోటిఫికేషన్లు లోడ్ చేయలేకపోయాము.",
-  "updateError": "అప్‌డేట్ చేయలేకపోయాము. మళ్ళీ ప్రయత్నించండి.",
-  "templates": {
-    "title": {
-      "newCropPosted": "కొత్త పంట పోస్ట్ చేయబడింది",
-      "newRequirementPosted": "కొత్త అవసరం పోస్ట్ చేయబడింది",
-      "someoneInterested": "ఎవరో ఆసక్తి చూపారు"
+  "notifications": {
+    "title": "నోటిఫికేషన్లు",
+    "subtitleFarmer": "పరిశ్రమల నుండి",
+    "subtitleIndustry": "రైతుల నుండి",
+    "markAllRead": "అన్నీ చదివినట్లు గుర్తించు",
+    "empty": {
+      "title": "ఇంకా నోటిఫికేషన్లు లేవు",
+      "message": "ఎవరైనా ఆసక్తి చూపినప్పుడు లేదా కొత్త పోస్ట్ చేసినప్పుడు మీరు ఇక్కడ నవీకరణలను చూస్తారు."
     },
-    "message": {
-      "postedCropNear": "{{name}} {{location}} దగ్గర {{crop}} పోస్ట్ చేశారు.",
-      "postedRequirement": "{{name}} కొత్త అవసరాన్ని పోస్ట్ చేశారు.",
-      "interestedInCrop": "{{name}} మీ {{crop}} పోస్ట్‌పై ఆసక్తి చూపారు."
+    "loadError": "నోటిఫికేషన్లు లోడ్ చేయలేకపోయాము.",
+    "updateError": "అప్‌డేట్ చేయలేకపోయాము. మళ్ళీ ప్రయత్నించండి.",
+    "templates": {
+      "title": {
+        "newCropPosted": "కొత్త పంట పోస్ట్ చేయబడింది",
+        "newRequirementPosted": "కొత్త అవసరం పోస్ట్ చేయబడింది",
+        "someoneInterested": "ఎవరో ఆసక్తి చూపారు"
+      },
+      "message": {
+        "postedCropNear": "{{name}} {{location}} దగ్గర {{crop}} పోస్ట్ చేశారు.",
+        "postedRequirement": "{{name}} కొత్త అవసరాన్ని పోస్ట్ చేశారు.",
+        "interestedInCrop": "{{name}} మీ {{crop}} పోస్ట్‌పై ఆసక్తి చూపారు."
+      }
     }
-  }
-},
+  },
   "profile": {
     "title": "ప్రొఫైల్",
     "fullNameLabel": "పూర్తి పేరు",
@@ -361,5 +361,150 @@
     "fulfilled": "పూర్తయింది",
     "closed": "మూసివేయబడింది",
     "expired": "గడువు ముగిసింది"
+  },
+  "admin": {
+    "nav": {
+      "dashboard": "డాష్‌బోర్డ్",
+      "users": "వినియోగదారులు",
+      "farmers": "రైతులు",
+      "industries": "పరిశ్రమలు",
+      "posts": "పోస్ట్‌లు",
+      "analytics": "విశ్లేషణలు",
+      "notifications": "నోటిఫికేషన్లు",
+      "settings": "సెట్టింగ్‌లు",
+      "logout": "లాగ్ అవుట్"
+    },
+    "sidebar": {
+      "tag": "అడ్మిన్ ప్యానెల్",
+      "role": "నిర్వాహకుడు"
+    },
+    "topbar": {
+      "menu": "మెనూ తెరవండి"
+    },
+    "unauthorized": {
+      "title": "యాక్సెస్ నిరాకరించబడింది",
+      "subtitle": "ఈ పేజీని చూసే అనుమతి మీకు లేదు. ఈ విభాగం AgriConnect నిర్వాహకులకు మాత్రమే పరిమితం.",
+      "backHome": "వెనక్కి వెళ్ళండి"
+    },
+    "dashboard": {
+      "title": "డాష్‌బోర్డ్",
+      "loadError": "డాష్‌బోర్డ్ డేటాను లోడ్ చేయలేకపోయాము. మళ్ళీ ప్రయత్నించండి.",
+      "totalUsers": "మొత్తం వినియోగదారులు",
+      "totalFarmers": "మొత్తం రైతులు",
+      "totalIndustries": "మొత్తం పరిశ్రమలు",
+      "totalPosts": "మొత్తం పోస్ట్‌లు",
+      "activePosts": "యాక్టివ్ పోస్ట్‌లు",
+      "recentActivity": "ఇటీవలి కార్యకలాపం (7 రోజులు)",
+      "chartFarmersVsIndustries": "రైతులు vs పరిశ్రమలు",
+      "chartActiveVsClosed": "యాక్టివ్ vs మూసిన పోస్ట్‌లు",
+      "chartPostsOverTime": "కాలక్రమేణా పోస్ట్‌లు (14 రోజులు)",
+      "chartCropDistribution": "ప్రధాన పంట పంపిణీ"
+    },
+    "users": {
+      "title": "వినియోగదారులు",
+      "loadError": "వినియోగదారులను లోడ్ చేయలేకపోయాము. మళ్ళీ ప్రయత్నించండి.",
+      "search": "పేరు, మొబైల్ లేదా ప్రాంతం ద్వారా వెతకండి",
+      "allRoles": "అన్ని పాత్రలు",
+      "allStatuses": "అన్ని స్థితులు",
+      "colName": "పేరు",
+      "colRole": "పాత్ర",
+      "colMobile": "మొబైల్",
+      "colLocation": "ప్రాంతం",
+      "colRegistered": "నమోదైనది",
+      "colStatus": "స్థితి",
+      "colActions": "చర్యలు",
+      "view": "చూడండి",
+      "suspend": "సస్పెండ్ చేయండి",
+      "activate": "యాక్టివేట్ చేయండి",
+      "details": "వినియోగదారు వివరాలు",
+      "empty": "వినియోగదారులు కనుగొనబడలేదు",
+      "suspendTitle": "వినియోగదారుని సస్పెండ్ చేయాలా?",
+      "activateTitle": "వినియోగదారుని యాక్టివేట్ చేయాలా?",
+      "suspendConfirm": "{{name}} తిరిగి యాక్టివేట్ చేసే వరకు సైన్ ఇన్ చేయలేరు.",
+      "activateConfirm": "{{name}} మళ్ళీ సైన్ ఇన్ చేయగలరు.",
+      "suspendSuccess": "వినియోగదారు సస్పెండ్ చేయబడ్డారు",
+      "activateSuccess": "వినియోగదారు యాక్టివేట్ చేయబడ్డారు",
+      "actionError": "చర్య విఫలమైంది. మళ్ళీ ప్రయత్నించండి."
+    },
+    "farmers": {
+      "title": "రైతులు"
+    },
+    "industries": {
+      "title": "పరిశ్రమలు",
+      "colContact": "సంప్రదింపు వ్యక్తి"
+    },
+    "posts": {
+      "title": "పోస్ట్‌లు",
+      "loadError": "పోస్ట్‌లను లోడ్ చేయలేకపోయాము. మళ్ళీ ప్రయత్నించండి.",
+      "search": "శీర్షిక, పంట, ప్రాంతం లేదా యజమాని ద్వారా వెతకండి",
+      "allTypes": "అన్ని రకాలు",
+      "cropPost": "పంట పోస్ట్",
+      "requirementPost": "అవసర పోస్ట్",
+      "colType": "రకం",
+      "colTitle": "శీర్షిక",
+      "colCrop": "పంట",
+      "colOwner": "యజమాని",
+      "colOwnerPosts": "పోస్ట్‌లు",
+      "colDate": "సృష్టించినది",
+      "colQuantity": "పరిమాణం",
+      "colPrice": "ధర",
+      "details": "పోస్ట్ వివరాలు",
+      "empty": "పోస్ట్‌లు కనుగొనబడలేదు",
+      "close": "మూసివేయండి",
+      "reopen": "మళ్ళీ తెరవండి",
+      "closeTitle": "ఈ పోస్ట్‌ను మూసివేయాలా?",
+      "reopenTitle": "ఈ పోస్ట్‌ను మళ్ళీ తెరవాలా?",
+      "deleteTitle": "ఈ పోస్ట్‌ను తొలగించాలా?",
+      "closeConfirm": "\"{{title}}\" మూసివేయబడి ఫీడ్ నుండి దాచబడుతుంది.",
+      "reopenConfirm": "\"{{title}}\" మళ్ళీ యాక్టివ్‌గా గుర్తించబడుతుంది.",
+      "deleteConfirm": "\"{{title}}\" శాశ్వతంగా తొలగించబడుతుంది. దీన్ని రద్దు చేయలేరు.",
+      "closeSuccess": "పోస్ట్ మూసివేయబడింది",
+      "reopenSuccess": "పోస్ట్ మళ్ళీ తెరవబడింది",
+      "deleteSuccess": "పోస్ట్ తొలగించబడింది",
+      "actionError": "చర్య విఫలమైంది. మళ్ళీ ప్రయత్నించండి."
+    },
+    "analytics": {
+      "title": "విశ్లేషణలు",
+      "loadError": "విశ్లేషణలను లోడ్ చేయలేకపోయాము. మళ్ళీ ప్రయత్నించండి.",
+      "totalUsers": "మొత్తం వినియోగదారులు",
+      "totalPosts": "మొత్తం పోస్ట్‌లు",
+      "interestedActions": "ఆసక్తి చర్యలు",
+      "notificationsTotal": "పంపిన నోటిఫికేషన్లు",
+      "userGrowth": "వినియోగదారు వృద్ధి",
+      "userGrowthSubtitle": "గత 14 రోజుల్లో కొత్త నమోదులు"
+    },
+    "notifications": {
+      "title": "నోటిఫికేషన్లు",
+      "loadError": "ఇటీవలి కార్యకలాపాన్ని లోడ్ చేయలేకపోయాము.",
+      "broadcastTitle": "నోటిఫికేషన్ పంపండి",
+      "audience": "వీరికి పంపండి",
+      "allFarmers": "అందరు రైతులు",
+      "allIndustries": "అన్ని పరిశ్రమలు",
+      "notificationTitle": "శీర్షిక",
+      "titlePlaceholder": "ఉదా. ప్లాట్‌ఫారమ్ నిర్వహణ నోటీసు",
+      "message": "సందేశం",
+      "messagePlaceholder": "మీ సందేశాన్ని వ్రాయండి...",
+      "send": "నోటిఫికేషన్ పంపండి",
+      "sendSuccess": "{{count}} మందికి పంపబడింది",
+      "sendError": "నోటిఫికేషన్ పంపలేకపోయాము.",
+      "recentActivity": "ఇటీవలి కార్యకలాపం",
+      "empty": "ఇంకా నోటిఫికేషన్లు లేవు",
+      "to": "వీరికి"
+    },
+    "settings": {
+      "title": "సెట్టింగ్‌లు",
+      "accountTitle": "అడ్మిన్ ఖాతా",
+      "passwordHint": "అడ్మిన్ పాస్‌వర్డ్ మార్చడానికి, కొత్త ADMIN_PASSWORD తో బ్యాకెండ్‌లో create_admin స్క్రిప్ట్‌ను అమలు చేయండి."
+    },
+    "status": {
+      "active": "యాక్టివ్",
+      "suspended": "సస్పెండ్ చేయబడింది",
+      "closed": "మూసివేయబడింది"
+    },
+    "pagination": {
+      "range": "{{total}}లో {{from}}-{{to}} చూపిస్తోంది",
+      "prev": "మునుపటి పేజీ",
+      "next": "తదుపరి పేజీ"
+    }
   }
 }

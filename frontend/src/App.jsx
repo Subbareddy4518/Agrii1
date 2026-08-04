@@ -14,6 +14,17 @@ import LanguageSelect from './pages/LanguageSelect.jsx'
 import VoiceAssist from './pages/VoiceAssist.jsx'
 import Layout from './components/Layout.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
+import AdminRoute from './components/AdminRoute.jsx'
+import AdminLayout from './admin/AdminLayout.jsx'
+import AdminDashboard from './admin/pages/Dashboard.jsx'
+import AdminUsers from './admin/pages/Users.jsx'
+import AdminFarmers from './admin/pages/Farmers.jsx'
+import AdminIndustries from './admin/pages/Industries.jsx'
+import AdminPosts from './admin/pages/Posts.jsx'
+import AdminAnalytics from './admin/pages/Analytics.jsx'
+import AdminNotifications from './admin/pages/Notifications.jsx'
+import AdminSettings from './admin/pages/Settings.jsx'
+import Unauthorized from './pages/Unauthorized.jsx'
 import { hasSplashShownThisSession, isWelcomeSeen } from './utils/onboarding.js'
 
 /**
@@ -54,6 +65,24 @@ export default function App() {
 
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/unauthorized" element={<Unauthorized />} />
+
+      <Route
+        element={
+          <AdminRoute>
+            <AdminLayout />
+          </AdminRoute>
+        }
+      >
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/admin/users" element={<AdminUsers />} />
+        <Route path="/admin/farmers" element={<AdminFarmers />} />
+        <Route path="/admin/industries" element={<AdminIndustries />} />
+        <Route path="/admin/posts" element={<AdminPosts />} />
+        <Route path="/admin/analytics" element={<AdminAnalytics />} />
+        <Route path="/admin/notifications" element={<AdminNotifications />} />
+        <Route path="/admin/settings" element={<AdminSettings />} />
+      </Route>
 
       <Route
         element={

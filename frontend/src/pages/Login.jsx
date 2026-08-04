@@ -33,7 +33,7 @@ export default function Login() {
       const res = await loginUser({ mobile, password })
       login(res.data.access_token, res.data.user)
       toast.success(t('auth.login.welcomeToast', { name: res.data.user.name.split(' ')[0] }))
-      navigate('/', { replace: true })
+      navigate(res.data.user.role === 'admin' ? '/admin' : '/', { replace: true })
     } catch (err) {
       setError(err.response?.data?.detail || t('auth.login.errors.generic'))
     } finally {

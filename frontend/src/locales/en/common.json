@@ -222,30 +222,30 @@
       "generic": "Could not create post. Try again."
     }
   },
- "notifications": {
-  "title": "Notifications",
-  "subtitleFarmer": "From industries",
-  "subtitleIndustry": "From farmers",
-  "markAllRead": "Mark all read",
-  "empty": {
-    "title": "No notifications yet",
-    "message": "You'll see updates here when someone shows interest or posts something new."
-  },
-  "loadError": "Could not load notifications.",
-  "updateError": "Could not update. Try again.",
-  "templates": {
-    "title": {
-      "newCropPosted": "New crop posted",
-      "newRequirementPosted": "New requirement posted",
-      "someoneInterested": "Someone is interested"
+  "notifications": {
+    "title": "Notifications",
+    "subtitleFarmer": "From industries",
+    "subtitleIndustry": "From farmers",
+    "markAllRead": "Mark all read",
+    "empty": {
+      "title": "No notifications yet",
+      "message": "You'll see updates here when someone shows interest or posts something new."
     },
-    "message": {
-      "postedCropNear": "{{name}} posted {{crop}} near {{location}}.",
-      "postedRequirement": "{{name}} posted a new requirement.",
-      "interestedInCrop": "{{name}} is interested in your {{crop}} post."
+    "loadError": "Could not load notifications.",
+    "updateError": "Could not update. Try again.",
+    "templates": {
+      "title": {
+        "newCropPosted": "New crop posted",
+        "newRequirementPosted": "New requirement posted",
+        "someoneInterested": "Someone is interested"
+      },
+      "message": {
+        "postedCropNear": "{{name}} posted {{crop}} near {{location}}.",
+        "postedRequirement": "{{name}} posted a new requirement.",
+        "interestedInCrop": "{{name}} is interested in your {{crop}} post."
+      }
     }
-  }
-},
+  },
   "profile": {
     "title": "Profile",
     "fullNameLabel": "Full Name",
@@ -361,5 +361,150 @@
     "fulfilled": "Fulfilled",
     "closed": "Closed",
     "expired": "Expired"
+  },
+  "admin": {
+    "nav": {
+      "dashboard": "Dashboard",
+      "users": "Users",
+      "farmers": "Farmers",
+      "industries": "Industries",
+      "posts": "Posts",
+      "analytics": "Analytics",
+      "notifications": "Notifications",
+      "settings": "Settings",
+      "logout": "Logout"
+    },
+    "sidebar": {
+      "tag": "Admin Panel",
+      "role": "Administrator"
+    },
+    "topbar": {
+      "menu": "Open menu"
+    },
+    "unauthorized": {
+      "title": "Access Denied",
+      "subtitle": "You don't have permission to view this page. This area is restricted to AgriConnect administrators.",
+      "backHome": "Go back"
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "loadError": "Could not load dashboard data. Try again.",
+      "totalUsers": "Total Users",
+      "totalFarmers": "Total Farmers",
+      "totalIndustries": "Total Industries",
+      "totalPosts": "Total Posts",
+      "activePosts": "Active Posts",
+      "recentActivity": "Recent Activity (7d)",
+      "chartFarmersVsIndustries": "Farmers vs Industries",
+      "chartActiveVsClosed": "Active vs Closed Posts",
+      "chartPostsOverTime": "Posts Over Time (14 days)",
+      "chartCropDistribution": "Top Crop Distribution"
+    },
+    "users": {
+      "title": "Users",
+      "loadError": "Could not load users. Try again.",
+      "search": "Search by name, mobile, or location",
+      "allRoles": "All roles",
+      "allStatuses": "All statuses",
+      "colName": "Name",
+      "colRole": "Role",
+      "colMobile": "Mobile",
+      "colLocation": "Location",
+      "colRegistered": "Registered",
+      "colStatus": "Status",
+      "colActions": "Actions",
+      "view": "View",
+      "suspend": "Suspend",
+      "activate": "Activate",
+      "details": "User Details",
+      "empty": "No users found",
+      "suspendTitle": "Suspend user?",
+      "activateTitle": "Activate user?",
+      "suspendConfirm": "{{name}} will no longer be able to sign in until reactivated.",
+      "activateConfirm": "{{name}} will be able to sign in again.",
+      "suspendSuccess": "User suspended",
+      "activateSuccess": "User activated",
+      "actionError": "Action failed. Try again."
+    },
+    "farmers": {
+      "title": "Farmers"
+    },
+    "industries": {
+      "title": "Industries",
+      "colContact": "Contact Person"
+    },
+    "posts": {
+      "title": "Posts",
+      "loadError": "Could not load posts. Try again.",
+      "search": "Search by title, crop, location, or owner",
+      "allTypes": "All types",
+      "cropPost": "Crop Post",
+      "requirementPost": "Requirement Post",
+      "colType": "Type",
+      "colTitle": "Title",
+      "colCrop": "Crop",
+      "colOwner": "Owner",
+      "colOwnerPosts": "Posts",
+      "colDate": "Created",
+      "colQuantity": "Quantity",
+      "colPrice": "Price",
+      "details": "Post Details",
+      "empty": "No posts found",
+      "close": "Close",
+      "reopen": "Reopen",
+      "closeTitle": "Close this post?",
+      "reopenTitle": "Reopen this post?",
+      "deleteTitle": "Delete this post?",
+      "closeConfirm": "\"{{title}}\" will be marked closed and hidden from the feed.",
+      "reopenConfirm": "\"{{title}}\" will be marked active again.",
+      "deleteConfirm": "\"{{title}}\" will be permanently deleted. This cannot be undone.",
+      "closeSuccess": "Post closed",
+      "reopenSuccess": "Post reopened",
+      "deleteSuccess": "Post deleted",
+      "actionError": "Action failed. Try again."
+    },
+    "analytics": {
+      "title": "Analytics",
+      "loadError": "Could not load analytics. Try again.",
+      "totalUsers": "Total Users",
+      "totalPosts": "Total Posts",
+      "interestedActions": "Interested Actions",
+      "notificationsTotal": "Notifications Sent",
+      "userGrowth": "User Growth",
+      "userGrowthSubtitle": "New registrations over the last 14 days"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "loadError": "Could not load recent activity.",
+      "broadcastTitle": "Send Notification",
+      "audience": "Send to",
+      "allFarmers": "All Farmers",
+      "allIndustries": "All Industries",
+      "notificationTitle": "Title",
+      "titlePlaceholder": "e.g. Platform maintenance notice",
+      "message": "Message",
+      "messagePlaceholder": "Write your message...",
+      "send": "Send Notification",
+      "sendSuccess": "Sent to {{count}} recipients",
+      "sendError": "Could not send notification.",
+      "recentActivity": "Recent Activity",
+      "empty": "No notifications yet",
+      "to": "To"
+    },
+    "settings": {
+      "title": "Settings",
+      "accountTitle": "Admin Account",
+      "passwordHint": "To change the admin password, run the create_admin script on the backend with a new ADMIN_PASSWORD."
+    },
+    "status": {
+      "active": "Active",
+      "suspended": "Suspended",
+      "closed": "Closed"
+    },
+    "pagination": {
+      "range": "Showing {{from}}-{{to}} of {{total}}",
+      "prev": "Previous page",
+      "next": "Next page"
+    }
   }
 }

@@ -53,4 +53,17 @@ export const getNotifications = () => api.get('/notifications')
 export const markNotificationRead = (id) => api.post(`/notifications/${id}/read`)
 export const markAllNotificationsRead = () => api.post('/notifications/read-all')
 
+// ---- Admin ----
+export const getAdminStats = () => api.get('/admin/stats')
+export const getAdminAnalytics = () => api.get('/admin/analytics')
+export const getAdminUsers = (params) => api.get('/admin/users', { params })
+export const getAdminUserDetail = (id) => api.get(`/admin/users/${id}`)
+export const setAdminUserStatus = (id, status) => api.post(`/admin/users/${id}/status`, { status })
+export const getAdminPosts = (params) => api.get('/admin/posts', { params })
+export const getAdminPostDetail = (id) => api.get(`/admin/posts/${id}`)
+export const setAdminPostStatus = (id, status) => api.post(`/admin/posts/${id}/status`, { status })
+export const deleteAdminPost = (id) => api.delete(`/admin/posts/${id}`)
+export const getAdminRecentNotifications = (params) => api.get('/admin/notifications/recent', { params })
+export const broadcastAdminNotification = (payload) => api.post('/admin/notifications/broadcast', payload)
+
 export default api
