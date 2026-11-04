@@ -54,6 +54,8 @@ class User(Base):
     # Stored as a plain string (not Enum) so it can be added to the existing
     # sqlite database with a simple ALTER TABLE (see database.py run_migrations).
     status = Column(String, nullable=False, default=StatusEnum.active.value, server_default=StatusEnum.active.value)
+    is_verified = Column(Boolean, nullable=False, default=False, server_default="0")
+    trust_score = Column(Integer, nullable=False, default=100, server_default="100")
 
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -71,8 +73,12 @@ class Post(Base):
     title = Column(String, nullable=False)
     description = Column(Text, nullable=True)
     crop_name = Column(String, nullable=False, index=True)
+    category = Column(String, nullable=True, index=True)        # Cereals, Vegetables, Spices, Cash Crops, Pulses, Fruits
+    variety = Column(String, nullable=True)                     # e.g. Sona Masoori, Teja, BT Cotton
+    quality_grade = Column(String, nullable=True)               # Grade A, Grade B, Organic
     quantity = Column(String, nullable=True)
     price = Column(Float, nullable=True)
+    is_negotiable = Column(Boolean, nullable=False, default=False, server_default="0")
     location = Column(String, nullable=True, index=True)
     image = Column(String, nullable=True)
 
@@ -80,6 +86,7 @@ class Post(Base):
     target_date = Column(String, nullable=True)
 
     likes_count = Column(Integer, default=0)
+    report_count = Column(Integer, default=0, server_default="0")
 
     # "active" | "closed" — set by the post owner is not currently supported
     # anywhere in the app, but the admin dashboard can close a post (e.g. to
@@ -114,3 +121,18 @@ class Notification(Base):
     message = Column(String, nullable=False)
     is_read = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class Report(Base):
+    __tablename__ = "reports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    post_id = Column(Integer, ForeignKey("posts.id"), nullable=False, index=True)
+    reporter_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    reason = Column(String, nullable=False)
+    details = Column(Text, nullable=True)
+    status = Column(String, nullable=False, default="pending", server_default="pending")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    post = relationship("Post")
+    reporter = relationship("User")

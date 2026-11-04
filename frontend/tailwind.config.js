@@ -4,30 +4,43 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Deep agricultural green as the brand color, with a warm
-        // "harvest" accent used sparingly for calls-to-action / prices.
+        // Design direction:
+        // Forest green: #1E5E3A | Harvest gold: #D9822B | Off-white: #F9FAF7
+        brand: {
+          green: '#1E5E3A',
+          gold: '#D9822B',
+          bg: '#F9FAF7',
+        },
         forest: {
-          50: '#eefbf3',
-          100: '#d6f5e1',
-          200: '#aeeac8',
-          300: '#79d7a9',
-          400: '#45bd86',
-          500: '#22a06a',
-          600: '#158055',
-          700: '#0f6647',
-          800: '#0c4f3a',
-          900: '#0a4030',
-          950: '#052419',
+          50: '#f0f8f3',
+          100: '#d7ede1',
+          200: '#b2dbc6',
+          300: '#83c2a3',
+          400: '#52a37f',
+          500: '#328863',
+          600: '#257250',
+          700: '#1E5E3A', // Primary Forest Green
+          800: '#1a4c30',
+          900: '#153f28',
+          950: '#0a2316',
         },
         harvest: {
-          400: '#f2b552',
-          500: '#e8992b',
-          600: '#cc7d1c',
+          50: '#fdf8ef',
+          100: '#faedd6',
+          200: '#f4d9aa',
+          300: '#eebf75',
+          400: '#e5a041',
+          500: '#D9822B', // Harvest Gold
+          600: '#bc6820',
+          700: '#954c1c',
+          800: '#7a3d1d',
+          900: '#64341b',
         },
         cloud: {
-          50: '#fafaf9',
-          100: '#f4f4f2',
-          200: '#e7e7e3',
+          50: '#F9FAF7', // Off-White
+          100: '#f2f4f0',
+          200: '#e5e7e1',
+          300: '#d2d6cc',
         },
       },
       fontFamily: {

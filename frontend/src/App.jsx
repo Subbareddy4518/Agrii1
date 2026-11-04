@@ -8,6 +8,7 @@ import Notifications from './pages/Notifications.jsx'
 import Profile from './pages/Profile.jsx'
 import SearchPage from './pages/SearchPage.jsx'
 import Settings from './pages/Settings.jsx'
+import MatchesPage from './pages/MatchesPage.jsx'
 import Splash from './pages/Splash.jsx'
 import Welcome from './pages/Welcome.jsx'
 import LanguageSelect from './pages/LanguageSelect.jsx'
@@ -92,6 +93,7 @@ export default function App() {
         }
       >
         <Route path="/" element={<Home />} />
+        <Route path="/matches" element={<MatchesPage />} />
         <Route path="/post" element={<CreatePost />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/profile" element={<Profile />} />

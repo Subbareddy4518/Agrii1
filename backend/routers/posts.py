@@ -50,13 +50,18 @@ def get_feed(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=50),
     sort: str = Query("latest", pattern="^(latest|price_low|price_high)$"),
+    category: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ):
     target_role = opposite_role(user.role)
     query = db.query(models.Post).options(joinedload(models.Post.owner)).filter(
-        models.Post.role == target_role
+        models.Post.role == target_role,
+        models.Post.status == "active"
     )
+
+    if category and category.lower() != "all":
+        query = query.filter(models.Post.category.ilike(f"%{category}%"))
 
     if sort == "price_low":
         query = query.order_by(models.Post.price.asc().nulls_last())
@@ -81,6 +86,7 @@ def get_feed(
 def search_posts(
     q: Optional[str] = Query(None),
     crop: Optional[str] = Query(None),
+    category: Optional[str] = Query(None),
     location: Optional[str] = Query(None),
     sort: str = Query("latest", pattern="^(latest|price_low|price_high)$"),
     page: int = Query(1, ge=1),
@@ -90,7 +96,8 @@ def search_posts(
 ):
     target_role = opposite_role(user.role)
     query = db.query(models.Post).options(joinedload(models.Post.owner)).filter(
-        models.Post.role == target_role
+        models.Post.role == target_role,
+        models.Post.status == "active"
     )
 
     if q:
@@ -101,10 +108,13 @@ def search_posts(
                 models.Post.location.ilike(like),
                 models.User.name.ilike(like),
                 models.Post.title.ilike(like),
+                models.Post.variety.ilike(like),
             )
         )
     if crop:
         query = query.filter(models.Post.crop_name.ilike(f"%{crop}%"))
+    if category and category.lower() != "all":
+        query = query.filter(models.Post.category.ilike(f"%{category}%"))
     if location:
         query = query.filter(models.Post.location.ilike(f"%{location}%"))
 
@@ -153,8 +163,12 @@ def create_post(
         title=payload.title,
         description=payload.description,
         crop_name=payload.crop_name,
+        category=payload.category,
+        variety=payload.variety,
+        quality_grade=payload.quality_grade,
         quantity=payload.quantity,
         price=payload.price,
+        is_negotiable=payload.is_negotiable or False,
         location=payload.location or user.location,
         image=payload.image,
         target_date=payload.target_date,

@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 from database import engine, Base, run_migrations, SessionLocal
 import models
 from auth import hash_password
-from routers import auth, posts, notifications, users, admin
+from routers import auth, posts, notifications, users, admin, ai_services, matching, reports
 
 
 # ============================================================
@@ -215,6 +215,9 @@ app.include_router(posts.router)
 app.include_router(notifications.router)
 app.include_router(users.router)
 app.include_router(admin.router)
+app.include_router(ai_services.router)
+app.include_router(matching.router)
+app.include_router(reports.router)
 
 
 # ============================================================

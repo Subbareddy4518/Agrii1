@@ -106,7 +106,7 @@ def run_migrations():
 
 
     # ========================================================
-    # 2. USERS.STATUS MIGRATION
+    # 2. USERS MIGRATIONS
     # ========================================================
 
     if "users" in existing_tables:
@@ -116,10 +116,8 @@ def run_migrations():
             for column in inspector.get_columns("users")
         }
 
-        if "status" not in user_columns:
-
-            with engine.begin() as conn:
-
+        with engine.begin() as conn:
+            if "status" not in user_columns:
                 conn.execute(
                     text(
                         "ALTER TABLE users "
@@ -128,9 +126,27 @@ def run_migrations():
                     )
                 )
 
+            if "is_verified" not in user_columns:
+                conn.execute(
+                    text(
+                        "ALTER TABLE users "
+                        "ADD COLUMN is_verified BOOLEAN "
+                        "NOT NULL DEFAULT 0"
+                    )
+                )
+
+            if "trust_score" not in user_columns:
+                conn.execute(
+                    text(
+                        "ALTER TABLE users "
+                        "ADD COLUMN trust_score INTEGER "
+                        "NOT NULL DEFAULT 100"
+                    )
+                )
+
 
     # ========================================================
-    # 3. POSTS.STATUS MIGRATION
+    # 3. POSTS MIGRATIONS
     # ========================================================
 
     if "posts" in existing_tables:
@@ -140,15 +156,55 @@ def run_migrations():
             for column in inspector.get_columns("posts")
         }
 
-        if "status" not in post_columns:
-
-            with engine.begin() as conn:
-
+        with engine.begin() as conn:
+            if "status" not in post_columns:
                 conn.execute(
                     text(
                         "ALTER TABLE posts "
                         "ADD COLUMN status VARCHAR "
                         "NOT NULL DEFAULT 'active'"
+                    )
+                )
+
+            if "category" not in post_columns:
+                conn.execute(
+                    text(
+                        "ALTER TABLE posts "
+                        "ADD COLUMN category VARCHAR"
+                    )
+                )
+
+            if "variety" not in post_columns:
+                conn.execute(
+                    text(
+                        "ALTER TABLE posts "
+                        "ADD COLUMN variety VARCHAR"
+                    )
+                )
+
+            if "quality_grade" not in post_columns:
+                conn.execute(
+                    text(
+                        "ALTER TABLE posts "
+                        "ADD COLUMN quality_grade VARCHAR"
+                    )
+                )
+
+            if "is_negotiable" not in post_columns:
+                conn.execute(
+                    text(
+                        "ALTER TABLE posts "
+                        "ADD COLUMN is_negotiable BOOLEAN "
+                        "NOT NULL DEFAULT 0"
+                    )
+                )
+
+            if "report_count" not in post_columns:
+                conn.execute(
+                    text(
+                        "ALTER TABLE posts "
+                        "ADD COLUMN report_count INTEGER "
+                        "NOT NULL DEFAULT 0"
                     )
                 )
 

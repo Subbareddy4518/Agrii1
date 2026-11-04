@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: import.meta.env.VITE_API_URL || '/api',
 })
 
 api.interceptors.request.use((config) => {
@@ -52,6 +52,19 @@ export const uploadImage = (file) => {
 export const getNotifications = () => api.get('/notifications')
 export const markNotificationRead = (id) => api.post(`/notifications/${id}/read`)
 export const markAllNotificationsRead = () => api.post('/notifications/read-all')
+
+// ---- AI & Matching Services ----
+export const getCropsCatalog = (category) => api.get('/ai/crops', { params: { category } })
+export const getPriceGuidance = (crop, location) => api.get('/ai/price-guidance', { params: { crop, location } })
+export const cropAssist = (payload) => api.post('/ai/crop-assist', payload)
+export const aiAdvisor = (payload) => api.post('/ai/advisor', payload)
+
+export const getMyMatches = () => api.get('/matching/my-matches')
+export const explainMatch = (postId) => api.get(`/matching/explain/${postId}`)
+
+// ---- Reporting ----
+export const reportPost = (postId, payload) => api.post(`/reports/post/${postId}`, payload)
+export const getAdminReports = () => api.get('/reports')
 
 // ---- Admin ----
 export const getAdminStats = () => api.get('/admin/stats')

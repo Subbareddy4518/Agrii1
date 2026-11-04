@@ -48,6 +48,8 @@ class UserOut(BaseModel):
     location: Optional[str] = None
     profile_image: Optional[str] = None
     status: str = "active"
+    is_verified: bool = False
+    trust_score: int = 100
     created_at: datetime
     posts_count: int = 0
 
@@ -68,8 +70,12 @@ class PostCreate(BaseModel):
     title: str
     description: Optional[str] = None
     crop_name: str
+    category: Optional[str] = None
+    variety: Optional[str] = None
+    quality_grade: Optional[str] = None
     quantity: Optional[str] = None
     price: Optional[float] = None
+    is_negotiable: bool = False
     location: Optional[str] = None
     image: Optional[str] = None
     target_date: Optional[str] = None
@@ -79,8 +85,12 @@ class PostUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     crop_name: Optional[str] = None
+    category: Optional[str] = None
+    variety: Optional[str] = None
+    quality_grade: Optional[str] = None
     quantity: Optional[str] = None
     price: Optional[float] = None
+    is_negotiable: Optional[bool] = None
     location: Optional[str] = None
     image: Optional[str] = None
     target_date: Optional[str] = None
@@ -92,6 +102,8 @@ class AuthorOut(BaseModel):
     mobile: str
     location: Optional[str] = None
     profile_image: Optional[str] = None
+    is_verified: bool = False
+    trust_score: int = 100
 
     class Config:
         from_attributes = True
@@ -103,12 +115,17 @@ class PostOut(BaseModel):
     title: str
     description: Optional[str] = None
     crop_name: str
+    category: Optional[str] = None
+    variety: Optional[str] = None
+    quality_grade: Optional[str] = None
     quantity: Optional[str] = None
     price: Optional[float] = None
+    is_negotiable: bool = False
     location: Optional[str] = None
     image: Optional[str] = None
     target_date: Optional[str] = None
     likes_count: int
+    report_count: int = 0
     liked_by_me: bool = False
     created_at: datetime
     owner: AuthorOut
@@ -232,3 +249,98 @@ class BroadcastRequest(BaseModel):
 
 class BroadcastResult(BaseModel):
     sent_count: int
+
+
+# ---------- AI, Market Guidance & Matching ----------
+
+class PriceGuidanceOut(BaseModel):
+    crop_name: str
+    min_price: float
+    max_price: float
+    modal_price: float
+    unit: str
+    trend: str = "stable"
+    market_name: str = "Regional APMC Mandi"
+    confidence: str = "verified_mandi"
+
+
+class CropItemOut(BaseModel):
+    name: str
+    category: str
+    telugu: str
+    hindi: str
+    icon: str
+    default_unit: str
+    min_price: float
+    max_price: float
+    varieties: List[str] = []
+
+
+class CropAssistRequest(BaseModel):
+    text: str
+    language: Optional[str] = "en"
+    role: Optional[str] = "farmer"
+
+
+class CropAssistResponse(BaseModel):
+    detected_crop: Optional[str] = None
+    category: Optional[str] = None
+    variety: Optional[str] = None
+    quantity_amount: Optional[str] = None
+    unit: Optional[str] = None
+    price: Optional[float] = None
+    is_negotiable: bool = False
+    location: Optional[str] = None
+    quality_grade: Optional[str] = None
+    suggested_title: Optional[str] = None
+    suggested_description: Optional[str] = None
+    price_guidance: Optional[PriceGuidanceOut] = None
+    confidence_score: float = 0.95
+    is_ai_generated: bool = True
+    missing_fields: List[str] = []
+
+
+class SmartMatchItemOut(BaseModel):
+    post: PostOut
+    match_score: int
+    reasons: List[str]
+    matched_crop: str
+    distance_approx: Optional[str] = None
+
+
+class SmartMatchesResponse(BaseModel):
+    total_matches: int
+    matches: List[SmartMatchItemOut]
+
+
+class AiAdvisorRequest(BaseModel):
+    message: str
+    language: Optional[str] = "en"
+    role: Optional[str] = "farmer"
+    crop_context: Optional[str] = None
+
+
+class AiAdvisorResponse(BaseModel):
+    reply: str
+    suggested_topics: List[str] = []
+    action_prompt: Optional[str] = None
+
+
+# ---------- Reports ----------
+
+class ReportCreate(BaseModel):
+    reason: str
+    details: Optional[str] = None
+
+
+class ReportOut(BaseModel):
+    id: int
+    post_id: int
+    reporter_id: int
+    reason: str
+    status: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+

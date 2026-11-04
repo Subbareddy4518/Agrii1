@@ -44,7 +44,7 @@ export default function SearchPage() {
     setLoading(true)
     try {
       const res = await searchPosts({ q, sort: sortValue })
-      setResults(res.data)
+      setResults(res.data.items || (Array.isArray(res.data) ? res.data : []))
       setSearched(true)
     } catch {
       toast.error(t('search.failedToast'))

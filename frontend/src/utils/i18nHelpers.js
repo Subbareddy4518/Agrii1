@@ -44,6 +44,14 @@ const CROP_KEYS = {
   mangos: 'mango',
   sugarcane: 'sugarcane',
   'sugar cane': 'sugarcane',
+  'red gram': 'redGram',
+  toor: 'redGram',
+  tur: 'redGram',
+  kandulu: 'redGram',
+  turmeric: 'turmeric',
+  pasupu: 'turmeric',
+  haldi: 'turmeric',
+  soybean: 'soybean',
 }
 
 const UNIT_KEYS = {
@@ -63,11 +71,26 @@ const UNIT_KEYS = {
   bundles: 'bundle',
 }
 
-const CATEGORY_KEYS = {
-  crop: 'crop',
-  crops: 'crop',
-  requirement: 'requirement',
-  requirements: 'requirement',
+const AGRI_CATEGORY_KEYS = {
+  all: 'all',
+  cereals: 'cereals',
+  cereal: 'cereals',
+  vegetables: 'vegetables',
+  vegetable: 'vegetables',
+  spices: 'spices',
+  spice: 'spices',
+  'cash crops': 'cashCrops',
+  'cash crop': 'cashCrops',
+  pulses: 'pulses',
+  pulse: 'pulses',
+  fruits: 'fruits',
+  fruit: 'fruits',
+}
+
+export function translateAgriCategory(t, category) {
+  if (!category) return category
+  const key = AGRI_CATEGORY_KEYS[normalize(category)]
+  return key ? t(`agriCategories.${key}`) : category
 }
 
 const ROLE_KEYS = {

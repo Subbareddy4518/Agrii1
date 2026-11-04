@@ -168,17 +168,25 @@ export default function Profile() {
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <p className="font-display font-semibold text-forest-950 text-lg truncate">{user?.name}</p>
                   {isFarmer ? (
                     <Sprout size={15} className="text-forest-600 shrink-0" />
                   ) : (
                     <Building2 size={15} className="text-forest-600 shrink-0" />
                   )}
+                  <span className="text-[10px] bg-forest-100 text-forest-800 font-bold px-2 py-0.5 rounded-full border border-forest-200">
+                    ✓ {isFarmer ? t('postCard.verifiedFarmer', 'Verified Farmer') : t('postCard.verifiedIndustry', 'Verified Industry')}
+                  </span>
                 </div>
-                <p className="text-xs font-medium text-forest-900/40 uppercase tracking-wide mt-0.5">
-                  {isFarmer ? t('profile.farmerRole') : t('profile.industryRole')}
-                </p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-xs font-medium text-forest-900/40 uppercase tracking-wide">
+                    {isFarmer ? t('profile.farmerRole') : t('profile.industryRole')}
+                  </p>
+                  <span className="text-[11px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.2 rounded-full border border-emerald-200">
+                    🛡️ Trust Score: 100%
+                  </span>
+                </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <button
