@@ -1,0 +1,510 @@
+{
+  "app": {
+    "name": "అగ్రికనెక్ట్",
+    "tagline": "రైతులు & పరిశ్రమలు, నేరుగా అనుసంధానం",
+    "welcomeTagline": "రైతులను పరిశ్రమలతో నేరుగా కలుపుతోంది",
+    "loadingAria": "అగ్రికనెక్ట్ లోడ్ అవుతోంది"
+  },
+  "nav": {
+    "home": "హోమ్",
+    "post": "పోస్ట్",
+    "alerts": "అలర్ట్స్",
+    "profile": "ప్రొఫైల్"
+  },
+  "common": {
+    "back": "వెనుకకు",
+    "cancel": "రద్దు చేయి",
+    "save": "సేవ్ చేయి",
+    "continue": "కొనసాగించు",
+    "skip": "దాటవేయి",
+    "close": "మూసివేయి",
+    "delete": "తొలగించు",
+    "edit": "సవరించు",
+    "search": "వెతకండి",
+    "notSet": "సెట్ చేయలేదు",
+    "readAloud": "బిగ్గరగా చదవండి",
+    "readAloudLabel": "{{text}} బిగ్గరగా చదవండి",
+    "addPhoto": "ఫోటో జోడించండి",
+    "uploading": "అప్‌లోడ్ అవుతోంది…",
+    "imageSizeError": "చిత్రం 8MB కంటే తక్కువగా ఉండాలి",
+    "uploadFailed": "అప్‌లోడ్ విఫలమైంది. మళ్ళీ ప్రయత్నించండి.",
+    "profileAlt": "ప్రొఫైల్",
+    "previewAlt": "ప్రివ్యూ"
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "అగ్రికనెక్ట్‌కు స్వాగతం",
+      "subtitle": "రైతులను పరిశ్రమలతో నేరుగా కలుపుతోంది",
+      "getStarted": "ప్రారంభించండి",
+      "getStartedAria": "అగ్రికనెక్ట్‌తో ప్రారంభించండి",
+      "features": {
+        "fairPrices": {
+          "title": "సరసమైన ధరలు",
+          "desc": "మీ ఆదాయంలో మధ్యవర్తులు వాటా తీసుకోరు"
+        },
+        "directCommunication": {
+          "title": "ప్రత్యక్ష సంభాషణ",
+          "desc": "కొనుగోలుదారులు, అమ్మకందారులతో నేరుగా మాట్లాడండి"
+        },
+        "trustedBuyers": {
+          "title": "నమ్మకమైన కొనుగోలుదారులు",
+          "desc": "మీరు నమ్మదగిన ధృవీకరించబడిన పరిశ్రమలు"
+        },
+        "easySelling": {
+          "title": "సులభమైన పంట అమ్మకం",
+          "desc": "కొన్ని ట్యాప్‌లలో మీ పంటను జాబితా చేయండి"
+        }
+      }
+    },
+    "language": {
+      "title": "మీ భాషను ఎంచుకోండి",
+      "subtitle": "దీన్ని మీరు తర్వాత సెట్టింగ్స్‌లో మార్చుకోవచ్చు",
+      "ariaLabel": "మీకు నచ్చిన భాషను ఎంచుకోండి",
+      "continue": "కొనసాగించు"
+    },
+    "voice": {
+      "title": "వాయిస్ గైడెన్స్ కావాలా?",
+      "subtitle": "చదవడం సౌకర్యంగా లేని వినియోగదారులకు సహాయపడేందుకు అగ్రికనెక్ట్ లేబుళ్లు, బటన్లను బిగ్గరగా చదవగలదు.",
+      "enable": "వాయిస్ ఆన్ చేయి",
+      "enableAria": "వాయిస్ గైడెన్స్‌ను ప్రారంభించండి",
+      "skip": "దాటవేయి",
+      "skipAria": "వాయిస్ గైడెన్స్‌ను దాటవేయండి"
+    }
+  },
+  "auth": {
+    "login": {
+      "appName": "అగ్రికనెక్ట్",
+      "tagline": "రైతులు & పరిశ్రమలు, నేరుగా అనుసంధానం",
+      "mobileLabel": "మొబైల్ నంబర్",
+      "mobilePlaceholder": "9876543210",
+      "passwordLabel": "పాస్‌వర్డ్",
+      "passwordPlaceholder": "పాస్‌వర్డ్ నమోదు చేయండి",
+      "showPassword": "పాస్‌వర్డ్ చూపించు",
+      "hidePassword": "పాస్‌వర్డ్ దాచు",
+      "signIn": "సైన్ ఇన్",
+      "signInAria": "సైన్ ఇన్ చేయండి",
+      "formAria": "సైన్ ఇన్ ఫారం",
+      "newHere": "అగ్రికనెక్ట్‌కు కొత్తా?",
+      "createAccount": "ఖాతా సృష్టించండి",
+      "welcomeToast": "తిరిగి స్వాగతం, {{name}}!",
+      "errors": {
+        "invalidMobile": "సరైన 10 అంకెల మొబైల్ నంబర్ నమోదు చేయండి",
+        "passwordRequired": "మీ పాస్‌వర్డ్ నమోదు చేయండి",
+        "generic": "సైన్ ఇన్ చేయలేకపోయాము. మళ్ళీ ప్రయత్నించండి."
+      }
+    },
+    "register": {
+      "title": "అగ్రికనెక్ట్‌లో చేరండి",
+      "subtitle": "మీరు ఎవరో మాకు చెప్పండి",
+      "farmerLabel": "నేను రైతును",
+      "farmerDesc": "మీ పంటలను నేరుగా పరిశ్రమలకు అమ్మండి",
+      "farmerAria": "రైతుగా నమోదును కొనసాగించండి",
+      "industryLabel": "నేను పరిశ్రమను",
+      "industryDesc": "అవసరాలు పోస్ట్ చేయండి, రైతుల నుండి నేరుగా సేకరించండి",
+      "industryAria": "పరిశ్రమగా నమోదును కొనసాగించండి",
+      "alreadyHave": "ఇప్పటికే ఖాతా ఉందా?",
+      "signIn": "సైన్ ఇన్",
+      "back": "వెనుకకు",
+      "backAria": "పాత్ర ఎంపికకు తిరిగి వెళ్ళు",
+      "farmerRegistrationTitle": "రైతు నమోదు",
+      "industryRegistrationTitle": "పరిశ్రమ నమోదు",
+      "farmerRegistrationSubtitle": "మిమ్మల్ని కలుపడానికి కొన్ని వివరాలు",
+      "industryRegistrationSubtitle": "మీ కంపెనీ గురించి మాకు చెప్పండి",
+      "formAriaFarmer": "రైతు నమోదు ఫారం",
+      "formAriaIndustry": "పరిశ్రమ నమోదు ఫారం",
+      "photoLabelFarmer": "ప్రొఫైల్ ఫోటో",
+      "photoLabelIndustry": "కంపెనీ లోగో",
+      "fullNameLabel": "పూర్తి పేరు",
+      "companyNameLabel": "కంపెనీ పేరు",
+      "fullNamePlaceholder": "ఉదా. రమేష్ కుమార్",
+      "companyNamePlaceholder": "ఉదా. అగ్రోఫుడ్స్ ప్రై. లి.",
+      "contactPersonLabel": "సంప్రదింపు వ్యక్తి",
+      "contactPersonPlaceholder": "మేము సంప్రదించాల్సిన వ్యక్తి పేరు",
+      "mobileLabel": "మొబైల్ నంబర్",
+      "mobilePlaceholder": "9876543210",
+      "villageDistrictLabel": "గ్రామం / జిల్లా",
+      "locationLabel": "ప్రాంతం",
+      "locationPlaceholder": "ఉదా. నల్గొండ, తెలంగాణ",
+      "passwordLabel": "పాస్‌వర్డ్",
+      "passwordPlaceholder": "కనీసం 6 అక్షరాలు",
+      "confirmLabel": "నిర్ధారించండి",
+      "confirmPlaceholder": "మళ్ళీ నమోదు చేయండి",
+      "createAccount": "ఖాతా సృష్టించండి",
+      "createAccountAria": "ఖాతా సృష్టించండి",
+      "successToast": "ఖాతా సృష్టించబడింది! అగ్రికనెక్ట్‌కు స్వాగతం.",
+      "errors": {
+        "nameFarmer": "మీ పూర్తి పేరు నమోదు చేయండి",
+        "nameIndustry": "మీ కంపెనీ పేరు నమోదు చేయండి",
+        "contactPerson": "సంప్రదింపు వ్యక్తి పేరు నమోదు చేయండి",
+        "mobile": "సరైన 10 అంకెల మొబైల్ నంబర్ నమోదు చేయండి",
+        "passwordLength": "పాస్‌వర్డ్ కనీసం 6 అక్షరాలు ఉండాలి",
+        "passwordMismatch": "పాస్‌వర్డ్‌లు సరిపోలలేదు",
+        "generic": "నమోదు విఫలమైంది. మళ్ళీ ప్రయత్నించండి."
+      }
+    }
+  },
+  "home": {
+    "title": "అగ్రికనెక్ట్",
+    "showing": "చూపిస్తోంది: {{opposite}}",
+    "nearYou": "మీ దగ్గర {{opposite}}",
+    "oppositeIndustry": "పరిశ్రమ అవసరాలు",
+    "oppositeFarmer": "రైతు పంటలు",
+    "sorts": {
+      "latest": "తాజావి",
+      "priceLow": "ధర: తక్కువ నుండి ఎక్కువ",
+      "priceHigh": "ధర: ఎక్కువ నుండి తక్కువ"
+    },
+    "empty": {
+      "title": "ఇక్కడ ఇంకా ఏమీ లేదు",
+      "farmerMessage": "ఇంకా పరిశ్రమ అవసరాలు పోస్ట్ చేయలేదు. త్వరలో మళ్ళీ చూడండి.",
+      "industryMessage": "ఇంకా రైతు పంట పోస్టులు లేవు. త్వరలో మళ్ళీ చూడండి."
+    },
+    "caughtUp": "మీరు అన్నీ చూశారు 🌾",
+    "loadError": "ఫీడ్ లోడ్ చేయలేకపోయాము. రిఫ్రెష్ చేయండి."
+  },
+  "search": {
+    "placeholderFarmer": "పరిశ్రమ, పంట లేదా ప్రాంతం వెతకండి",
+    "placeholderIndustry": "రైతు, పంట లేదా ప్రాంతం వెతకండి",
+    "clearAria": "వెతుకులాట తొలగించు",
+    "sorts": {
+      "latest": "తాజావి",
+      "priceAsc": "ధర ↑",
+      "priceDesc": "ధర ↓"
+    },
+    "empty": {
+      "title": "అగ్రికనెక్ట్‌లో వెతకండి",
+      "farmerMessage": "పంట, పరిశ్రమ పేరు లేదా ప్రాంతం ద్వారా అవసరాలను కనుగొనండి.",
+      "industryMessage": "పేరు, రైతు పేరు లేదా ప్రాంతం ద్వారా పంటలను కనుగొనండి."
+    },
+    "noResults": {
+      "title": "ఫలితాలు లేవు",
+      "message": "\"{{query}}\" కి ఏదీ సరిపోలలేదు. మరో వెతుకులాట ప్రయత్నించండి."
+    },
+    "failedToast": "వెతుకులాట విఫలమైంది. మళ్ళీ ప్రయత్నించండి."
+  },
+  "createPost": {
+    "titleFarmer": "మీ పంటను పోస్ట్ చేయండి",
+    "titleIndustry": "అవసరాన్ని పోస్ట్ చేయండి",
+    "subtitleFarmer": "పరిశ్రమలు మిమ్మల్ని కనుగొననివ్వండి",
+    "subtitleIndustry": "రైతులు మిమ్మల్ని కనుగొననివ్వండి",
+    "photoLabelFarmer": "పంట ఫోటో జోడించండి",
+    "photoLabelIndustry": "ఫోటో జోడించండి (ఐచ్ఛికం)",
+    "postTitleLabel": "పోస్ట్ శీర్షిక",
+    "requirementTitleLabel": "అవసర శీర్షిక",
+    "titlePlaceholderFarmer": "ఉదా. తాజా ఆర్గానిక్ టమాటాలు",
+    "titlePlaceholderIndustry": "ఉదా. 2 టన్నుల పత్తి కావాలి",
+    "descriptionLabel": "వివరణ",
+    "speak": "మాట్లాడండి",
+    "descPlaceholderFarmer": "మీ పంట నాణ్యత, పంట కోత వివరాలు మొదలైనవి వివరించండి.",
+    "descPlaceholderIndustry": "మీ అవసరాన్ని వివరంగా వివరించండి",
+    "cropNameLabel": "పంట పేరు",
+    "cropNeededLabel": "కావలసిన పంట",
+    "cropPlaceholder": "ఉదా. టమాటా",
+    "quantityLabel": "పరిమాణం",
+    "quantityRequiredLabel": "అవసరమైన పరిమాణం",
+    "quantityPlaceholder": "ఉదా. 500 కిలోలు",
+    "priceLabelFarmer": "ఆశించిన ధర (₹)",
+    "priceLabelIndustry": "అందించిన ధర (₹)",
+    "pricePlaceholder": "యూనిట్‌కు",
+    "harvestDateLabel": "పంట కోత తేదీ",
+    "requiredBeforeLabel": "కావలసిన తేదీ లోగా",
+    "locationLabel": "ప్రాంతం",
+    "locationPlaceholder": "గ్రామం / జిల్లా",
+    "submit": "సమర్పించండి",
+    "voiceComingSoon": "వాయిస్ ఇన్‌పుట్ త్వరలో వస్తుంది 🎙️",
+    "successToastFarmer": "పంట పోస్ట్ చేయబడింది! పరిశ్రమలు ఇప్పుడు దీన్ని చూస్తాయి.",
+    "successToastIndustry": "అవసరం పోస్ట్ చేయబడింది! రైతులు ఇప్పుడు దీన్ని చూస్తారు.",
+    "errors": {
+      "titleFarmer": "మీ పంటకు సంక్షిప్త శీర్షిక జోడించండి",
+      "titleIndustry": "అవసర శీర్షికను జోడించండి",
+      "cropFarmer": "పంట పేరు నమోదు చేయండి",
+      "cropIndustry": "మీకు కావలసిన పంటను నమోదు చేయండి",
+      "generic": "పోస్ట్ సృష్టించలేకపోయాము. మళ్ళీ ప్రయత్నించండి."
+    }
+  },
+  "notifications": {
+    "title": "నోటిఫికేషన్లు",
+    "subtitleFarmer": "పరిశ్రమల నుండి",
+    "subtitleIndustry": "రైతుల నుండి",
+    "markAllRead": "అన్నీ చదివినట్లు గుర్తించు",
+    "empty": {
+      "title": "ఇంకా నోటిఫికేషన్లు లేవు",
+      "message": "ఎవరైనా ఆసక్తి చూపినప్పుడు లేదా కొత్త పోస్ట్ చేసినప్పుడు మీరు ఇక్కడ నవీకరణలను చూస్తారు."
+    },
+    "loadError": "నోటిఫికేషన్లు లోడ్ చేయలేకపోయాము.",
+    "updateError": "అప్‌డేట్ చేయలేకపోయాము. మళ్ళీ ప్రయత్నించండి.",
+    "templates": {
+      "title": {
+        "newCropPosted": "కొత్త పంట పోస్ట్ చేయబడింది",
+        "newRequirementPosted": "కొత్త అవసరం పోస్ట్ చేయబడింది",
+        "someoneInterested": "ఎవరో ఆసక్తి చూపారు"
+      },
+      "message": {
+        "postedCropNear": "{{name}} {{location}} దగ్గర {{crop}} పోస్ట్ చేశారు.",
+        "postedRequirement": "{{name}} కొత్త అవసరాన్ని పోస్ట్ చేశారు.",
+        "interestedInCrop": "{{name}} మీ {{crop}} పోస్ట్‌పై ఆసక్తి చూపారు."
+      }
+    }
+  },
+  "profile": {
+    "title": "ప్రొఫైల్",
+    "fullNameLabel": "పూర్తి పేరు",
+    "companyNameLabel": "కంపెనీ పేరు",
+    "contactPersonLabel": "సంప్రదింపు వ్యక్తి",
+    "villageDistrictLabel": "గ్రామం / జిల్లా",
+    "locationLabel": "ప్రాంతం",
+    "changePhoto": "ఫోటో మార్చండి",
+    "farmerRole": "రైతు",
+    "industryRole": "పరిశ్రమ",
+    "contactPrefix": "సంప్రదింపు: {{name}}",
+    "postsCount_one": "{{count}} పోస్ట్",
+    "postsCount_other": "{{count}} పోస్టులు",
+    "logout": "లాగ్ అవుట్",
+    "yourPosts": "మీ పోస్టులు",
+    "emptyPosts": {
+      "title": "ఇంకా పోస్టులు లేవు",
+      "farmerMessage": "పరిశ్రమ ఆసక్తి పొందడం ప్రారంభించడానికి మీ మొదటి పంటను పోస్ట్ చేయండి.",
+      "industryMessage": "రైతుల నుండి వినడం ప్రారంభించడానికి ఒక అవసరాన్ని పోస్ట్ చేయండి."
+    },
+    "interestedCount_one": "{{count}} వ్యక్తికి ఆసక్తి ఉంది",
+    "interestedCount_other": "{{count}} మందికి ఆసక్తి ఉంది",
+    "deleteAria": "పోస్ట్ తొలగించు",
+    "editAria": "ప్రొఫైల్ సవరించు",
+    "settingsAria": "సెట్టింగ్స్ తెరవండి",
+    "confirmDelete": "ఈ పోస్ట్‌ను తొలగించాలా? దీన్ని తిరిగి పొందలేరు.",
+    "toasts": {
+      "nameEmpty": "పేరు ఖాళీగా ఉండకూడదు",
+      "updated": "ప్రొఫైల్ నవీకరించబడింది",
+      "updateError": "మార్పులను సేవ్ చేయలేకపోయాము.",
+      "deleted": "పోస్ట్ తొలగించబడింది",
+      "deleteError": "పోస్ట్ తొలగించలేకపోయాము.",
+      "loadError": "మీ పోస్టులను లోడ్ చేయలేకపోయాము."
+    }
+  },
+  "settings": {
+    "title": "సెట్టింగ్స్",
+    "back": "వెనుకకు",
+    "preferences": "ప్రాధాన్యతలు",
+    "language": "భాష",
+    "voiceGuidance": "వాయిస్ గైడెన్స్",
+    "toggleVoiceAria": "వాయిస్ గైడెన్స్‌ను టోగుల్ చేయండి",
+    "about": "గురించి",
+    "aboutApp": "అగ్రికనెక్ట్ గురించి",
+    "privacyPolicy": "గోప్యతా విధానం",
+    "logout": "లాగౌట్",
+    "chooseLanguage": "భాషను ఎంచుకోండి",
+    "closeAria": "మూసివేయి",
+    "aboutText": "అగ్రికనెక్ట్ రైతులు తమ పంటలను మధ్యవర్తులు లేకుండా నేరుగా పరిశ్రమలకు అమ్ముకోవడానికి సహాయపడుతుంది, తద్వారా రైతులకు మెరుగైన ధరలు, కొనుగోలుదారులకు పారదర్శక సోర్సింగ్ లభిస్తుంది.",
+    "privacyText": "రైతులు, పరిశ్రమలను అనుసంధానించడానికి అవసరమైన సమాచారాన్ని మాత్రమే మేము సేకరిస్తాము — మీ ప్రొఫైల్ వివరాలు, పోస్టులు, సందేశాలు. మేము మీ డేటాను మూడవ పక్షాలకు విక్రయించము."
+  },
+  "postCard": {
+    "call": "కాల్",
+    "whatsapp": "వాట్సాప్",
+    "interestedAria": "ఆసక్తి",
+    "shareAria": "షేర్",
+    "crop": "పంట",
+    "qty": "పరిమాణం",
+    "price": "ధర",
+    "offer": "ఆఫర్",
+    "perUnit": "₹{{price}}/యూనిట్",
+    "requirementBadge": "అవసరం",
+    "cropBadge": "పంట",
+    "requirementWord": "అవసరం",
+    "cropWord": "పంట",
+    "interestedCount_one": "{{count}} వ్యక్తికి ఆసక్తి ఉంది",
+    "interestedCount_other": "{{count}} మందికి ఆసక్తి ఉంది",
+    "shareCopied": "పోస్ట్ వివరాలు కాపీ చేయబడ్డాయి",
+    "likeError": "అప్‌డేట్ చేయలేకపోయాము. మళ్ళీ ప్రయత్నించండి.",
+    "whatsappMessage": "నమస్తే {{name}}, అగ్రికనెక్ట్‌లో మీ {{crop}} కోసం {{label}} పోస్ట్ చూశాను. ఇది ఇంకా అందుబాటులో ఉందా?"
+  },
+  "time": {
+    "justNow": "ఇప్పుడే",
+    "minutesAgo": "{{count}} ని క్రితం",
+    "hoursAgo": "{{count}} గం క్రితం",
+    "daysAgo": "{{count}} రో క్రితం",
+    "weeksAgo": "{{count}} వా క్రితం"
+  },
+  "crops": {
+    "rice": "వరి",
+    "cotton": "పత్తి",
+    "tomato": "టమాటా",
+    "potato": "బంగాళదుంప",
+    "banana": "అరటి",
+    "groundnut": "వేరుశనగ",
+    "onion": "ఉల్లిపాయ",
+    "chilli": "మిర్చి",
+    "maize": "మొక్కజొన్న",
+    "wheat": "గోధుమ",
+    "paddy": "వరి ధాన్యం",
+    "mango": "మామిడి",
+    "sugarcane": "చెరకు"
+  },
+  "units": {
+    "kg": "కిలో",
+    "ton": "టన్ను",
+    "quintal": "క్వింటాల్",
+    "bag": "బస్తా",
+    "packet": "ప్యాకెట్",
+    "bundle": "కట్ట"
+  },
+  "categories": {
+    "crop": "పంట",
+    "requirement": "అవసరం"
+  },
+  "roles": {
+    "farmer": "రైతు",
+    "industry": "పరిశ్రమ"
+  },
+  "postStatus": {
+    "active": "యాక్టివ్",
+    "sold": "అమ్మబడింది",
+    "fulfilled": "పూర్తయింది",
+    "closed": "మూసివేయబడింది",
+    "expired": "గడువు ముగిసింది"
+  },
+  "admin": {
+    "nav": {
+      "dashboard": "డాష్‌బోర్డ్",
+      "users": "వినియోగదారులు",
+      "farmers": "రైతులు",
+      "industries": "పరిశ్రమలు",
+      "posts": "పోస్ట్‌లు",
+      "analytics": "విశ్లేషణలు",
+      "notifications": "నోటిఫికేషన్లు",
+      "settings": "సెట్టింగ్‌లు",
+      "logout": "లాగ్ అవుట్"
+    },
+    "sidebar": {
+      "tag": "అడ్మిన్ ప్యానెల్",
+      "role": "నిర్వాహకుడు"
+    },
+    "topbar": {
+      "menu": "మెనూ తెరవండి"
+    },
+    "unauthorized": {
+      "title": "యాక్సెస్ నిరాకరించబడింది",
+      "subtitle": "ఈ పేజీని చూసే అనుమతి మీకు లేదు. ఈ విభాగం AgriConnect నిర్వాహకులకు మాత్రమే పరిమితం.",
+      "backHome": "వెనక్కి వెళ్ళండి"
+    },
+    "dashboard": {
+      "title": "డాష్‌బోర్డ్",
+      "loadError": "డాష్‌బోర్డ్ డేటాను లోడ్ చేయలేకపోయాము. మళ్ళీ ప్రయత్నించండి.",
+      "totalUsers": "మొత్తం వినియోగదారులు",
+      "totalFarmers": "మొత్తం రైతులు",
+      "totalIndustries": "మొత్తం పరిశ్రమలు",
+      "totalPosts": "మొత్తం పోస్ట్‌లు",
+      "activePosts": "యాక్టివ్ పోస్ట్‌లు",
+      "recentActivity": "ఇటీవలి కార్యకలాపం (7 రోజులు)",
+      "chartFarmersVsIndustries": "రైతులు vs పరిశ్రమలు",
+      "chartActiveVsClosed": "యాక్టివ్ vs మూసిన పోస్ట్‌లు",
+      "chartPostsOverTime": "కాలక్రమేణా పోస్ట్‌లు (14 రోజులు)",
+      "chartCropDistribution": "ప్రధాన పంట పంపిణీ"
+    },
+    "users": {
+      "title": "వినియోగదారులు",
+      "loadError": "వినియోగదారులను లోడ్ చేయలేకపోయాము. మళ్ళీ ప్రయత్నించండి.",
+      "search": "పేరు, మొబైల్ లేదా ప్రాంతం ద్వారా వెతకండి",
+      "allRoles": "అన్ని పాత్రలు",
+      "allStatuses": "అన్ని స్థితులు",
+      "colName": "పేరు",
+      "colRole": "పాత్ర",
+      "colMobile": "మొబైల్",
+      "colLocation": "ప్రాంతం",
+      "colRegistered": "నమోదైనది",
+      "colStatus": "స్థితి",
+      "colActions": "చర్యలు",
+      "view": "చూడండి",
+      "suspend": "సస్పెండ్ చేయండి",
+      "activate": "యాక్టివేట్ చేయండి",
+      "details": "వినియోగదారు వివరాలు",
+      "empty": "వినియోగదారులు కనుగొనబడలేదు",
+      "suspendTitle": "వినియోగదారుని సస్పెండ్ చేయాలా?",
+      "activateTitle": "వినియోగదారుని యాక్టివేట్ చేయాలా?",
+      "suspendConfirm": "{{name}} తిరిగి యాక్టివేట్ చేసే వరకు సైన్ ఇన్ చేయలేరు.",
+      "activateConfirm": "{{name}} మళ్ళీ సైన్ ఇన్ చేయగలరు.",
+      "suspendSuccess": "వినియోగదారు సస్పెండ్ చేయబడ్డారు",
+      "activateSuccess": "వినియోగదారు యాక్టివేట్ చేయబడ్డారు",
+      "actionError": "చర్య విఫలమైంది. మళ్ళీ ప్రయత్నించండి."
+    },
+    "farmers": {
+      "title": "రైతులు"
+    },
+    "industries": {
+      "title": "పరిశ్రమలు",
+      "colContact": "సంప్రదింపు వ్యక్తి"
+    },
+    "posts": {
+      "title": "పోస్ట్‌లు",
+      "loadError": "పోస్ట్‌లను లోడ్ చేయలేకపోయాము. మళ్ళీ ప్రయత్నించండి.",
+      "search": "శీర్షిక, పంట, ప్రాంతం లేదా యజమాని ద్వారా వెతకండి",
+      "allTypes": "అన్ని రకాలు",
+      "cropPost": "పంట పోస్ట్",
+      "requirementPost": "అవసర పోస్ట్",
+      "colType": "రకం",
+      "colTitle": "శీర్షిక",
+      "colCrop": "పంట",
+      "colOwner": "యజమాని",
+      "colOwnerPosts": "పోస్ట్‌లు",
+      "colDate": "సృష్టించినది",
+      "colQuantity": "పరిమాణం",
+      "colPrice": "ధర",
+      "details": "పోస్ట్ వివరాలు",
+      "empty": "పోస్ట్‌లు కనుగొనబడలేదు",
+      "close": "మూసివేయండి",
+      "reopen": "మళ్ళీ తెరవండి",
+      "closeTitle": "ఈ పోస్ట్‌ను మూసివేయాలా?",
+      "reopenTitle": "ఈ పోస్ట్‌ను మళ్ళీ తెరవాలా?",
+      "deleteTitle": "ఈ పోస్ట్‌ను తొలగించాలా?",
+      "closeConfirm": "\"{{title}}\" మూసివేయబడి ఫీడ్ నుండి దాచబడుతుంది.",
+      "reopenConfirm": "\"{{title}}\" మళ్ళీ యాక్టివ్‌గా గుర్తించబడుతుంది.",
+      "deleteConfirm": "\"{{title}}\" శాశ్వతంగా తొలగించబడుతుంది. దీన్ని రద్దు చేయలేరు.",
+      "closeSuccess": "పోస్ట్ మూసివేయబడింది",
+      "reopenSuccess": "పోస్ట్ మళ్ళీ తెరవబడింది",
+      "deleteSuccess": "పోస్ట్ తొలగించబడింది",
+      "actionError": "చర్య విఫలమైంది. మళ్ళీ ప్రయత్నించండి."
+    },
+    "analytics": {
+      "title": "విశ్లేషణలు",
+      "loadError": "విశ్లేషణలను లోడ్ చేయలేకపోయాము. మళ్ళీ ప్రయత్నించండి.",
+      "totalUsers": "మొత్తం వినియోగదారులు",
+      "totalPosts": "మొత్తం పోస్ట్‌లు",
+      "interestedActions": "ఆసక్తి చర్యలు",
+      "notificationsTotal": "పంపిన నోటిఫికేషన్లు",
+      "userGrowth": "వినియోగదారు వృద్ధి",
+      "userGrowthSubtitle": "గత 14 రోజుల్లో కొత్త నమోదులు"
+    },
+    "notifications": {
+      "title": "నోటిఫికేషన్లు",
+      "loadError": "ఇటీవలి కార్యకలాపాన్ని లోడ్ చేయలేకపోయాము.",
+      "broadcastTitle": "నోటిఫికేషన్ పంపండి",
+      "audience": "వీరికి పంపండి",
+      "allFarmers": "అందరు రైతులు",
+      "allIndustries": "అన్ని పరిశ్రమలు",
+      "notificationTitle": "శీర్షిక",
+      "titlePlaceholder": "ఉదా. ప్లాట్‌ఫారమ్ నిర్వహణ నోటీసు",
+      "message": "సందేశం",
+      "messagePlaceholder": "మీ సందేశాన్ని వ్రాయండి...",
+      "send": "నోటిఫికేషన్ పంపండి",
+      "sendSuccess": "{{count}} మందికి పంపబడింది",
+      "sendError": "నోటిఫికేషన్ పంపలేకపోయాము.",
+      "recentActivity": "ఇటీవలి కార్యకలాపం",
+      "empty": "ఇంకా నోటిఫికేషన్లు లేవు",
+      "to": "వీరికి"
+    },
+    "settings": {
+      "title": "సెట్టింగ్‌లు",
+      "accountTitle": "అడ్మిన్ ఖాతా",
+      "passwordHint": "అడ్మిన్ పాస్‌వర్డ్ మార్చడానికి, కొత్త ADMIN_PASSWORD తో బ్యాకెండ్‌లో create_admin స్క్రిప్ట్‌ను అమలు చేయండి."
+    },
+    "status": {
+      "active": "యాక్టివ్",
+      "suspended": "సస్పెండ్ చేయబడింది",
+      "closed": "మూసివేయబడింది"
+    },
+    "pagination": {
+      "range": "{{total}}లో {{from}}-{{to}} చూపిస్తోంది",
+      "prev": "మునుపటి పేజీ",
+      "next": "తదుపరి పేజీ"
+    }
+  }
+}

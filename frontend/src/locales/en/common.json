@@ -1,0 +1,510 @@
+{
+  "app": {
+    "name": "AgriConnect",
+    "tagline": "Farmers & Industries, directly connected",
+    "welcomeTagline": "Connecting Farmers Directly with Industries",
+    "loadingAria": "AgriConnect is loading"
+  },
+  "nav": {
+    "home": "Home",
+    "post": "Post",
+    "alerts": "Alerts",
+    "profile": "Profile"
+  },
+  "common": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "save": "Save",
+    "continue": "Continue",
+    "skip": "Skip",
+    "close": "Close",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "notSet": "Not set",
+    "readAloud": "Read aloud",
+    "readAloudLabel": "Read {{text}} aloud",
+    "addPhoto": "Add photo",
+    "uploading": "Uploading…",
+    "imageSizeError": "Image must be under 8MB",
+    "uploadFailed": "Upload failed. Try again.",
+    "profileAlt": "Profile",
+    "previewAlt": "Preview"
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "Welcome to AgriConnect",
+      "subtitle": "Connecting Farmers Directly with Industries",
+      "getStarted": "Get Started",
+      "getStartedAria": "Get started with AgriConnect",
+      "features": {
+        "fairPrices": {
+          "title": "Fair Prices",
+          "desc": "No middlemen cutting into your earnings"
+        },
+        "directCommunication": {
+          "title": "Direct Communication",
+          "desc": "Talk directly with buyers and sellers"
+        },
+        "trustedBuyers": {
+          "title": "Trusted Buyers",
+          "desc": "Verified industries you can rely on"
+        },
+        "easySelling": {
+          "title": "Easy Crop Selling",
+          "desc": "List your harvest in a couple of taps"
+        }
+      }
+    },
+    "language": {
+      "title": "Choose your language",
+      "subtitle": "You can change this later in Settings",
+      "ariaLabel": "Select your preferred language",
+      "continue": "Continue"
+    },
+    "voice": {
+      "title": "Would you like Voice Guidance?",
+      "subtitle": "AgriConnect can read labels and buttons aloud to help users who cannot read comfortably.",
+      "enable": "Enable Voice",
+      "enableAria": "Enable voice guidance",
+      "skip": "Skip",
+      "skipAria": "Skip voice guidance"
+    }
+  },
+  "auth": {
+    "login": {
+      "appName": "AgriConnect",
+      "tagline": "Farmers & Industries, directly connected",
+      "mobileLabel": "Mobile Number",
+      "mobilePlaceholder": "9876543210",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Enter password",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "signIn": "Sign In",
+      "signInAria": "Sign in",
+      "formAria": "Sign in form",
+      "newHere": "New to AgriConnect?",
+      "createAccount": "Create an account",
+      "welcomeToast": "Welcome back, {{name}}!",
+      "errors": {
+        "invalidMobile": "Enter a valid 10-digit mobile number",
+        "passwordRequired": "Enter your password",
+        "generic": "Could not sign in. Try again."
+      }
+    },
+    "register": {
+      "title": "Join AgriConnect",
+      "subtitle": "Tell us who you are",
+      "farmerLabel": "I'm a Farmer",
+      "farmerDesc": "Sell your crops directly to industries",
+      "farmerAria": "Continue registration as a farmer",
+      "industryLabel": "I'm an Industry",
+      "industryDesc": "Post requirements, source directly from farmers",
+      "industryAria": "Continue registration as an industry",
+      "alreadyHave": "Already have an account?",
+      "signIn": "Sign in",
+      "back": "Back",
+      "backAria": "Back to role selection",
+      "farmerRegistrationTitle": "Farmer Registration",
+      "industryRegistrationTitle": "Industry Registration",
+      "farmerRegistrationSubtitle": "A few details to get you connected",
+      "industryRegistrationSubtitle": "Tell us about your company",
+      "formAriaFarmer": "Farmer registration form",
+      "formAriaIndustry": "Industry registration form",
+      "photoLabelFarmer": "Profile photo",
+      "photoLabelIndustry": "Company logo",
+      "fullNameLabel": "Full Name",
+      "companyNameLabel": "Company Name",
+      "fullNamePlaceholder": "e.g. Ramesh Kumar",
+      "companyNamePlaceholder": "e.g. AgroFoods Pvt Ltd",
+      "contactPersonLabel": "Contact Person",
+      "contactPersonPlaceholder": "Name of the person we should reach",
+      "mobileLabel": "Mobile Number",
+      "mobilePlaceholder": "9876543210",
+      "villageDistrictLabel": "Village / District",
+      "locationLabel": "Location",
+      "locationPlaceholder": "e.g. Nalgonda, Telangana",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Min. 6 characters",
+      "confirmLabel": "Confirm",
+      "confirmPlaceholder": "Re-enter",
+      "createAccount": "Create Account",
+      "createAccountAria": "Create account",
+      "successToast": "Account created! Welcome to AgriConnect.",
+      "errors": {
+        "nameFarmer": "Enter your full name",
+        "nameIndustry": "Enter your company name",
+        "contactPerson": "Enter contact person name",
+        "mobile": "Enter a valid 10-digit mobile number",
+        "passwordLength": "Password must be at least 6 characters",
+        "passwordMismatch": "Passwords do not match",
+        "generic": "Registration failed. Try again."
+      }
+    }
+  },
+  "home": {
+    "title": "AgriConnect",
+    "showing": "Showing: {{opposite}}",
+    "nearYou": "{{opposite}} near you",
+    "oppositeIndustry": "Industry requirements",
+    "oppositeFarmer": "Farmer crops",
+    "sorts": {
+      "latest": "Latest",
+      "priceLow": "Price: Low to High",
+      "priceHigh": "Price: High to Low"
+    },
+    "empty": {
+      "title": "Nothing here yet",
+      "farmerMessage": "No industry requirements posted yet. Check back soon.",
+      "industryMessage": "No farmer crop posts yet. Check back soon."
+    },
+    "caughtUp": "You're all caught up 🌾",
+    "loadError": "Could not load feed. Pull to refresh."
+  },
+  "search": {
+    "placeholderFarmer": "Search industry, crop or location",
+    "placeholderIndustry": "Search farmer, crop or location",
+    "clearAria": "Clear search",
+    "sorts": {
+      "latest": "Latest",
+      "priceAsc": "Price ↑",
+      "priceDesc": "Price ↓"
+    },
+    "empty": {
+      "title": "Search AgriConnect",
+      "farmerMessage": "Find requirements by crop, industry name, or location.",
+      "industryMessage": "Find crops by name, farmer name, or location."
+    },
+    "noResults": {
+      "title": "No results",
+      "message": "Nothing matched \"{{query}}\". Try another search."
+    },
+    "failedToast": "Search failed. Try again."
+  },
+  "createPost": {
+    "titleFarmer": "Post Your Crop",
+    "titleIndustry": "Post a Requirement",
+    "subtitleFarmer": "Let industries find you",
+    "subtitleIndustry": "Let farmers find you",
+    "photoLabelFarmer": "Add crop photo",
+    "photoLabelIndustry": "Add photo (optional)",
+    "postTitleLabel": "Post Title",
+    "requirementTitleLabel": "Requirement Title",
+    "titlePlaceholderFarmer": "e.g. Fresh Organic Tomatoes",
+    "titlePlaceholderIndustry": "e.g. Need 2 Tons of Cotton",
+    "descriptionLabel": "Description",
+    "speak": "Speak",
+    "descPlaceholderFarmer": "Describe your crop quality, harvest details, etc.",
+    "descPlaceholderIndustry": "Describe your requirement in detail",
+    "cropNameLabel": "Crop Name",
+    "cropNeededLabel": "Crop Needed",
+    "cropPlaceholder": "e.g. Tomato",
+    "quantityLabel": "Quantity",
+    "quantityRequiredLabel": "Quantity Required",
+    "quantityPlaceholder": "e.g. 500 kg",
+    "priceLabelFarmer": "Expected Price (₹)",
+    "priceLabelIndustry": "Price Offered (₹)",
+    "pricePlaceholder": "per unit",
+    "harvestDateLabel": "Harvest Date",
+    "requiredBeforeLabel": "Required Before",
+    "locationLabel": "Location",
+    "locationPlaceholder": "Village / District",
+    "submit": "Submit",
+    "voiceComingSoon": "Voice input is coming soon 🎙️",
+    "successToastFarmer": "Crop posted! Industries will see it now.",
+    "successToastIndustry": "Requirement posted! Farmers will see it now.",
+    "errors": {
+      "titleFarmer": "Add a short description title for your crop",
+      "titleIndustry": "Add a requirement title",
+      "cropFarmer": "Enter the crop name",
+      "cropIndustry": "Enter the crop you need",
+      "generic": "Could not create post. Try again."
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitleFarmer": "From industries",
+    "subtitleIndustry": "From farmers",
+    "markAllRead": "Mark all read",
+    "empty": {
+      "title": "No notifications yet",
+      "message": "You'll see updates here when someone shows interest or posts something new."
+    },
+    "loadError": "Could not load notifications.",
+    "updateError": "Could not update. Try again.",
+    "templates": {
+      "title": {
+        "newCropPosted": "New crop posted",
+        "newRequirementPosted": "New requirement posted",
+        "someoneInterested": "Someone is interested"
+      },
+      "message": {
+        "postedCropNear": "{{name}} posted {{crop}} near {{location}}.",
+        "postedRequirement": "{{name}} posted a new requirement.",
+        "interestedInCrop": "{{name}} is interested in your {{crop}} post."
+      }
+    }
+  },
+  "profile": {
+    "title": "Profile",
+    "fullNameLabel": "Full Name",
+    "companyNameLabel": "Company Name",
+    "contactPersonLabel": "Contact Person",
+    "villageDistrictLabel": "Village / District",
+    "locationLabel": "Location",
+    "changePhoto": "Change photo",
+    "farmerRole": "Farmer",
+    "industryRole": "Industry",
+    "contactPrefix": "Contact: {{name}}",
+    "postsCount_one": "{{count}} post",
+    "postsCount_other": "{{count}} posts",
+    "logout": "Log out",
+    "yourPosts": "Your Posts",
+    "emptyPosts": {
+      "title": "No posts yet",
+      "farmerMessage": "Post your first crop to start getting industry interest.",
+      "industryMessage": "Post a requirement to start hearing from farmers."
+    },
+    "interestedCount_one": "{{count}} person interested",
+    "interestedCount_other": "{{count}} people interested",
+    "deleteAria": "Delete post",
+    "editAria": "Edit profile",
+    "settingsAria": "Open settings",
+    "confirmDelete": "Delete this post? This cannot be undone.",
+    "toasts": {
+      "nameEmpty": "Name cannot be empty",
+      "updated": "Profile updated",
+      "updateError": "Could not save changes.",
+      "deleted": "Post deleted",
+      "deleteError": "Could not delete post.",
+      "loadError": "Could not load your posts."
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "back": "Back",
+    "preferences": "Preferences",
+    "language": "Language",
+    "voiceGuidance": "Voice Guidance",
+    "toggleVoiceAria": "Toggle voice guidance",
+    "about": "About",
+    "aboutApp": "About AgriConnect",
+    "privacyPolicy": "Privacy Policy",
+    "logout": "Logout",
+    "chooseLanguage": "Choose Language",
+    "closeAria": "Close",
+    "aboutText": "AgriConnect helps farmers sell their crops directly to industries, without middlemen, so growers get fairer prices and buyers get transparent sourcing.",
+    "privacyText": "We only collect the information needed to connect farmers and industries — your profile details, posts, and messages. We do not sell your data to third parties."
+  },
+  "postCard": {
+    "call": "Call",
+    "whatsapp": "WhatsApp",
+    "interestedAria": "Interested",
+    "shareAria": "Share",
+    "crop": "Crop",
+    "qty": "Qty",
+    "price": "Price",
+    "offer": "Offer",
+    "perUnit": "₹{{price}}/unit",
+    "requirementBadge": "Requirement",
+    "cropBadge": "Crop",
+    "requirementWord": "requirement",
+    "cropWord": "crop",
+    "interestedCount_one": "{{count}} person is interested",
+    "interestedCount_other": "{{count}} people are interested",
+    "shareCopied": "Post details copied",
+    "likeError": "Could not update. Try again.",
+    "whatsappMessage": "Hi {{name}}, I saw your {{label}} post for {{crop}} on AgriConnect. Is it still available?"
+  },
+  "time": {
+    "justNow": "just now",
+    "minutesAgo": "{{count}}m ago",
+    "hoursAgo": "{{count}}h ago",
+    "daysAgo": "{{count}}d ago",
+    "weeksAgo": "{{count}}w ago"
+  },
+  "crops": {
+    "rice": "Rice",
+    "cotton": "Cotton",
+    "tomato": "Tomato",
+    "potato": "Potato",
+    "banana": "Banana",
+    "groundnut": "Groundnut",
+    "onion": "Onion",
+    "chilli": "Chilli",
+    "maize": "Maize",
+    "wheat": "Wheat",
+    "paddy": "Paddy",
+    "mango": "Mango",
+    "sugarcane": "Sugarcane"
+  },
+  "units": {
+    "kg": "Kg",
+    "ton": "Ton",
+    "quintal": "Quintal",
+    "bag": "Bag",
+    "packet": "Packet",
+    "bundle": "Bundle"
+  },
+  "categories": {
+    "crop": "Crop",
+    "requirement": "Requirement"
+  },
+  "roles": {
+    "farmer": "Farmer",
+    "industry": "Industry"
+  },
+  "postStatus": {
+    "active": "Active",
+    "sold": "Sold",
+    "fulfilled": "Fulfilled",
+    "closed": "Closed",
+    "expired": "Expired"
+  },
+  "admin": {
+    "nav": {
+      "dashboard": "Dashboard",
+      "users": "Users",
+      "farmers": "Farmers",
+      "industries": "Industries",
+      "posts": "Posts",
+      "analytics": "Analytics",
+      "notifications": "Notifications",
+      "settings": "Settings",
+      "logout": "Logout"
+    },
+    "sidebar": {
+      "tag": "Admin Panel",
+      "role": "Administrator"
+    },
+    "topbar": {
+      "menu": "Open menu"
+    },
+    "unauthorized": {
+      "title": "Access Denied",
+      "subtitle": "You don't have permission to view this page. This area is restricted to AgriConnect administrators.",
+      "backHome": "Go back"
+    },
+    "dashboard": {
+      "title": "Dashboard",
+      "loadError": "Could not load dashboard data. Try again.",
+      "totalUsers": "Total Users",
+      "totalFarmers": "Total Farmers",
+      "totalIndustries": "Total Industries",
+      "totalPosts": "Total Posts",
+      "activePosts": "Active Posts",
+      "recentActivity": "Recent Activity (7d)",
+      "chartFarmersVsIndustries": "Farmers vs Industries",
+      "chartActiveVsClosed": "Active vs Closed Posts",
+      "chartPostsOverTime": "Posts Over Time (14 days)",
+      "chartCropDistribution": "Top Crop Distribution"
+    },
+    "users": {
+      "title": "Users",
+      "loadError": "Could not load users. Try again.",
+      "search": "Search by name, mobile, or location",
+      "allRoles": "All roles",
+      "allStatuses": "All statuses",
+      "colName": "Name",
+      "colRole": "Role",
+      "colMobile": "Mobile",
+      "colLocation": "Location",
+      "colRegistered": "Registered",
+      "colStatus": "Status",
+      "colActions": "Actions",
+      "view": "View",
+      "suspend": "Suspend",
+      "activate": "Activate",
+      "details": "User Details",
+      "empty": "No users found",
+      "suspendTitle": "Suspend user?",
+      "activateTitle": "Activate user?",
+      "suspendConfirm": "{{name}} will no longer be able to sign in until reactivated.",
+      "activateConfirm": "{{name}} will be able to sign in again.",
+      "suspendSuccess": "User suspended",
+      "activateSuccess": "User activated",
+      "actionError": "Action failed. Try again."
+    },
+    "farmers": {
+      "title": "Farmers"
+    },
+    "industries": {
+      "title": "Industries",
+      "colContact": "Contact Person"
+    },
+    "posts": {
+      "title": "Posts",
+      "loadError": "Could not load posts. Try again.",
+      "search": "Search by title, crop, location, or owner",
+      "allTypes": "All types",
+      "cropPost": "Crop Post",
+      "requirementPost": "Requirement Post",
+      "colType": "Type",
+      "colTitle": "Title",
+      "colCrop": "Crop",
+      "colOwner": "Owner",
+      "colOwnerPosts": "Posts",
+      "colDate": "Created",
+      "colQuantity": "Quantity",
+      "colPrice": "Price",
+      "details": "Post Details",
+      "empty": "No posts found",
+      "close": "Close",
+      "reopen": "Reopen",
+      "closeTitle": "Close this post?",
+      "reopenTitle": "Reopen this post?",
+      "deleteTitle": "Delete this post?",
+      "closeConfirm": "\"{{title}}\" will be marked closed and hidden from the feed.",
+      "reopenConfirm": "\"{{title}}\" will be marked active again.",
+      "deleteConfirm": "\"{{title}}\" will be permanently deleted. This cannot be undone.",
+      "closeSuccess": "Post closed",
+      "reopenSuccess": "Post reopened",
+      "deleteSuccess": "Post deleted",
+      "actionError": "Action failed. Try again."
+    },
+    "analytics": {
+      "title": "Analytics",
+      "loadError": "Could not load analytics. Try again.",
+      "totalUsers": "Total Users",
+      "totalPosts": "Total Posts",
+      "interestedActions": "Interested Actions",
+      "notificationsTotal": "Notifications Sent",
+      "userGrowth": "User Growth",
+      "userGrowthSubtitle": "New registrations over the last 14 days"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "loadError": "Could not load recent activity.",
+      "broadcastTitle": "Send Notification",
+      "audience": "Send to",
+      "allFarmers": "All Farmers",
+      "allIndustries": "All Industries",
+      "notificationTitle": "Title",
+      "titlePlaceholder": "e.g. Platform maintenance notice",
+      "message": "Message",
+      "messagePlaceholder": "Write your message...",
+      "send": "Send Notification",
+      "sendSuccess": "Sent to {{count}} recipients",
+      "sendError": "Could not send notification.",
+      "recentActivity": "Recent Activity",
+      "empty": "No notifications yet",
+      "to": "To"
+    },
+    "settings": {
+      "title": "Settings",
+      "accountTitle": "Admin Account",
+      "passwordHint": "To change the admin password, run the create_admin script on the backend with a new ADMIN_PASSWORD."
+    },
+    "status": {
+      "active": "Active",
+      "suspended": "Suspended",
+      "closed": "Closed"
+    },
+    "pagination": {
+      "range": "Showing {{from}}-{{to}} of {{total}}",
+      "prev": "Previous page",
+      "next": "Next page"
+    }
+  }
+}
