@@ -13,6 +13,7 @@ import MatchesPage from './pages/MatchesPage.jsx'
 import Splash from './pages/Splash.jsx'
 import Welcome from './pages/Welcome.jsx'
 import LanguageSelect from './pages/LanguageSelect.jsx'
+import RoleSelect from './pages/RoleSelect.jsx'
 import VoiceAssist from './pages/VoiceAssist.jsx'
 import Layout from './components/Layout.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
@@ -55,7 +56,7 @@ function useOnboardingGate() {
     if (location.pathname !== '/') return
     if (isWelcomeSeen()) return
     if (hasSplashShownThisSession()) {
-      navigate('/language', { replace: true })
+      navigate('/welcome', { replace: true })
     } else {
       navigate('/splash', { replace: true })
     }
@@ -73,6 +74,7 @@ export default function App() {
       <Route path="/splash" element={<Splash />} />
       <Route path="/welcome" element={<Welcome />} />
       <Route path="/language" element={<LanguageSelect />} />
+      <Route path="/role" element={<RoleSelect />} />
       <Route path="/voice" element={<VoiceAssist />} />
 
       <Route path="/login" element={<Login />} />

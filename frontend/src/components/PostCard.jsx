@@ -7,6 +7,8 @@ import { likePost } from '../services/api.js'
 import { translateCropName, translateUnit } from '../utils/i18nHelpers.js'
 import { speak } from '../utils/onboarding.js'
 import ReportModal from './ReportModal.jsx'
+import OtpVerificationModal from './OtpVerificationModal.jsx'
+import { useAuth } from '../context/AuthContext.jsx'
 
 function initials(name = '') {
   return name.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase()
@@ -14,10 +16,13 @@ function initials(name = '') {
 
 export default function PostCard({ post, onChange }) {
   const { t } = useTranslation()
+  const { user } = useAuth()
   const [liked, setLiked] = useState(post.liked_by_me)
   const [likeCount, setLikeCount] = useState(post.likes_count)
   const [busy, setBusy] = useState(false)
   const [showReport, setShowReport] = useState(false)
+  const [showOtpModal, setShowOtpModal] = useState(false)
+  const [pendingAction, setPendingAction] = useState(null)
 
   const isIndustryPost = post.role === 'industry'
   const cropName = translateCropName(t, post.crop_name)
@@ -43,15 +48,39 @@ export default function PostCard({ post, onChange }) {
   }
 
   function handleCall() {
+    if (user && !user.is_verified) {
+      setPendingAction('call')
+      setShowOtpModal(true)
+      return
+    }
     window.location.href = `tel:${post.owner.mobile}`
   }
 
   function handleWhatsApp() {
+    if (user && !user.is_verified) {
+      setPendingAction('whatsapp')
+      setShowOtpModal(true)
+      return
+    }
     const label = isIndustryPost ? t('postCard.requirementWord') : t('postCard.cropWord')
     const text = encodeURIComponent(
       t('postCard.whatsappMessage', { name: post.owner.name, label, crop: cropName })
     )
     window.open(`https://wa.me/91${post.owner.mobile.replace(/\D/g, '').slice(-10)}?text=${text}`, '_blank')
+  }
+
+  function handleOtpVerified() {
+    setShowOtpModal(false)
+    if (pendingAction === 'call') {
+      window.location.href = `tel:${post.owner.mobile}`
+    } else if (pendingAction === 'whatsapp') {
+      const label = isIndustryPost ? t('postCard.requirementWord') : t('postCard.cropWord')
+      const text = encodeURIComponent(
+        t('postCard.whatsappMessage', { name: post.owner.name, label, crop: cropName })
+      )
+      window.open(`https://wa.me/91${post.owner.mobile.replace(/\D/g, '').slice(-10)}?text=${text}`, '_blank')
+    }
+    setPendingAction(null)
   }
 
   async function handleShare() {
@@ -99,7 +128,7 @@ export default function PostCard({ post, onChange }) {
               {/* Trust Verification Badge - strictly conditional on actual database state */}
               {post.owner?.is_verified && (
                 <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full bg-forest-100 text-forest-800 border border-forest-200 shrink-0">
-                  ✓ {isIndustryPost ? t('postCard.verifiedIndustry', 'Verified Industry') : t('postCard.verifiedFarmer', 'Verified Farmer')}
+                  ✓ {t('common.mobileVerified', 'Mobile Number Verified')}
                 </span>
               )}
               {post.owner?.trust_score != null && (
@@ -271,6 +300,18 @@ export default function PostCard({ post, onChange }) {
 
       {/* Report Modal */}
       <ReportModal isOpen={showReport} onClose={() => setShowReport(false)} post={post} />
+
+      {/* Mobile OTP Verification Modal */}
+      <OtpVerificationModal
+        isOpen={showOtpModal}
+        onClose={() => {
+          setShowOtpModal(false)
+          setPendingAction(null)
+        }}
+        onVerified={handleOtpVerified}
+        initialMobile={user?.mobile}
+        promptReason={t('auth.otp.promptActionContact', 'Please verify your mobile number to view contact details.')}
+      />
     </>
   )
 }

@@ -31,6 +31,7 @@ import toast from 'react-hot-toast'
 import { useTranslation } from 'react-i18next'
 import TopBar from '../components/TopBar.jsx'
 import ImagePicker from '../components/ImagePicker.jsx'
+import OtpVerificationModal from '../components/OtpVerificationModal.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { createPost, getCropsCatalog, getPriceGuidance } from '../services/api.js'
 import { translateCropName, translateUnit, translateAgriCategory } from '../utils/i18nHelpers.js'
@@ -130,6 +131,7 @@ export default function CreatePost() {
   const [submitting, setSubmitting] = useState(false)
   const isPublishingRef = useRef(false)
   const [publishedPost, setPublishedPost] = useState(null)
+  const [showOtpModal, setShowOtpModal] = useState(false)
 
   // Load Crops Catalog on mount
   useEffect(() => {
@@ -588,6 +590,11 @@ export default function CreatePost() {
     if (isPublishingRef.current || submitting) return
 
     stopSpeaking()
+
+    if (user && !user.is_verified) {
+      setShowOtpModal(true)
+      return
+    }
 
     if (!form.crop_name.trim()) {
       setStep(1)
@@ -1910,6 +1917,18 @@ export default function CreatePost() {
           </div>
         )}
       </main>
+
+      {/* Mobile OTP Verification Modal */}
+      <OtpVerificationModal
+        isOpen={showOtpModal}
+        onClose={() => setShowOtpModal(false)}
+        onVerified={() => {
+          setShowOtpModal(false)
+          handlePublish()
+        }}
+        initialMobile={user?.mobile}
+        promptReason={t('auth.otp.promptActionPublish', 'Please verify your mobile number to publish a listing.')}
+      />
     </div>
   )
 }

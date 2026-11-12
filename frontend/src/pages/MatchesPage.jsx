@@ -161,7 +161,7 @@ export default function MatchesPage() {
                           )}
                           {post.owner?.is_verified && (
                             <span className="text-[10px] bg-forest-100 text-forest-800 font-medium px-1.5 py-0.2 rounded-full shrink-0">
-                              ✓ {t('profile.verified', 'Verified')}
+                              ✓ {t('common.mobileVerified', 'Mobile Number Verified')}
                             </span>
                           )}
                           {post.owner?.trust_score != null && (

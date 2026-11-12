@@ -40,12 +40,17 @@
     "previewAlt": "Preview",
     "changeLanguage": "Change language",
     "refresh": "Refresh",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "mobileVerified": "Mobile Number Verified"
   },
   "onboarding": {
     "welcome": {
       "title": "Welcome to AgriConnect",
+      "tagline": "Connect farmers and buyers directly.",
       "subtitle": "Connecting Farmers Directly with Industries",
+      "continue": "Continue",
+      "signInPrompt": "Already have an account?",
+      "signIn": "Sign In",
       "getStarted": "Get Started",
       "getStartedAria": "Get started with AgriConnect",
       "features": {
@@ -72,6 +77,14 @@
       "subtitle": "You can change this later in Settings",
       "ariaLabel": "Select your preferred language",
       "continue": "Continue"
+    },
+    "role": {
+      "title": "Choose How You Use AgriConnect",
+      "subtitle": "Select your role to get started",
+      "farmerTitle": "I am a Farmer",
+      "farmerSubtitle": "I want to sell my crops.",
+      "buyerTitle": "I am a Buyer",
+      "buyerSubtitle": "I want to purchase crops."
     },
     "voice": {
       "title": "Would you like Voice Guidance?",
@@ -154,6 +167,22 @@
         "passwordMismatch": "Passwords do not match",
         "generic": "Registration failed. Try again."
       }
+    },
+    "otp": {
+      "title": "Verify Mobile Number",
+      "subtitle": "We sent a 4-digit verification code to",
+      "testHint": "Test OTP code: 1234",
+      "enterCode": "Enter 4-digit code",
+      "verifyBtn": "Verify & Continue",
+      "resendBtn": "Resend Code",
+      "verifying": "Verifying…",
+      "sentSuccess": "Verification code sent (Test OTP: 1234)",
+      "sendFailed": "Failed to send OTP",
+      "success": "Mobile number verified successfully!",
+      "invalidOtp": "Invalid OTP code. Please enter 1234.",
+      "promptActionPublish": "Please verify your mobile number to publish a listing.",
+      "promptActionContact": "Please verify your mobile number to view contact details.",
+      "verifyMobileBtn": "Verify Mobile"
     }
   },
   "home": {
@@ -170,6 +199,8 @@
     "postSubtitleIndustry": "Post requirements directly to verified farmers",
     "findBuyers": "Find Buyers",
     "findCrops": "Find Crops",
+    "myCrops": "My Crops",
+    "myRequirements": "My Requirements",
     "checkMatches": "My Matches",
     "askAi": "Ask AI",
     "sorts": {

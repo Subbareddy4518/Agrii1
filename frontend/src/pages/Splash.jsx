@@ -23,7 +23,7 @@ export default function Splash() {
       if (isWelcomeSeen()) {
         navigate('/', { replace: true })
       } else {
-        navigate('/language', { replace: true })
+        navigate('/welcome', { replace: true })
       }
     }, SPLASH_DURATION_MS)
     return () => clearTimeout(timer)

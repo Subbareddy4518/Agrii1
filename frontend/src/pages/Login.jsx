@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 import { useTranslation } from 'react-i18next'
 import { loginUser } from '../services/api.js'
 import { useAuth } from '../context/AuthContext.jsx'
+import { markWelcomeSeen } from '../utils/onboarding.js'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -31,6 +32,7 @@ export default function Login() {
     setLoading(true)
     try {
       const res = await loginUser({ mobile, password })
+      markWelcomeSeen()
       login(res.data.access_token, res.data.user)
       toast.success(t('auth.login.welcomeToast', { name: res.data.user.name.split(' ')[0] }))
       navigate(res.data.user.role === 'admin' ? '/admin' : '/', { replace: true })
@@ -128,7 +130,7 @@ export default function Login() {
           className="text-center text-forest-200/80 text-sm mt-6"
         >
           {t('auth.login.newHere')}{' '}
-          <Link to="/register" className="text-white font-semibold underline underline-offset-2 focus:outline-none focus:ring-2 focus:ring-white/40 rounded">
+          <Link to="/role" className="text-white font-semibold underline underline-offset-2 focus:outline-none focus:ring-2 focus:ring-white/40 rounded">
             {t('auth.login.createAccount')}
           </Link>
         </motion.p>

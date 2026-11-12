@@ -55,3 +55,45 @@ def login(payload: schemas.LoginRequest, db: Session = Depends(get_db)):
     user_out = schemas.UserOut.model_validate(user)
     user_out.posts_count = posts_count
     return schemas.Token(access_token=token, user=user_out)
+
+
+@router.post("/send-otp", response_model=schemas.OtpResponse)
+def send_otp(payload: schemas.SendOtpRequest):
+    """Simulate lightweight mobile OTP dispatch (testing code: 1234)."""
+    digits = "".join(filter(str.isdigit, payload.mobile))
+    if len(digits) < 10:
+        raise HTTPException(status_code=400, detail="Please enter a valid 10-digit mobile number")
+    return schemas.OtpResponse(
+        message=f"OTP sent successfully to {digits[-10:]}",
+        otp="1234",
+        is_verified=False
+    )
+
+
+@router.post("/verify-otp", response_model=schemas.OtpResponse)
+def verify_otp(payload: schemas.VerifyOtpRequest, db: Session = Depends(get_db)):
+    """Verify 4-digit mobile OTP code and mark account as Mobile Number Verified."""
+    digits = "".join(filter(str.isdigit, payload.mobile))
+    if len(digits) < 10:
+        raise HTTPException(status_code=400, detail="Please enter a valid 10-digit mobile number")
+
+    if payload.otp.strip() != "1234":
+        raise HTTPException(status_code=400, detail="Invalid OTP code. Please enter 1234.")
+
+    user = db.query(models.User).filter(models.User.mobile == digits[-10:]).first()
+    user_out = None
+    if user:
+        user.is_verified = True
+        user.trust_score = trust.calculate_trust_score(user, db)
+        db.commit()
+        db.refresh(user)
+        user_out = schemas.UserOut.model_validate(user)
+        user_out.posts_count = len(user.posts)
+
+    return schemas.OtpResponse(
+        message="Mobile number verified successfully",
+        otp="1234",
+        is_verified=True,
+        user=user_out
+    )
+

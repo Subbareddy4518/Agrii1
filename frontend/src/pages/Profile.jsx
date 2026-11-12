@@ -24,6 +24,7 @@ import { useTranslation } from 'react-i18next'
 import TopBar from '../components/TopBar.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import ImagePicker from '../components/ImagePicker.jsx'
+import OtpVerificationModal from '../components/OtpVerificationModal.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { getMyPosts, updateMe, deletePost, updatePostStatus } from '../services/api.js'
 import { timeAgo } from '../utils/time.js'
@@ -52,6 +53,7 @@ export default function Profile() {
 
   // Controlled Lifecycle State Management
   const [soldModalPost, setSoldModalPost] = useState(null)
+  const [showOtpModal, setShowOtpModal] = useState(false)
   const [archiveModalPost, setArchiveModalPost] = useState(null)
   const [soldForm, setSoldForm] = useState({ sold_price: '', sold_quantity: '', notes: '' })
   const [statusUpdating, setStatusUpdating] = useState(false)
@@ -226,12 +228,17 @@ export default function Profile() {
                   {/* Trust Verification Badge - Strictly conditional on actual database state */}
                   {user?.is_verified ? (
                     <span className="text-[10px] bg-forest-100 text-forest-800 font-bold px-2 py-0.5 rounded-full border border-forest-200">
-                      ✓ {isFarmer ? t('postCard.verifiedFarmer', 'Verified Farmer') : t('postCard.verifiedIndustry', 'Verified Industry')}
+                      ✓ {t('common.mobileVerified', 'Mobile Number Verified')}
                     </span>
                   ) : (
-                    <span className="text-[10px] bg-cloud-100 text-forest-900/60 font-medium px-2 py-0.5 rounded-full border border-cloud-200">
-                      {t('profile.unverified', 'Verification Pending')}
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowOtpModal(true)}
+                      className="text-[10px] bg-amber-50 hover:bg-amber-100 text-amber-900 font-semibold px-2.5 py-0.5 rounded-full border border-amber-300 active:scale-95 transition-all shadow-xs"
+                      title={t('auth.otp.verifyMobileBtn', 'Verify Mobile Number')}
+                    >
+                      ⚡ {t('auth.otp.verifyMobileBtn', 'Verify Mobile')}
+                    </button>
                   )}
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
@@ -624,6 +631,16 @@ export default function Profile() {
           </div>
         </div>
       )}
+      {/* Mobile OTP Verification Modal */}
+      <OtpVerificationModal
+        isOpen={showOtpModal}
+        onClose={() => setShowOtpModal(false)}
+        onVerified={() => {
+          setShowOtpModal(false)
+          if (refreshUser) refreshUser()
+        }}
+        initialMobile={user?.mobile}
+      />
     </div>
   )
 }

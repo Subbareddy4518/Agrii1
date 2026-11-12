@@ -35,6 +35,8 @@ api.interceptors.response.use(
 // ---- Auth ----
 export const registerUser = (payload) => api.post('/auth/register', payload)
 export const loginUser = (payload) => api.post('/auth/login', payload)
+export const sendOtp = (payload) => api.post('/auth/send-otp', payload)
+export const verifyOtp = (payload) => api.post('/auth/verify-otp', payload)
 
 // ---- Users ----
 export const getMe = () => api.get('/users/me')

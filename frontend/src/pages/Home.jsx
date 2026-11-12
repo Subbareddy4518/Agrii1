@@ -148,51 +148,67 @@ export default function Home() {
             </div>
           </div>
 
-          {/* 3 Secondary Large Visual Actions */}
-          <div className="grid grid-cols-3 gap-2">
+          {/* 4 Secondary Large Visual Actions */}
+          <div className="grid grid-cols-4 gap-2">
             {/* Action 1: Find Buyers / Crops */}
             <button
               type="button"
               onClick={() => navigate('/search')}
-              className="bg-white hover:bg-cloud-100/60 p-3 rounded-2xl border border-cloud-200 shadow-xs flex flex-col items-center justify-center text-center active:scale-95 transition-all min-h-[78px]"
+              className="bg-white hover:bg-cloud-100/60 p-2.5 rounded-2xl border border-cloud-200 shadow-xs flex flex-col items-center justify-center text-center active:scale-95 transition-all min-h-[76px]"
             >
               <div className="w-8 h-8 rounded-xl bg-forest-100 text-forest-700 flex items-center justify-center mb-1">
                 <Search size={16} />
               </div>
-              <span className="font-bold text-forest-950 text-xs leading-tight">
+              <span className="font-bold text-forest-950 text-[11px] sm:text-xs leading-tight">
                 {isFarmer ? t('home.findBuyers', 'Find Buyers') : t('home.findCrops', 'Find Crops')}
               </span>
             </button>
 
-            {/* Action 2: Check My Matches */}
+            {/* Action 2: My Crops / My Requirements */}
+            <button
+              type="button"
+              onClick={() => navigate('/profile')}
+              className="bg-white hover:bg-cloud-100/60 p-2.5 rounded-2xl border border-cloud-200 shadow-xs flex flex-col items-center justify-center text-center active:scale-95 transition-all min-h-[76px]"
+            >
+              <div className={`w-8 h-8 rounded-xl flex items-center justify-center mb-1 ${
+                isFarmer ? 'bg-forest-100 text-forest-700' : 'bg-amber-100 text-amber-700'
+              }`}>
+                {isFarmer ? <Sprout size={16} /> : <Building2 size={16} />}
+              </div>
+              <span className="font-bold text-forest-950 text-[11px] sm:text-xs leading-tight">
+                {isFarmer ? t('home.myCrops', 'My Crops') : t('home.myRequirements', 'My Requirements')}
+              </span>
+            </button>
+
+            {/* Action 3: Check My Matches */}
             <button
               type="button"
               onClick={() => navigate('/matches')}
-              className="bg-white hover:bg-cloud-100/60 p-3 rounded-2xl border border-cloud-200 shadow-xs flex flex-col items-center justify-center text-center active:scale-95 transition-all min-h-[78px] relative"
+              className="bg-white hover:bg-cloud-100/60 p-2.5 rounded-2xl border border-cloud-200 shadow-xs flex flex-col items-center justify-center text-center active:scale-95 transition-all min-h-[76px] relative"
             >
               <div className="w-8 h-8 rounded-xl bg-harvest-100 text-harvest-700 flex items-center justify-center mb-1">
                 <Sparkles size={16} />
               </div>
-              <span className="font-bold text-forest-950 text-xs leading-tight">
-                {t('home.checkMatches', 'My Matches')}
+              <span className="font-bold text-forest-950 text-[11px] sm:text-xs leading-tight">
+                {t('home.checkMatches', 'Matches')}
               </span>
               {matchCount > 0 && (
-                <span className="absolute top-2 right-2 bg-harvest-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                <span className="absolute top-1.5 right-1.5 bg-harvest-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                   {matchCount}
                 </span>
               )}
             </button>
 
-            {/* Action 3: Ask AgriConnect AI */}
+            {/* Action 4: Ask AgriConnect AI */}
             <button
               type="button"
               onClick={() => setShowAiAdvisor(true)}
-              className="bg-white hover:bg-cloud-100/60 p-3 rounded-2xl border border-cloud-200 shadow-xs flex flex-col items-center justify-center text-center active:scale-95 transition-all min-h-[78px]"
+              className="bg-white hover:bg-cloud-100/60 p-2.5 rounded-2xl border border-cloud-200 shadow-xs flex flex-col items-center justify-center text-center active:scale-95 transition-all min-h-[76px]"
             >
               <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-1">
                 <MessageSquareText size={16} />
               </div>
-              <span className="font-bold text-forest-950 text-xs leading-tight">
+              <span className="font-bold text-forest-950 text-[11px] sm:text-xs leading-tight">
                 {t('home.askAi', 'Ask AI')}
               </span>
             </button>

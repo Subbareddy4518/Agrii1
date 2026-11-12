@@ -31,6 +31,22 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class SendOtpRequest(BaseModel):
+    mobile: str
+
+
+class VerifyOtpRequest(BaseModel):
+    mobile: str
+    otp: str
+
+
+class OtpResponse(BaseModel):
+    message: str
+    otp: Optional[str] = None
+    is_verified: bool = False
+    user: Optional["UserOut"] = None
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"

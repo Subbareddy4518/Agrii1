@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Sprout, Building2, Loader2, ArrowLeft, Eye, EyeOff } from 'lucide-react'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { registerUser } from '../services/api.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import ImagePicker from '../components/ImagePicker.jsx'
+import { markWelcomeSeen } from '../utils/onboarding.js'
 
 const inputCls =
   'w-full px-4 py-3.5 rounded-2xl border border-cloud-200 bg-cloud-50 focus:bg-white focus:border-forest-400 focus:ring-4 focus:ring-forest-100 outline-none transition-all text-[15px]'
@@ -14,14 +15,26 @@ const labelCls = 'text-sm font-medium text-forest-950 mb-1.5 block'
 
 export default function Register() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { login } = useAuth()
   const { t } = useTranslation()
-  const [step, setStep] = useState(1) // 1 = choose role, 2 = fill form
-  const [role, setRole] = useState(null)
+
+  const roleParam = searchParams.get('role')
+  const initialRole = roleParam === 'industry' ? 'industry' : (roleParam === 'farmer' ? 'farmer' : null)
+
+  const [step, setStep] = useState(initialRole ? 2 : 1) // 1 = choose role, 2 = fill form
+  const [role, setRole] = useState(initialRole || 'farmer')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+
+  useEffect(() => {
+    if (roleParam === 'industry' || roleParam === 'farmer') {
+      setRole(roleParam)
+      setStep(2)
+    }
+  }, [roleParam])
 
   const [form, setForm] = useState({
     name: '',
@@ -64,6 +77,7 @@ export default function Register() {
         location: form.location.trim() || null,
         profile_image: form.profile_image,
       })
+      markWelcomeSeen()
       login(res.data.access_token, res.data.user)
       toast.success(t('auth.register.successToast'))
       navigate('/', { replace: true })
@@ -145,13 +159,32 @@ export default function Register() {
   return (
     <div className="min-h-screen bg-cloud-50 px-6 py-8">
       <div className="max-w-sm mx-auto w-full">
-        <button
-          onClick={() => setStep(1)}
-          aria-label={t('auth.register.backAria')}
-          className="min-h-[44px] inline-flex items-center gap-1.5 text-forest-700 font-semibold mb-5 px-2 -ml-2 rounded-xl hover:bg-forest-100/50 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-forest-200"
-        >
-          <ArrowLeft size={18} /> {t('auth.register.back')}
-        </button>
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={() => navigate('/role')}
+            aria-label={t('auth.register.backAria')}
+            className="min-h-[44px] inline-flex items-center gap-1.5 text-forest-700 font-semibold px-2 -ml-2 rounded-xl hover:bg-forest-100/50 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-forest-200"
+          >
+            <ArrowLeft size={18} /> {t('auth.register.back')}
+          </button>
+          <Link
+            to="/role"
+            className="text-xs font-semibold px-3 py-1.5 rounded-full bg-forest-100 text-forest-800 hover:bg-forest-200 flex items-center gap-1.5 transition-all"
+          >
+            {role === 'farmer' ? (
+              <>
+                <Sprout size={13} className="text-forest-700" />
+                <span>{t('auth.register.farmerLabel')}</span>
+              </>
+            ) : (
+              <>
+                <Building2 size={13} className="text-amber-700" />
+                <span>{t('auth.register.industryLabel')}</span>
+              </>
+            )}
+            <span className="text-forest-600 underline ml-0.5">{t('common.edit', 'Change')}</span>
+          </Link>
+        </div>
 
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -293,6 +326,13 @@ export default function Register() {
           >
             {loading ? <Loader2 className="animate-spin" size={20} /> : t('auth.register.createAccount')}
           </button>
+
+          <p className="text-center text-forest-900/60 text-sm mt-4">
+            {t('auth.register.alreadyHave')}{' '}
+            <Link to="/login" className="text-forest-700 font-semibold underline underline-offset-2 hover:text-forest-900 focus:outline-none focus:ring-2 focus:ring-forest-300 rounded">
+              {t('auth.register.signIn')}
+            </Link>
+          </p>
         </motion.form>
       </div>
     </div>
