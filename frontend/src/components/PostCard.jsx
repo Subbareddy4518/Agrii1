@@ -123,16 +123,18 @@ export default function PostCard({ post, onChange }) {
             <button
               onClick={handleReadAloud}
               title={t('common.readAloud', 'Read aloud')}
-              className="w-7 h-7 rounded-full text-forest-900/40 hover:text-forest-700 flex items-center justify-center hover:bg-forest-50"
+              aria-label={t('common.readAloud', 'Read aloud')}
+              className="w-9 h-9 rounded-full text-forest-900/40 hover:text-forest-700 flex items-center justify-center hover:bg-forest-50 active:scale-95 transition-all"
             >
-              <Volume2 size={14} />
+              <Volume2 size={16} />
             </button>
             <button
               onClick={() => setShowReport(true)}
               title={t('report.buttonTitle', 'Report listing')}
-              className="w-7 h-7 rounded-full text-forest-900/40 hover:text-red-500 flex items-center justify-center hover:bg-red-50"
+              aria-label={t('report.buttonTitle', 'Report listing')}
+              className="w-9 h-9 rounded-full text-forest-900/40 hover:text-red-500 flex items-center justify-center hover:bg-red-50 active:scale-95 transition-all"
             >
-              <ShieldAlert size={14} />
+              <ShieldAlert size={16} />
             </button>
             {post.status && post.status !== 'active' && (
               <span
@@ -232,13 +234,13 @@ export default function PostCard({ post, onChange }) {
           <div className="flex items-center gap-2 px-4 pb-3.5 pt-1.5">
             <button
               onClick={handleCall}
-              className="flex-1 flex items-center justify-center gap-1.5 bg-forest-700 hover:bg-forest-800 text-white font-semibold text-xs py-3 rounded-2xl active:scale-95 transition-all shadow-sm"
+              className="flex-1 min-h-[44px] flex items-center justify-center gap-1.5 bg-forest-700 hover:bg-forest-800 text-white font-semibold text-xs py-3.5 rounded-2xl active:scale-95 transition-all shadow-sm"
             >
               <Phone size={15} /> {t('postCard.call')}
             </button>
             <button
               onClick={handleWhatsApp}
-              className="flex-1 flex items-center justify-center gap-1.5 bg-[#25D366] hover:brightness-95 text-white font-semibold text-xs py-3 rounded-2xl active:scale-95 transition-all shadow-sm"
+              className="flex-1 min-h-[44px] flex items-center justify-center gap-1.5 bg-[#25D366] hover:brightness-95 text-white font-semibold text-xs py-3.5 rounded-2xl active:scale-95 transition-all shadow-sm"
             >
               <MessageCircle size={15} /> {t('postCard.whatsapp')}
             </button>

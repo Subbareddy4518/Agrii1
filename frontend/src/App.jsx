@@ -18,6 +18,7 @@ import Layout from './components/Layout.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import AdminRoute from './components/AdminRoute.jsx'
 import Unauthorized from './pages/Unauthorized.jsx'
+import OfflineBanner from './components/OfflineBanner.jsx'
 import { hasSplashShownThisSession, isWelcomeSeen } from './utils/onboarding.js'
 
 // Safe code-splitting: Lazy load admin suite and heavy analytics/recharts to reduce bundle size for farmers
@@ -66,7 +67,9 @@ export default function App() {
   useOnboardingGate()
 
   return (
-    <Routes>
+    <>
+      <OfflineBanner />
+      <Routes>
       <Route path="/splash" element={<Splash />} />
       <Route path="/welcome" element={<Welcome />} />
       <Route path="/language" element={<LanguageSelect />} />
@@ -113,5 +116,6 @@ export default function App() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+  </>
   )
 }

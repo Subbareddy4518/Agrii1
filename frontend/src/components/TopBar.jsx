@@ -43,29 +43,35 @@ export default function TopBar({ title, subtitle, showSearch = true, onLogoClick
               type="button"
               onClick={() => setShowLangMenu((s) => !s)}
               aria-label="Change language"
-              className="h-10 px-2.5 rounded-2xl bg-white border border-cloud-200/80 shadow-card flex items-center gap-1.5 text-xs font-semibold text-forest-800 active:scale-95 transition-all min-w-[44px]"
+              className="min-h-[44px] h-11 px-3 rounded-2xl bg-white border border-cloud-200/80 shadow-card flex items-center gap-1.5 text-xs font-semibold text-forest-800 active:scale-95 transition-all min-w-[44px]"
             >
-              <Globe size={15} className="text-forest-600 shrink-0" />
+              <Globe size={16} className="text-forest-600 shrink-0" />
               <span>{currentObj.native}</span>
             </button>
 
             {showLangMenu && (
-              <div className="absolute right-0 top-full mt-2 w-36 bg-white rounded-2xl shadow-float border border-cloud-200 overflow-hidden z-50 py-1 animate-pop-in">
-                {LANGUAGES.map((lang) => (
-                  <button
-                    key={lang.code}
-                    onClick={() => handleSelectLang(lang.code)}
-                    className={`w-full text-left px-3.5 py-2.5 text-xs flex items-center justify-between transition-colors ${
-                      currentLang === lang.code
-                        ? 'bg-forest-50 text-forest-800 font-bold'
-                        : 'text-forest-950/80 hover:bg-cloud-50'
-                    }`}
-                  >
-                    <span>{lang.native}</span>
-                    <span className="text-[10px] text-forest-900/40">{lang.label}</span>
-                  </button>
-                ))}
-              </div>
+              <>
+                <div
+                  className="fixed inset-0 z-40 bg-black/10 backdrop-blur-none"
+                  onClick={() => setShowLangMenu(false)}
+                />
+                <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-2xl shadow-float border border-cloud-200 overflow-hidden z-50 py-1 animate-pop-in">
+                  {LANGUAGES.map((lang) => (
+                    <button
+                      key={lang.code}
+                      onClick={() => handleSelectLang(lang.code)}
+                      className={`w-full text-left px-4 py-3 text-xs sm:text-sm flex items-center justify-between min-h-[44px] transition-colors ${
+                        currentLang === lang.code
+                          ? 'bg-forest-50 text-forest-800 font-bold'
+                          : 'text-forest-950/80 hover:bg-cloud-50'
+                      }`}
+                    >
+                      <span className="font-semibold">{lang.native}</span>
+                      <span className="text-[11px] text-forest-900/50">{lang.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
             )}
           </div>
 
@@ -73,7 +79,7 @@ export default function TopBar({ title, subtitle, showSearch = true, onLogoClick
             <button
               onClick={() => navigate('/search')}
               aria-label={t('common.search')}
-              className="w-10 h-10 rounded-2xl bg-white border border-cloud-200/80 shadow-card flex items-center justify-center text-forest-800 active:scale-95 transition-transform"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl bg-white border border-cloud-200/80 shadow-card flex items-center justify-center text-forest-800 active:scale-95 transition-transform"
             >
               <Search size={18} />
             </button>

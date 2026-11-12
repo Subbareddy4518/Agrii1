@@ -44,7 +44,7 @@ export default function VoiceAssist() {
             type="button"
             onClick={() => finish(true)}
             aria-label={t('onboarding.voice.enableAria')}
-            className="w-full bg-forest-700 hover:bg-forest-800 text-white font-semibold py-3.5 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-float focus:outline-none focus:ring-4 focus:ring-forest-600/40"
+            className="w-full bg-forest-700 hover:bg-forest-800 text-white font-semibold py-3.5 min-h-[48px] rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-float focus:outline-none focus:ring-4 focus:ring-forest-600/40"
           >
             <Volume2 size={18} /> {t('onboarding.voice.enable')}
           </button>
@@ -52,7 +52,7 @@ export default function VoiceAssist() {
             type="button"
             onClick={() => finish(false)}
             aria-label={t('onboarding.voice.skipAria')}
-            className="w-full bg-white/[0.06] border border-white/10 hover:bg-white/[0.1] text-forest-100 font-medium py-3.5 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all focus:outline-none focus:ring-4 focus:ring-white/10"
+            className="w-full bg-white/[0.06] border border-white/10 hover:bg-white/[0.1] text-forest-100 font-medium py-3.5 min-h-[48px] rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all focus:outline-none focus:ring-4 focus:ring-white/10"
           >
             <X size={18} /> {t('onboarding.voice.skip')}
           </button>

@@ -89,6 +89,7 @@ export default function CreatePost() {
 
   // Submission State
   const [submitting, setSubmitting] = useState(false)
+  const isPublishingRef = useRef(false)
   const [publishedPost, setPublishedPost] = useState(null)
 
   // Load Crops Catalog
@@ -407,6 +408,8 @@ export default function CreatePost() {
 
   // Submit Listing
   async function handlePublish() {
+    if (isPublishingRef.current || submitting) return
+
     if (!form.crop_name.trim()) {
       setStep(1)
       toast.error(t('createPost.errors.cropFarmer', 'Please select a crop'))
@@ -419,6 +422,7 @@ export default function CreatePost() {
 
     const quantityFormatted = form.quantity_num ? `${form.quantity_num} ${form.unit}` : null
 
+    isPublishingRef.current = true
     setSubmitting(true)
     try {
       const res = await createPost({
@@ -446,8 +450,15 @@ export default function CreatePost() {
       setDraftRestored(false)
       toast.success(isFarmer ? t('createPost.successToastFarmer') : t('createPost.successToastIndustry'))
     } catch (err) {
-      toast.error(err.response?.data?.detail || t('createPost.errors.generic', 'Failed to publish. Try again.'))
+      if (err?.isTimeout) {
+        toast.error(t('common.networkTimeout', 'Network request timed out. Your draft is safely saved — check connection and try again.'))
+      } else if (err?.isNetworkError) {
+        toast.error(t('common.offlineError', 'You appear to be offline. Your draft is safely saved.'))
+      } else {
+        toast.error(err.response?.data?.detail || t('createPost.errors.generic', 'Failed to publish. Try again.'))
+      }
     } finally {
+      isPublishingRef.current = false
       setSubmitting(false)
     }
   }

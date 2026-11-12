@@ -231,15 +231,15 @@ export default function MatchesPage() {
                     <div className="flex items-center gap-2 mt-4 pt-3 border-t border-cloud-100">
                       <button
                         onClick={() => handleCall(post.owner.mobile)}
-                        className="flex-1 flex items-center justify-center gap-1.5 bg-forest-700 hover:bg-forest-800 text-white font-semibold text-xs py-2.5 rounded-2xl active:scale-95 transition-all shadow-sm"
+                        className="flex-1 min-h-[44px] flex items-center justify-center gap-1.5 bg-forest-700 hover:bg-forest-800 text-white font-semibold text-xs py-3 rounded-2xl active:scale-95 transition-all shadow-sm"
                       >
-                        <Phone size={14} /> {t('postCard.call', 'Call')}
+                        <Phone size={15} /> {t('postCard.call', 'Call')}
                       </button>
                       <button
                         onClick={() => handleWhatsApp(post, cropName)}
-                        className="flex-1 flex items-center justify-center gap-1.5 bg-[#25D366] hover:brightness-95 text-white font-semibold text-xs py-2.5 rounded-2xl active:scale-95 transition-all shadow-sm"
+                        className="flex-1 min-h-[44px] flex items-center justify-center gap-1.5 bg-[#25D366] hover:brightness-95 text-white font-semibold text-xs py-3 rounded-2xl active:scale-95 transition-all shadow-sm"
                       >
-                        <MessageCircle size={14} /> {t('postCard.whatsapp', 'WhatsApp')}
+                        <MessageCircle size={15} /> {t('postCard.whatsapp', 'WhatsApp')}
                       </button>
                     </div>
                   </div>

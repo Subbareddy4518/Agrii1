@@ -2,6 +2,7 @@ import axios from 'axios'
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
+  timeout: 15000, // 15 seconds network timeout for unstable rural 2G/3G/4G connections
 })
 
 api.interceptors.request.use((config) => {
@@ -13,6 +14,13 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
+    // Flag timeout and network disconnection for farmer-friendly error handling
+    if (err.code === 'ECONNABORTED' || err.message?.toLowerCase().includes('timeout')) {
+      err.isTimeout = true
+    } else if (!err.response) {
+      err.isNetworkError = true
+    }
+
     if (err.response?.status === 401) {
       localStorage.removeItem('agriconnect_token')
       localStorage.removeItem('agriconnect_user')

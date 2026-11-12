@@ -227,10 +227,21 @@ def dispatch_status_change_notifications(post_id: int, changed_by_user_id: int, 
 # Endpoints
 # --------------------------------------------------------------------------
 
+ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif"}
+
+
 @router.post("/upload-image")
 def upload_image(file: UploadFile = File(...), user: models.User = Depends(get_current_user)):
     """Accepts a single image and returns a relative URL to store on a post/profile."""
-    ext = os.path.splitext(file.filename)[1] or ".jpg"
+    raw_ext = os.path.splitext(file.filename or "")[1].lower()
+    ext = raw_ext if raw_ext else ".jpg"
+
+    if ext not in ALLOWED_IMAGE_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid image format. Allowed formats: JPG, PNG, WEBP, BMP, GIF."
+        )
+
     filename = f"{uuid.uuid4().hex}{ext}"
     dest = os.path.join(UPLOAD_DIR, filename)
     with open(dest, "wb") as buffer:

@@ -192,14 +192,14 @@ export default function Profile() {
             <div className="flex gap-2 pt-1">
               <button
                 onClick={() => setEditing(false)}
-                className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-2xl border border-cloud-200 text-forest-900/70 font-medium"
+                className="flex-1 min-h-[44px] flex items-center justify-center gap-1.5 py-3.5 rounded-2xl border border-cloud-200 text-forest-900/70 font-semibold active:scale-95 transition-all"
               >
                 <X size={16} /> {t('common.cancel')}
               </button>
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-2xl bg-forest-700 text-white font-medium disabled:opacity-70"
+                className="flex-1 min-h-[44px] flex items-center justify-center gap-1.5 py-3.5 rounded-2xl bg-forest-700 text-white font-semibold disabled:opacity-70 active:scale-95 transition-all shadow-sm"
               >
                 {saving ? <Loader2 className="animate-spin" size={16} /> : <Check size={16} />} {t('common.save')}
               </button>
@@ -247,17 +247,17 @@ export default function Profile() {
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={() => navigate('/settings')}
-                  className="w-9 h-9 rounded-xl bg-cloud-50 border border-cloud-200 flex items-center justify-center text-forest-700 focus:outline-none focus:ring-2 focus:ring-forest-200"
+                  className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl bg-cloud-50 border border-cloud-200 flex items-center justify-center text-forest-700 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-forest-200"
                   aria-label={t('profile.settingsAria')}
                 >
-                  <SettingsIcon size={15} />
+                  <SettingsIcon size={16} />
                 </button>
                 <button
                   onClick={startEdit}
-                  className="w-9 h-9 rounded-xl bg-cloud-50 border border-cloud-200 flex items-center justify-center text-forest-700 focus:outline-none focus:ring-2 focus:ring-forest-200"
+                  className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl bg-cloud-50 border border-cloud-200 flex items-center justify-center text-forest-700 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-forest-200"
                   aria-label={t('profile.editAria')}
                 >
-                  <Pencil size={15} />
+                  <Pencil size={16} />
                 </button>
               </div>
             </div>
@@ -415,9 +415,9 @@ export default function Profile() {
                                 notes: '',
                               })
                             }}
-                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-cloud-100 text-forest-800 font-medium hover:bg-cloud-200 active:scale-95 transition-all"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cloud-100 text-forest-800 font-semibold text-xs hover:bg-cloud-200 active:scale-95 transition-all min-h-[38px]"
                           >
-                            <CheckCircle size={13} /> {t('listing.actions.markSold', 'Mark Sold')}
+                            <CheckCircle size={14} /> {t('listing.actions.markSold', 'Mark Sold')}
                           </button>
                         </>
                       )}
@@ -427,9 +427,9 @@ export default function Profile() {
                         <button
                           type="button"
                           onClick={() => handleStatusChange(post.id, 'active')}
-                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-cloud-100 text-forest-800 font-medium hover:bg-cloud-200 active:scale-95 transition-all"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cloud-100 text-forest-800 font-semibold text-xs hover:bg-cloud-200 active:scale-95 transition-all min-h-[38px]"
                         >
-                          <RefreshCw size={12} /> {t('listing.actions.relist', 'Re-list')}
+                          <RefreshCw size={13} /> {t('listing.actions.relist', 'Re-list')}
                         </button>
                       )}
 
@@ -438,9 +438,9 @@ export default function Profile() {
                         <button
                           type="button"
                           onClick={() => handleStatusChange(post.id, 'active', { notes: 'Restored from archive' })}
-                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-forest-700 text-white font-medium hover:bg-forest-800 active:scale-95 transition-all"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-forest-700 text-white font-semibold text-xs hover:bg-forest-800 active:scale-95 transition-all min-h-[38px]"
                         >
-                          <RotateCcw size={12} /> {t('listing.actions.restore', 'Restore to Active')}
+                          <RotateCcw size={13} /> {t('listing.actions.restore', 'Restore to Active')}
                         </button>
                       )}
 
@@ -449,9 +449,9 @@ export default function Profile() {
                         <button
                           type="button"
                           onClick={() => handleStatusChange(post.id, 'active')}
-                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-forest-700 text-white font-medium hover:bg-forest-800 active:scale-95 transition-all"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-forest-700 text-white font-semibold text-xs hover:bg-forest-800 active:scale-95 transition-all min-h-[38px]"
                         >
-                          <Play size={12} /> {t('listing.actions.publish', 'Publish')}
+                          <Play size={13} /> {t('listing.actions.publish', 'Publish')}
                         </button>
                       )}
                     </div>
@@ -461,19 +461,19 @@ export default function Profile() {
                       <button
                         type="button"
                         onClick={() => setArchiveModalPost(post)}
-                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200 font-medium active:scale-95 transition-all"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200 font-semibold text-xs active:scale-95 transition-all min-h-[38px]"
                         aria-label={t('listing.actions.archive', 'Archive')}
                       >
-                        <Archive size={13} /> {t('listing.actions.archive', 'Archive')}
+                        <Archive size={14} /> {t('listing.actions.archive', 'Archive')}
                       </button>
                     ) : user?.role === 'admin' ? (
                       <button
                         onClick={() => handleDeletePost(post.id)}
-                        className="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center shrink-0 transition-colors"
+                        className="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center shrink-0 transition-colors"
                         aria-label={t('profile.deleteAria')}
                         title="Admin permanent delete"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={15} />
                       </button>
                     ) : null}
                   </div>
@@ -525,7 +525,7 @@ export default function Profile() {
               <button
                 type="button"
                 onClick={() => setArchiveModalPost(null)}
-                className="flex-1 py-2.5 rounded-xl border border-cloud-200 text-forest-900/70 text-xs font-semibold hover:bg-cloud-100 active:scale-95 transition-all"
+                className="flex-1 min-h-[44px] py-3 rounded-xl border border-cloud-200 text-forest-900/70 text-xs font-semibold hover:bg-cloud-100 active:scale-95 transition-all"
               >
                 {t('listing.archiveModal.cancel', 'Keep Active')}
               </button>
@@ -537,7 +537,7 @@ export default function Profile() {
                   setArchiveModalPost(null)
                   await handleStatusChange(targetId, 'archived', { notes: 'Archived by owner via profile' })
                 }}
-                className="flex-1 py-2.5 rounded-xl bg-stone-800 hover:bg-stone-900 text-white text-xs font-bold shadow-sm active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+                className="flex-1 min-h-[44px] py-3 rounded-xl bg-stone-800 hover:bg-stone-900 text-white text-xs font-bold shadow-sm active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
               >
                 {statusUpdating ? <Loader2 size={14} className="animate-spin" /> : <Archive size={14} />}
                 {t('listing.archiveModal.confirm', 'Archive Listing')}
@@ -607,7 +607,7 @@ export default function Profile() {
               <button
                 type="button"
                 onClick={() => setSoldModalPost(null)}
-                className="flex-1 py-2.5 rounded-xl border border-cloud-200 text-forest-900/70 text-xs font-semibold hover:bg-cloud-100"
+                className="flex-1 min-h-[44px] py-3 rounded-xl border border-cloud-200 text-forest-900/70 text-xs font-semibold hover:bg-cloud-100 active:scale-95 transition-all"
               >
                 {t('listing.markSoldModal.cancel', 'Cancel')}
               </button>
@@ -615,7 +615,7 @@ export default function Profile() {
                 type="button"
                 disabled={statusUpdating}
                 onClick={() => handleStatusChange(soldModalPost.id, 'sold', soldForm)}
-                className="flex-1 py-2.5 rounded-xl bg-forest-700 text-white text-xs font-bold hover:bg-forest-800 disabled:opacity-70 flex items-center justify-center gap-1.5 shadow-sm"
+                className="flex-1 min-h-[44px] py-3 rounded-xl bg-forest-700 text-white text-xs font-bold hover:bg-forest-800 disabled:opacity-70 flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all"
               >
                 {statusUpdating ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
                 {t('listing.markSoldModal.confirm', 'Confirm Sold Out')}

@@ -85,7 +85,7 @@ export default function Notifications() {
         {unreadCount > 0 && (
           <button
             onClick={handleMarkAll}
-            className="flex items-center gap-1.5 text-xs font-medium text-forest-700 bg-forest-50 rounded-full px-3 py-1.5 mb-4 ml-auto float-right"
+            className="flex items-center gap-1.5 text-xs font-semibold text-forest-700 bg-forest-50 hover:bg-forest-100 rounded-full px-3.5 py-2 min-h-[38px] mb-4 ml-auto float-right shadow-xs active:scale-95 transition-all"
           >
             <CheckCheck size={13} /> {t('notifications.markAllRead')}
           </button>

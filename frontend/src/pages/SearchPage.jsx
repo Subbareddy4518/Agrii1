@@ -64,27 +64,27 @@ export default function SearchPage() {
           <button
             onClick={() => navigate(-1)}
             aria-label={t('common.back')}
-            className="w-9 h-9 rounded-xl flex items-center justify-center text-forest-800 shrink-0 focus:outline-none focus:ring-2 focus:ring-forest-200"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-2xl bg-white border border-cloud-200/80 flex items-center justify-center text-forest-800 shrink-0 shadow-xs active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-forest-200"
           >
             <ArrowLeft size={19} />
           </button>
           <div className="relative flex-1">
-            <SearchIcon size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-forest-400" />
+            <SearchIcon size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-forest-400 pointer-events-none" />
             <input
               ref={inputRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={user?.role === 'farmer' ? t('search.placeholderFarmer') : t('search.placeholderIndustry')}
               aria-label={t('common.search')}
-              className="w-full pl-9 pr-9 py-2.5 rounded-full bg-white border border-cloud-200 focus:border-forest-400 focus:ring-4 focus:ring-forest-100 outline-none text-sm"
+              className="w-full pl-9 pr-11 py-3 min-h-[44px] rounded-full bg-white border border-cloud-200 focus:border-forest-400 focus:ring-4 focus:ring-forest-100 outline-none text-sm transition-all shadow-xs"
             />
             {query && (
               <button
                 onClick={() => setQuery('')}
                 aria-label={t('search.clearAria')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-forest-400 focus:outline-none focus:ring-2 focus:ring-forest-200 rounded-full"
+                className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-forest-400 hover:text-forest-700 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-forest-200 rounded-full"
               >
-                <X size={15} />
+                <X size={16} />
               </button>
             )}
           </div>
@@ -98,7 +98,7 @@ export default function SearchPage() {
               value={sort}
               onChange={(e) => setSort(e.target.value)}
               aria-label={t('home.sorts.latest')}
-              className="text-xs font-medium bg-white border border-cloud-200 rounded-full px-3 py-1.5 text-forest-800 outline-none"
+              className="text-xs font-semibold bg-white border border-cloud-200 rounded-full px-3.5 py-2 min-h-[38px] text-forest-800 outline-none shadow-xs"
             >
               {SORT_VALUES.map((value) => (
                 <option key={value} value={value}>

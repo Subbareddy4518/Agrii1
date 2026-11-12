@@ -206,7 +206,7 @@ export default function Home() {
               key={cat}
               type="button"
               onClick={() => setSelectedCategory(cat)}
-              className={`text-xs px-3.5 py-1.5 rounded-full font-semibold shrink-0 transition-all active:scale-95 ${
+              className={`text-xs px-3.5 py-2 min-h-[36px] rounded-full font-semibold shrink-0 transition-all active:scale-95 flex items-center ${
                 selectedCategory === cat
                   ? 'bg-forest-700 text-white shadow-xs'
                   : 'bg-white border border-cloud-200 text-forest-900/70 hover:bg-cloud-100'
@@ -227,28 +227,34 @@ export default function Home() {
           <div className="relative">
             <button
               onClick={() => setShowSortMenu((s) => !s)}
-              className="flex items-center gap-1.5 text-xs font-semibold bg-white border border-cloud-200 rounded-full px-3 py-1.5 shadow-xs text-forest-800 active:scale-95 transition-all"
+              className="flex items-center gap-1.5 text-xs font-semibold bg-white border border-cloud-200 rounded-full px-3.5 py-2 min-h-[38px] shadow-xs text-forest-800 active:scale-95 transition-all"
             >
               <SlidersHorizontal size={13} />
               {t(`home.sorts.${SORT_KEYS[sort]}`)}
             </button>
             {showSortMenu && (
-              <div className="absolute right-0 top-full mt-2 bg-white rounded-2xl shadow-float border border-cloud-200 overflow-hidden z-20 w-48 py-1 animate-pop-in">
-                {SORT_VALUES.map((value) => (
-                  <button
-                    key={value}
-                    onClick={() => {
-                      setSort(value)
-                      setShowSortMenu(false)
-                    }}
-                    className={`w-full text-left px-4 py-2 text-xs flex items-center justify-between ${
-                      sort === value ? 'bg-forest-50 text-forest-800 font-bold' : 'text-forest-900/70 hover:bg-cloud-50'
-                    }`}
-                  >
-                    <span>{t(`home.sorts.${SORT_KEYS[value]}`)}</span>
-                  </button>
-                ))}
-              </div>
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setShowSortMenu(false)}
+                />
+                <div className="absolute right-0 top-full mt-2 bg-white rounded-2xl shadow-float border border-cloud-200 overflow-hidden z-20 w-48 py-1 animate-pop-in">
+                  {SORT_VALUES.map((value) => (
+                    <button
+                      key={value}
+                      onClick={() => {
+                        setSort(value)
+                        setShowSortMenu(false)
+                      }}
+                      className={`w-full text-left px-4 py-3 min-h-[44px] text-xs sm:text-sm flex items-center justify-between ${
+                        sort === value ? 'bg-forest-50 text-forest-800 font-bold' : 'text-forest-900/70 hover:bg-cloud-50'
+                      }`}
+                    >
+                      <span>{t(`home.sorts.${SORT_KEYS[value]}`)}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
             )}
           </div>
         </div>
