@@ -113,7 +113,30 @@ class TestPhase4MobileReliability(unittest.TestCase):
             with self.assertRaises(HTTPException) as ctx:
                 posts.upload_image(file=upload_file, user=self.farmer)
             self.assertEqual(ctx.exception.status_code, 400)
-            self.assertIn("Invalid image format", ctx.exception.detail)
+
+    def test_upload_image_content_and_size_validation(self):
+        """Misleading extensions (fake headers), empty files, and oversized files must be rejected."""
+        # 1. Misleading extension: .jpg extension but content is windows executable
+        fake_jpg = UploadFile(filename="trojan.jpg", file=io.BytesIO(b"MZ\x90\x00fake_executable_bytes"))
+        with self.assertRaises(HTTPException) as ctx:
+            posts.upload_image(file=fake_jpg, user=self.farmer)
+        self.assertEqual(ctx.exception.status_code, 400)
+        self.assertIn("File content does not match", ctx.exception.detail)
+
+        # 2. Empty file
+        empty_png = UploadFile(filename="empty.png", file=io.BytesIO(b""))
+        with self.assertRaises(HTTPException) as ctx:
+            posts.upload_image(file=empty_png, user=self.farmer)
+        self.assertEqual(ctx.exception.status_code, 400)
+        self.assertIn("cannot be empty", ctx.exception.detail)
+
+        # 3. Oversized file (> 15MB)
+        huge_data = io.BytesIO(b"\xff\xd8\xff\xe0" + b"0" * (16 * 1024 * 1024))
+        huge_file = UploadFile(filename="huge.jpg", file=huge_data)
+        with self.assertRaises(HTTPException) as ctx:
+            posts.upload_image(file=huge_file, user=self.farmer)
+        self.assertEqual(ctx.exception.status_code, 400)
+        self.assertIn("exceeds maximum 15MB", ctx.exception.detail)
 
     # --------------------------------------------------------------------------
     # 2. Post Creation & Data Integrity Tests

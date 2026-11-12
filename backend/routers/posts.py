@@ -228,11 +228,29 @@ def dispatch_status_change_notifications(post_id: int, changed_by_user_id: int, 
 # --------------------------------------------------------------------------
 
 ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif"}
+MAX_IMAGE_FILE_SIZE = 15 * 1024 * 1024  # 15MB
+
+
+def is_valid_image_header(header: bytes, ext: str) -> bool:
+    """Verifies image file magic bytes match the declared extension."""
+    if not header:
+        return False
+    if ext in {".jpg", ".jpeg"}:
+        return header.startswith(b"\xff\xd8\xff")
+    elif ext == ".png":
+        return header.startswith(b"\x89PNG\r\n\x1a\n")
+    elif ext == ".gif":
+        return header.startswith(b"GIF87a") or header.startswith(b"GIF89a")
+    elif ext == ".bmp":
+        return header.startswith(b"BM")
+    elif ext == ".webp":
+        return header.startswith(b"RIFF") and b"WEBP" in header[:16]
+    return False
 
 
 @router.post("/upload-image")
 def upload_image(file: UploadFile = File(...), user: models.User = Depends(get_current_user)):
-    """Accepts a single image and returns a relative URL to store on a post/profile."""
+    """Accepts a single image, verifies format, size, and magic bytes, and returns relative URL."""
     raw_ext = os.path.splitext(file.filename or "")[1].lower()
     ext = raw_ext if raw_ext else ".jpg"
 
@@ -240,6 +258,31 @@ def upload_image(file: UploadFile = File(...), user: models.User = Depends(get_c
         raise HTTPException(
             status_code=400,
             detail="Invalid image format. Allowed formats: JPG, PNG, WEBP, BMP, GIF."
+        )
+
+    # Content-type check if provided
+    if file.content_type:
+        ct = file.content_type.lower()
+        if not (ct.startswith("image/") or ct in {"application/octet-stream", "application/x-empty"}):
+            raise HTTPException(status_code=400, detail="Invalid image content type.")
+
+    # Check file size (max 15MB) and reject empty files
+    file.file.seek(0, os.SEEK_END)
+    size = file.file.tell()
+    file.file.seek(0)
+
+    if size == 0:
+        raise HTTPException(status_code=400, detail="Image file cannot be empty.")
+    if size > MAX_IMAGE_FILE_SIZE:
+        raise HTTPException(status_code=400, detail="Image file size exceeds maximum 15MB limit.")
+
+    # Validate header magic bytes
+    header = file.file.read(32)
+    file.file.seek(0)
+    if not is_valid_image_header(header, ext):
+        raise HTTPException(
+            status_code=400,
+            detail="File content does not match a valid image format."
         )
 
     filename = f"{uuid.uuid4().hex}{ext}"
