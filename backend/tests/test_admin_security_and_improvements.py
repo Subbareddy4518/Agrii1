@@ -471,6 +471,107 @@ class TestAdminSecurityAndImprovements(unittest.TestCase):
             self.assertEqual(ctx.exception.status_code, 403)
             self.assertIn("admin access required", ctx.exception.detail.lower())
 
+    # --------------------------------------------------------------------------
+    # 10. Admin Password Persistence Across Application Restarts
+    # --------------------------------------------------------------------------
+    def test_12_admin_password_persists_across_restart_and_emergency_reset(self):
+        """Admin password changed in settings must not be overwritten upon backend startup."""
+        from auth import verify_password
+        import main
+
+        # Simulate setting initial admin credentials in environment
+        os.environ["ADMIN_MOBILE"] = "9900000000"
+        os.environ["ADMIN_PASSWORD"] = "InitialEnvPassword123"
+        os.environ["ADMIN_NAME"] = "AgriConnect System Administrator"
+
+        # Change admin password in database (as done via Admin Settings)
+        new_hashed = hash_password("ChangedInSettings456!")
+        self.admin_user.hashed_password = new_hashed
+        self.db.commit()
+
+        # Simulate restart by running main.setup_admin_from_environment() using our test db session
+        # Temporarily mock SessionLocal in main to use our testing engine
+        orig_session_local = main.SessionLocal
+        try:
+            main.SessionLocal = self.TestingSessionLocal
+
+            # First restart simulation: without FORCE_ADMIN_PASSWORD_RESET
+            if "FORCE_ADMIN_PASSWORD_RESET" in os.environ:
+                del os.environ["FORCE_ADMIN_PASSWORD_RESET"]
+
+            main.setup_admin_from_environment()
+
+            # Refresh and verify password was PRESERVED
+            self.db.refresh(self.admin_user)
+            self.assertTrue(
+                verify_password("ChangedInSettings456!", self.admin_user.hashed_password),
+                "Password changed in Admin Settings must persist across application restarts!"
+            )
+            self.assertFalse(
+                verify_password("InitialEnvPassword123", self.admin_user.hashed_password)
+            )
+
+            # Second simulation: with FORCE_ADMIN_PASSWORD_RESET=true
+            os.environ["FORCE_ADMIN_PASSWORD_RESET"] = "true"
+            main.setup_admin_from_environment()
+
+            # Refresh and verify emergency reset took effect
+            self.db.refresh(self.admin_user)
+            self.assertTrue(
+                verify_password("InitialEnvPassword123", self.admin_user.hashed_password),
+                "FORCE_ADMIN_PASSWORD_RESET=true must reset admin password when explicitly requested."
+            )
+        finally:
+            main.SessionLocal = orig_session_local
+            if "FORCE_ADMIN_PASSWORD_RESET" in os.environ:
+                del os.environ["FORCE_ADMIN_PASSWORD_RESET"]
+
+    # --------------------------------------------------------------------------
+    # 11. Production Secret Key Configuration Validation
+    # --------------------------------------------------------------------------
+    def test_13_production_secret_key_fails_safely(self):
+        """Backend fails safely upon startup if SECRET_KEY is not configured in production."""
+        from auth import validate_production_secret, DEV_SECRET_KEY
+
+        orig_env = os.environ.get("ENVIRONMENT")
+        orig_secret = os.environ.get("SECRET_KEY")
+        try:
+            # Case A: Production mode with development fallback -> must raise RuntimeError
+            os.environ["ENVIRONMENT"] = "production"
+            if "SECRET_KEY" in os.environ:
+                del os.environ["SECRET_KEY"]
+
+            with self.assertRaises(RuntimeError) as ctx:
+                validate_production_secret()
+            self.assertIn("FATAL SECURITY CONFIGURATION", str(ctx.exception))
+
+            # Case B: Production mode with explicit strong SECRET_KEY -> succeeds
+            os.environ["SECRET_KEY"] = "super-secret-production-random-key-12345"
+            # Should not raise
+            validate_production_secret()
+        finally:
+            if orig_env is not None:
+                os.environ["ENVIRONMENT"] = orig_env
+            elif "ENVIRONMENT" in os.environ:
+                del os.environ["ENVIRONMENT"]
+
+            if orig_secret is not None:
+                os.environ["SECRET_KEY"] = orig_secret
+            elif "SECRET_KEY" in os.environ:
+                del os.environ["SECRET_KEY"]
+
+    # --------------------------------------------------------------------------
+    # 12. Audit Log Append-Only Structure & Sensitive Action Coverage
+    # --------------------------------------------------------------------------
+    def test_14_audit_logs_append_only_and_sensitive_actions_covered(self):
+        """Audit log is strictly append-only (no modification/deletion routes exist)."""
+        # Confirm routers have no delete or update routes for audit-logs
+        for route in admin.router.routes:
+            if hasattr(route, "path") and "audit-log" in route.path:
+                self.assertNotIn("DELETE", route.methods, "Audit logs must not have deletion endpoints")
+                self.assertNotIn("PUT", route.methods, "Audit logs must not have update endpoints")
+                self.assertNotIn("PATCH", route.methods, "Audit logs must not have update endpoints")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -89,19 +89,29 @@ def setup_admin_from_environment():
 
             if existing_user.role == models.RoleEnum.admin:
 
-                existing_user.name = admin_name
-                existing_user.hashed_password = hash_password(
-                    admin_password
-                )
+                if admin_name and existing_user.name != admin_name:
+                    existing_user.name = admin_name
+
+                # Check if an explicit emergency reset is requested via environment variable
+                force_reset = os.getenv("FORCE_ADMIN_PASSWORD_RESET", "").lower() in ("true", "1", "yes")
+                if force_reset or not existing_user.hashed_password:
+                    existing_user.hashed_password = hash_password(
+                        admin_password
+                    )
+                    print(
+                        f"Admin password reset from environment for '{admin_name}'."
+                    )
+                else:
+                    # Preserve password updated via Admin Settings across restarts
+                    print(
+                        f"Admin account already exists for '{admin_name}'. Preserving existing password across restart."
+                    )
+
                 existing_user.status = (
                     models.StatusEnum.active.value
                 )
 
                 db.commit()
-
-                print(
-                    f"Admin account updated successfully for '{admin_name}'."
-                )
 
             else:
                 print(

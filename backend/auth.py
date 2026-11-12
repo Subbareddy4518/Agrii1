@@ -11,10 +11,30 @@ from sqlalchemy.orm import Session
 from database import get_db
 import models
 
-# NOTE: In production, load this from an environment variable / secrets manager.
-SECRET_KEY = "agriconnect-dev-secret-change-in-production"
+import os
+
+DEV_SECRET_KEY = "agriconnect-dev-secret-change-in-production"
+SECRET_KEY = os.getenv("SECRET_KEY", DEV_SECRET_KEY)
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
+
+
+def validate_production_secret():
+    """
+    Ensures that in a production environment (ENVIRONMENT=production or FASTAPI_ENV=production),
+    the application fails safely upon startup if SECRET_KEY is not explicitly configured
+    or is still set to the insecure development fallback string.
+    """
+    is_prod = os.getenv("ENVIRONMENT", "").lower() in ("production", "prod") or os.getenv("FASTAPI_ENV", "").lower() in ("production", "prod")
+    configured_secret = os.getenv("SECRET_KEY")
+    if is_prod and (not configured_secret or configured_secret == DEV_SECRET_KEY):
+        raise RuntimeError(
+            "FATAL SECURITY CONFIGURATION: SECRET_KEY must be securely configured via environment variable "
+            "in production. Insecure development fallback key is rejected."
+        )
+
+
+validate_production_secret()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
