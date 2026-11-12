@@ -32,8 +32,19 @@ class StatusEnum(str, enum.Enum):
 
 
 class PostStatusEnum(str, enum.Enum):
+    draft = "draft"
     active = "active"
+    paused = "paused"
+    sold = "sold"
+    archived = "archived"
     closed = "closed"
+
+
+class NegotiationStatusEnum(str, enum.Enum):
+    none = "none"
+    in_negotiation = "in_negotiation"
+    offer_pending = "offer_pending"
+    deal_agreed = "deal_agreed"
 
 
 class User(Base):
@@ -88,17 +99,18 @@ class Post(Base):
     likes_count = Column(Integer, default=0)
     report_count = Column(Integer, default=0, server_default="0")
 
-    # "active" | "closed" — set by the post owner is not currently supported
-    # anywhere in the app, but the admin dashboard can close a post (e.g. to
-    # hide inappropriate or stale content) without deleting it. Existing rows
-    # get this column added via a migration (see database.py) and default to
-    # "active" so current behavior is unchanged.
-    status = Column(String, nullable=False, default=PostStatusEnum.active.value, server_default=PostStatusEnum.active.value)
+    # Controlled Listing Lifecycle & Negotiation State
+    status = Column(String, nullable=False, default=PostStatusEnum.active.value, server_default=PostStatusEnum.active.value, index=True)
+    negotiation_status = Column(String, nullable=False, default=NegotiationStatusEnum.none.value, server_default=NegotiationStatusEnum.none.value, index=True)
+    sold_price = Column(Float, nullable=True)
+    sold_quantity = Column(String, nullable=True)
+    sold_at = Column(DateTime, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
     owner = relationship("User", back_populates="posts")
     likes = relationship("Like", back_populates="post", cascade="all, delete-orphan")
+    status_history = relationship("PostStatusHistory", back_populates="post", cascade="all, delete-orphan", order_by="PostStatusHistory.created_at.desc()")
 
 
 class Like(Base):
@@ -136,3 +148,19 @@ class Report(Base):
 
     post = relationship("Post")
     reporter = relationship("User")
+
+
+class PostStatusHistory(Base):
+    __tablename__ = "post_status_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    post_id = Column(Integer, ForeignKey("posts.id", ondelete="CASCADE"), nullable=False, index=True)
+    changed_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    from_status = Column(String, nullable=True)
+    to_status = Column(String, nullable=False)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    post = relationship("Post", back_populates="status_history")
+    changed_by = relationship("User")
+

@@ -219,6 +219,8 @@
     "clearAria": "Clear search",
     "sorts": {
       "latest": "Latest",
+      "priceLow": "Price: Low to High",
+      "priceHigh": "Price: High to Low",
       "priceAsc": "Price ↑",
       "priceDesc": "Price ↓"
     },
@@ -350,8 +352,49 @@
       }
     }
   },
+  "listing": {
+    "status": {
+      "draft": "Draft",
+      "active": "Active",
+      "paused": "Paused",
+      "sold": "Sold Out",
+      "archived": "Archived",
+      "closed": "Closed"
+    },
+    "negotiation": {
+      "none": "No Active Bids",
+      "in_negotiation": "In Negotiation",
+      "offer_pending": "Offer Pending",
+      "deal_agreed": "Deal Agreed"
+    },
+    "actions": {
+      "markSold": "Mark as Sold",
+      "pause": "Pause Listing",
+      "resume": "Activate Listing",
+      "archive": "Archive",
+      "relist": "Re-list Active",
+      "publish": "Publish",
+      "statusChangeSuccess": "Listing status updated to {{status}}",
+      "statusChangeError": "Failed to update listing status."
+    },
+    "markSoldModal": {
+      "title": "Mark Crop as Sold",
+      "subtitle": "Record the final deal terms to update your marketplace inventory.",
+      "soldPrice": "Final Selling Price (₹ per unit)",
+      "soldPricePlaceholder": "e.g. 2350",
+      "soldQuantity": "Sold Quantity",
+      "soldQuantityPlaceholder": "e.g. 50 Quintals",
+      "notes": "Transaction Notes (Optional)",
+      "notesPlaceholder": "e.g. Sold to local mill with prompt payment",
+      "confirm": "Confirm Sold Out",
+      "cancel": "Cancel"
+    }
+  },
   "profile": {
     "title": "Profile",
+    "unverified": "Verification Pending",
+    "verified": "Verified",
+    "trustScore": "Trust Score",
     "fullNameLabel": "Full Name",
     "companyNameLabel": "Company Name",
     "contactPersonLabel": "Contact Person",

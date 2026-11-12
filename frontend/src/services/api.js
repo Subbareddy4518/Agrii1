@@ -38,6 +38,7 @@ export const searchPosts = (params) => api.get('/posts/search', { params })
 export const getMyPosts = () => api.get('/posts/mine')
 export const createPost = (payload) => api.post('/posts', payload)
 export const updatePost = (id, payload) => api.put(`/posts/${id}`, payload)
+export const updatePostStatus = (id, payload) => api.patch(`/posts/${id}/status`, payload)
 export const deletePost = (id) => api.delete(`/posts/${id}`)
 export const likePost = (id) => api.post(`/posts/${id}/like`)
 export const uploadImage = (file) => {

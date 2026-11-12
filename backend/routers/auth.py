@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 import models
 import schemas
+import trust
 from database import get_db
 from auth import hash_password, verify_password, create_access_token
 
@@ -27,7 +28,9 @@ def register(payload: schemas.RegisterRequest, db: Session = Depends(get_db)):
         hashed_password=hash_password(payload.password),
         location=payload.location,
         profile_image=payload.profile_image,
+        is_verified=False,
     )
+    user.trust_score = trust.calculate_trust_score(user, db)
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -43,6 +46,9 @@ def login(payload: schemas.LoginRequest, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.mobile == payload.mobile).first()
     if not user or not verify_password(payload.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid mobile number or password")
+
+    user.trust_score = trust.calculate_trust_score(user, db)
+    db.commit()
 
     token = create_access_token({"sub": str(user.id)})
     posts_count = len(user.posts)

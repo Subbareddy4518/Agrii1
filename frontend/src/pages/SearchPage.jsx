@@ -9,8 +9,8 @@ import EmptyState from '../components/EmptyState.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { searchPosts } from '../services/api.js'
 
-const SORT_VALUES = ['latest', 'price_asc', 'price_desc']
-const SORT_KEYS = { latest: 'latest', price_asc: 'priceAsc', price_desc: 'priceDesc' }
+const SORT_VALUES = ['latest', 'price_low', 'price_high']
+const SORT_KEYS = { latest: 'latest', price_low: 'priceLow', price_high: 'priceHigh' }
 
 export default function SearchPage() {
   const { user } = useAuth()

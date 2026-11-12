@@ -302,8 +302,10 @@ def update_post_status(
     db: Session = Depends(get_db),
     admin: models.User = Depends(get_current_admin),
 ):
-    if payload.status not in ("active", "closed"):
-        raise HTTPException(status_code=422, detail="status must be 'active' or 'closed'")
+    valid_statuses = ("active", "paused", "sold", "archived", "closed")
+    new_status = payload.status.lower().strip()
+    if new_status not in valid_statuses:
+        raise HTTPException(status_code=422, detail=f"status must be one of {valid_statuses}")
 
     post = db.query(models.Post).options(joinedload(models.Post.owner)).filter(
         models.Post.id == post_id
@@ -311,7 +313,26 @@ def update_post_status(
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
 
-    post.status = payload.status
+    old_status = post.status
+    if new_status != old_status:
+        history = models.PostStatusHistory(
+            post_id=post.id,
+            changed_by_user_id=admin.id,
+            from_status=old_status,
+            to_status=new_status,
+            notes="Status updated by admin",
+        )
+        db.add(history)
+        post.status = new_status
+
+        # Notify post owner of administrative action
+        if post.user_id != admin.id:
+            db.add(models.Notification(
+                receiver_id=post.user_id,
+                title="Listing Status Updated",
+                message=f"Your listing '{post.title}' status was updated to '{new_status}' by administration.",
+            ))
+
     db.commit()
     db.refresh(post)
     return schemas.AdminPostOut.model_validate(post)

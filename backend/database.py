@@ -208,6 +208,44 @@ def run_migrations():
                     )
                 )
 
+            if "negotiation_status" not in post_columns:
+                conn.execute(
+                    text(
+                        "ALTER TABLE posts "
+                        "ADD COLUMN negotiation_status VARCHAR "
+                        "NOT NULL DEFAULT 'none'"
+                    )
+                )
+
+            if "sold_price" not in post_columns:
+                conn.execute(
+                    text(
+                        "ALTER TABLE posts "
+                        "ADD COLUMN sold_price FLOAT"
+                    )
+                )
+
+            if "sold_quantity" not in post_columns:
+                conn.execute(
+                    text(
+                        "ALTER TABLE posts "
+                        "ADD COLUMN sold_quantity VARCHAR"
+                    )
+                )
+
+            if "sold_at" not in post_columns:
+                conn.execute(
+                    text(
+                        "ALTER TABLE posts "
+                        "ADD COLUMN sold_at TIMESTAMP"
+                    )
+                )
+
+    # --------------------------------------------------------
+    # 4. CREATE NEW TABLES (e.g. post_status_history)
+    # --------------------------------------------------------
+    Base.metadata.create_all(bind=engine)
+
 
 # ============================================================
 # DATABASE DEPENDENCY

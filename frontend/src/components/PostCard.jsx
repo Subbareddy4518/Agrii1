@@ -96,10 +96,17 @@ export default function PostCard({ post, onChange }) {
               ) : (
                 <Sprout size={13} className="text-forest-600 shrink-0" />
               )}
-              {/* Trust Verification Badge */}
-              <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full bg-forest-100 text-forest-800 border border-forest-200 shrink-0">
-                ✓ {isIndustryPost ? t('postCard.verifiedIndustry', 'Verified Industry') : t('postCard.verifiedFarmer', 'Verified Farmer')}
-              </span>
+              {/* Trust Verification Badge - strictly conditional on actual database state */}
+              {post.owner?.is_verified && (
+                <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-full bg-forest-100 text-forest-800 border border-forest-200 shrink-0">
+                  ✓ {isIndustryPost ? t('postCard.verifiedIndustry', 'Verified Industry') : t('postCard.verifiedFarmer', 'Verified Farmer')}
+                </span>
+              )}
+              {post.owner?.trust_score != null && (
+                <span className="text-[10px] font-medium px-1.5 py-0.2 rounded-full bg-cloud-100 text-forest-800/80 border border-cloud-200 shrink-0" title={t('profile.trustScore', 'Trust Score')}>
+                  🛡️ {post.owner.trust_score}%
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-1 text-xs text-forest-900/50 mt-0.5">
               {post.location && (
@@ -127,6 +134,19 @@ export default function PostCard({ post, onChange }) {
             >
               <ShieldAlert size={14} />
             </button>
+            {post.status && post.status !== 'active' && (
+              <span
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                  post.status === 'sold'
+                    ? 'bg-cloud-200 text-forest-900/70 border border-cloud-300'
+                    : post.status === 'paused'
+                    ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                    : 'bg-cloud-100 text-forest-800 border border-cloud-200'
+                }`}
+              >
+                {t(`listing.status.${post.status}`, post.status)}
+              </span>
+            )}
             <span
               className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
                 isIndustryPost ? 'bg-harvest-400/20 text-harvest-700' : 'bg-forest-100 text-forest-800'
@@ -191,36 +211,53 @@ export default function PostCard({ post, onChange }) {
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2 px-4 pb-3.5 pt-1.5">
-          <button
-            onClick={handleCall}
-            className="flex-1 flex items-center justify-center gap-1.5 bg-forest-700 hover:bg-forest-800 text-white font-semibold text-xs py-3 rounded-2xl active:scale-95 transition-all shadow-sm"
-          >
-            <Phone size={15} /> {t('postCard.call')}
-          </button>
-          <button
-            onClick={handleWhatsApp}
-            className="flex-1 flex items-center justify-center gap-1.5 bg-[#25D366] hover:brightness-95 text-white font-semibold text-xs py-3 rounded-2xl active:scale-95 transition-all shadow-sm"
-          >
-            <MessageCircle size={15} /> {t('postCard.whatsapp')}
-          </button>
-          <button
-            onClick={handleLike}
-            aria-label={t('postCard.interestedAria')}
-            className={`w-11 h-11 shrink-0 rounded-2xl border flex items-center justify-center transition-colors active:scale-95 ${
-              liked ? 'bg-red-50 border-red-200 text-red-500' : 'bg-cloud-50 border-cloud-200 text-forest-900/50'
-            }`}
-          >
-            <Heart size={18} fill={liked ? 'currentColor' : 'none'} className={liked ? 'animate-like-burst' : ''} />
-          </button>
-          <button
-            onClick={handleShare}
-            aria-label={t('postCard.shareAria')}
-            className="w-11 h-11 shrink-0 rounded-2xl bg-cloud-50 border border-cloud-200 text-forest-900/50 flex items-center justify-center active:scale-95 transition-transform"
-          >
-            <Share2 size={16} />
-          </button>
-        </div>
+        {post.status === 'sold' ? (
+          <div className="flex items-center justify-between px-4 pb-3.5 pt-1.5">
+            <span className="text-xs font-bold text-forest-900/60 bg-cloud-100 px-3 py-2 rounded-xl flex items-center gap-1.5">
+              ✓ {t('listing.status.sold', 'Sold Out')}
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleShare}
+                aria-label={t('postCard.shareAria')}
+                className="w-11 h-11 shrink-0 rounded-2xl bg-cloud-50 border border-cloud-200 text-forest-900/50 flex items-center justify-center active:scale-95 transition-transform"
+              >
+                <Share2 size={16} />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 px-4 pb-3.5 pt-1.5">
+            <button
+              onClick={handleCall}
+              className="flex-1 flex items-center justify-center gap-1.5 bg-forest-700 hover:bg-forest-800 text-white font-semibold text-xs py-3 rounded-2xl active:scale-95 transition-all shadow-sm"
+            >
+              <Phone size={15} /> {t('postCard.call')}
+            </button>
+            <button
+              onClick={handleWhatsApp}
+              className="flex-1 flex items-center justify-center gap-1.5 bg-[#25D366] hover:brightness-95 text-white font-semibold text-xs py-3 rounded-2xl active:scale-95 transition-all shadow-sm"
+            >
+              <MessageCircle size={15} /> {t('postCard.whatsapp')}
+            </button>
+            <button
+              onClick={handleLike}
+              aria-label={t('postCard.interestedAria')}
+              className={`w-11 h-11 shrink-0 rounded-2xl border flex items-center justify-center transition-colors active:scale-95 ${
+                liked ? 'bg-red-50 border-red-200 text-red-500' : 'bg-cloud-50 border-cloud-200 text-forest-900/50'
+              }`}
+            >
+              <Heart size={18} fill={liked ? 'currentColor' : 'none'} className={liked ? 'animate-like-burst' : ''} />
+            </button>
+            <button
+              onClick={handleShare}
+              aria-label={t('postCard.shareAria')}
+              className="w-11 h-11 shrink-0 rounded-2xl bg-cloud-50 border border-cloud-200 text-forest-900/50 flex items-center justify-center active:scale-95 transition-transform"
+            >
+              <Share2 size={16} />
+            </button>
+          </div>
+        )}
         {likeCount > 0 && (
           <p className="px-4 pb-2.5 -mt-2 text-[11px] text-forest-900/50">
             {t('postCard.interestedCount', { count: likeCount })}

@@ -155,9 +155,16 @@ export default function MatchesPage() {
                           ) : (
                             <Sprout size={13} className="text-forest-600 shrink-0" />
                           )}
-                          <span className="text-[10px] bg-forest-100 text-forest-800 font-medium px-1.5 py-0.2 rounded-full shrink-0">
-                            ✓ Verified
-                          </span>
+                          {post.owner?.is_verified && (
+                            <span className="text-[10px] bg-forest-100 text-forest-800 font-medium px-1.5 py-0.2 rounded-full shrink-0">
+                              ✓ {t('profile.verified', 'Verified')}
+                            </span>
+                          )}
+                          {post.owner?.trust_score != null && (
+                            <span className="text-[10px] bg-cloud-100 text-forest-800/80 font-medium px-1.5 py-0.2 rounded-full shrink-0" title={t('profile.trustScore', 'Trust Score')}>
+                              🛡️ {post.owner.trust_score}%
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center gap-1 text-xs text-forest-900/50 mt-0.5">
                           {post.location && (

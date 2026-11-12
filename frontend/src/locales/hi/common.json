@@ -219,6 +219,8 @@
     "clearAria": "खोज साफ़ करें",
     "sorts": {
       "latest": "नवीनतम",
+      "priceLow": "मूल्य: कम से ज्यादा",
+      "priceHigh": "मूल्य: ज्यादा से कम",
       "priceAsc": "मूल्य ↑",
       "priceDesc": "मूल्य ↓"
     },
@@ -350,8 +352,49 @@
       }
     }
   },
+  "listing": {
+    "status": {
+      "draft": "ड्राफ्ट",
+      "active": "सक्रिय",
+      "paused": "रोका गया",
+      "sold": "बिक गया",
+      "archived": "संग्रहीत",
+      "closed": "बंद"
+    },
+    "negotiation": {
+      "none": "कोई बोली नहीं",
+      "in_negotiation": "बातचीत जारी है",
+      "offer_pending": "प्रस्ताव विचाराधीन",
+      "deal_agreed": "सौदा तय हुआ"
+    },
+    "actions": {
+      "markSold": "बिक्री दर्ज करें",
+      "pause": "लिस्टिंग रोकें",
+      "resume": "लिस्टिंग सक्रिय करें",
+      "archive": "संग्रहीत करें",
+      "relist": "पुनः सूचीबद्ध करें",
+      "publish": "प्रकाशित करें",
+      "statusChangeSuccess": "लिस्टिंग स्थिति {{status}} अपडेट की गई",
+      "statusChangeError": "स्थिति अपडेट विफल रही।"
+    },
+    "markSoldModal": {
+      "title": "फसल बिक्री दर्ज करें",
+      "subtitle": "मार्केटप्लेस इन्वेंट्री अपडेट करने के लिए अंतिम सौदे का विवरण भरें।",
+      "soldPrice": "अंतिम बिक्री मूल्य (₹ प्रति यूनिट)",
+      "soldPricePlaceholder": "उदा. 2350",
+      "soldQuantity": "बेची गई मात्रा",
+      "soldQuantityPlaceholder": "उदा. 50 क्विंटल",
+      "notes": "सौदा विवरण (वैकल्पिक)",
+      "notesPlaceholder": "उदा. स्थानीय मिल को त्वरित भुगतान पर बेचा गया",
+      "confirm": "बिक्री की पुष्टि करें",
+      "cancel": "रद्द करें"
+    }
+  },
   "profile": {
     "title": "प्रोफाइल",
+    "unverified": "सत्यापन लंबित",
+    "verified": "सत्यापित",
+    "trustScore": "भरोसा स्कोर",
     "fullNameLabel": "पूरा नाम",
     "companyNameLabel": "कंपनी का नाम",
     "contactPersonLabel": "संपर्क व्यक्ति",

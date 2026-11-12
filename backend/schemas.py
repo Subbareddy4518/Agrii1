@@ -96,6 +96,27 @@ class PostUpdate(BaseModel):
     target_date: Optional[str] = None
 
 
+class PostStatusHistoryOut(BaseModel):
+    id: int
+    post_id: int
+    changed_by_user_id: int
+    from_status: Optional[str] = None
+    to_status: str
+    notes: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PostStatusUpdate(BaseModel):
+    status: Optional[str] = None  # draft, active, paused, sold, archived, closed
+    negotiation_status: Optional[str] = None  # none, in_negotiation, offer_pending, deal_agreed
+    sold_price: Optional[float] = None
+    sold_quantity: Optional[str] = None
+    notes: Optional[str] = None
+
+
 class AuthorOut(BaseModel):
     id: int
     name: str
@@ -127,8 +148,14 @@ class PostOut(BaseModel):
     likes_count: int
     report_count: int = 0
     liked_by_me: bool = False
+    status: str = "active"
+    negotiation_status: str = "none"
+    sold_price: Optional[float] = None
+    sold_quantity: Optional[str] = None
+    sold_at: Optional[datetime] = None
     created_at: datetime
     owner: AuthorOut
+    status_history: List[PostStatusHistoryOut] = []
 
     class Config:
         from_attributes = True
@@ -193,6 +220,10 @@ class AdminPostOut(BaseModel):
     target_date: Optional[str] = None
     likes_count: int
     status: str
+    negotiation_status: str = "none"
+    sold_price: Optional[float] = None
+    sold_quantity: Optional[str] = None
+    sold_at: Optional[datetime] = None
     created_at: datetime
     owner: AuthorOut
 

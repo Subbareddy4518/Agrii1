@@ -47,10 +47,21 @@ def report_post(
     # Increment post report count
     post.report_count = (post.report_count or 0) + 1
 
-    # Notify admins if post reaches 3 reports
-    if post.report_count >= 3:
-        # Mark as flagged
-        pass
+    # Auto-quarantine if listing receives 3 or more reports to protect farmers and buyers
+    if post.report_count >= 3 and post.status == "active":
+        post.status = "paused"
+        db.add(models.PostStatusHistory(
+            post_id=post.id,
+            changed_by_user_id=user.id,
+            from_status="active",
+            to_status="paused",
+            notes="Listing automatically paused pending admin review due to repeated community reports.",
+        ))
+
+    # Recalculate post owner's trust score reflecting community moderation reports
+    if post.owner:
+        import trust
+        post.owner.trust_score = trust.calculate_trust_score(post.owner, db)
 
     db.commit()
 

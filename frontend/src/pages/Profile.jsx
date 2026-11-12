@@ -1,14 +1,29 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Phone, MapPin, Sprout, Building2, LogOut, Pencil, Loader2, Trash2, X, Check, Settings as SettingsIcon } from 'lucide-react'
+import {
+  Phone,
+  MapPin,
+  Sprout,
+  Building2,
+  LogOut,
+  Pencil,
+  Loader2,
+  Trash2,
+  X,
+  Check,
+  Settings as SettingsIcon,
+  Pause,
+  Play,
+  CheckCircle,
+  RefreshCw,
+} from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useTranslation } from 'react-i18next'
 import TopBar from '../components/TopBar.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import ImagePicker from '../components/ImagePicker.jsx'
-import PostCardSkeleton from '../components/PostCardSkeleton.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
-import { getMyPosts, updateMe, deletePost } from '../services/api.js'
+import { getMyPosts, updateMe, deletePost, updatePostStatus } from '../services/api.js'
 import { timeAgo } from '../utils/time.js'
 import { translateCropName } from '../utils/i18nHelpers.js'
 
@@ -32,6 +47,11 @@ export default function Profile() {
     location: user?.location || '',
     profile_image: user?.profile_image || null,
   })
+
+  // Controlled Lifecycle State Management
+  const [soldModalPost, setSoldModalPost] = useState(null)
+  const [soldForm, setSoldForm] = useState({ sold_price: '', sold_quantity: '', notes: '' })
+  const [statusUpdating, setStatusUpdating] = useState(false)
 
   useEffect(() => {
     loadPosts()
@@ -91,6 +111,29 @@ export default function Profile() {
     }
   }
 
+  async function handleStatusChange(postId, targetStatus, extraPayload = {}) {
+    setStatusUpdating(true)
+    try {
+      const payload = { status: targetStatus, ...extraPayload }
+      if (extraPayload.sold_price) {
+        payload.sold_price = parseFloat(extraPayload.sold_price)
+      }
+      const res = await updatePostStatus(postId, payload)
+      setPosts((prev) => prev.map((p) => (p.id === postId ? res.data : p)))
+      toast.success(
+        t('listing.actions.statusChangeSuccess', {
+          status: t(`listing.status.${targetStatus}`, targetStatus),
+        })
+      )
+      setSoldModalPost(null)
+      setSoldForm({ sold_price: '', sold_quantity: '', notes: '' })
+    } catch (err) {
+      toast.error(err.response?.data?.detail || t('listing.actions.statusChangeError'))
+    } finally {
+      setStatusUpdating(false)
+    }
+  }
+
   function handleLogout() {
     logout()
     navigate('/login', { replace: true })
@@ -123,7 +166,9 @@ export default function Profile() {
             </div>
             {!isFarmer && (
               <div>
-                <label className="text-sm font-medium text-forest-950 mb-1.5 block">{t('profile.contactPersonLabel')}</label>
+                <label className="text-sm font-medium text-forest-950 mb-1.5 block">
+                  {t('profile.contactPersonLabel')}
+                </label>
                 <input
                   className="w-full px-4 py-3 rounded-2xl border border-cloud-200 bg-cloud-50 focus:bg-white focus:border-forest-400 outline-none"
                   value={form.contact_person}
@@ -175,16 +220,24 @@ export default function Profile() {
                   ) : (
                     <Building2 size={15} className="text-forest-600 shrink-0" />
                   )}
-                  <span className="text-[10px] bg-forest-100 text-forest-800 font-bold px-2 py-0.5 rounded-full border border-forest-200">
-                    ✓ {isFarmer ? t('postCard.verifiedFarmer', 'Verified Farmer') : t('postCard.verifiedIndustry', 'Verified Industry')}
-                  </span>
+                  {/* Trust Verification Badge - Strictly conditional on actual database state */}
+                  {user?.is_verified ? (
+                    <span className="text-[10px] bg-forest-100 text-forest-800 font-bold px-2 py-0.5 rounded-full border border-forest-200">
+                      ✓ {isFarmer ? t('postCard.verifiedFarmer', 'Verified Farmer') : t('postCard.verifiedIndustry', 'Verified Industry')}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] bg-cloud-100 text-forest-900/60 font-medium px-2 py-0.5 rounded-full border border-cloud-200">
+                      {t('profile.unverified', 'Verification Pending')}
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
                   <p className="text-xs font-medium text-forest-900/40 uppercase tracking-wide">
                     {isFarmer ? t('profile.farmerRole') : t('profile.industryRole')}
                   </p>
+                  {/* Genuine Trust Score from Backend */}
                   <span className="text-[11px] text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.2 rounded-full border border-emerald-200">
-                    🛡️ Trust Score: 100%
+                    🛡️ {t('profile.trustScore', 'Trust Score')}: {user?.trust_score ?? 100}%
                   </span>
                 </div>
               </div>
@@ -246,34 +299,238 @@ export default function Profile() {
             message={isFarmer ? t('profile.emptyPosts.farmerMessage') : t('profile.emptyPosts.industryMessage')}
           />
         ) : (
-          <div className="space-y-2.5">
-            {posts.map((post) => (
-              <div
-                key={post.id}
-                className="flex items-center gap-3 bg-white rounded-2xl p-3 border border-cloud-200/70 shadow-card"
-              >
-                <div className="w-14 h-14 rounded-xl bg-cloud-100 overflow-hidden shrink-0">
-                  {post.image && <img src={post.image} alt={post.title} className="w-full h-full object-cover" />}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-forest-950 text-sm truncate">{post.title}</p>
-                  <p className="text-xs text-forest-900/50">
-                    {translateCropName(t, post.crop_name)} &middot; {timeAgo(post.created_at, t)}
-                  </p>
-                  <p className="text-xs text-forest-900/40 mt-0.5">{t('profile.interestedCount', { count: post.likes_count })}</p>
-                </div>
-                <button
-                  onClick={() => handleDeletePost(post.id)}
-                  className="w-9 h-9 rounded-xl bg-red-50 text-red-500 flex items-center justify-center shrink-0"
-                  aria-label={t('profile.deleteAria')}
+          <div className="space-y-3">
+            {posts.map((post) => {
+              const postStatus = (post.status || 'active').toLowerCase()
+              const isSold = postStatus === 'sold'
+              const isPaused = postStatus === 'paused'
+              const isDraft = postStatus === 'draft'
+
+              return (
+                <div
+                  key={post.id}
+                  className="bg-white rounded-2xl p-3.5 border border-cloud-200/70 shadow-card space-y-2.5 transition-all"
                 >
-                  <Trash2 size={15} />
-                </button>
-              </div>
-            ))}
+                  <div className="flex items-start gap-3">
+                    <div className="w-14 h-14 rounded-xl bg-cloud-100 overflow-hidden shrink-0 border border-cloud-200">
+                      {post.image ? (
+                        <img src={post.image} alt={post.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-forest-700 text-lg">🌾</div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-semibold text-forest-950 text-sm truncate">{post.title}</p>
+                        {/* Status Badge */}
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                            isSold
+                              ? 'bg-cloud-200 text-forest-900/70'
+                              : isPaused
+                              ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                              : isDraft
+                              ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                              : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                          }`}
+                        >
+                          {t(`listing.status.${postStatus}`, postStatus)}
+                        </span>
+                        {/* Negotiation Status Badge if active */}
+                        {post.negotiation_status && post.negotiation_status !== 'none' && (
+                          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                            🤝 {t(`listing.negotiation.${post.negotiation_status}`, post.negotiation_status)}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-forest-900/60 mt-0.5">
+                        {translateCropName(t, post.crop_name)} &middot; {timeAgo(post.created_at, t)}
+                        {post.price != null && <span className="font-semibold text-forest-900"> &middot; ₹{post.price}</span>}
+                        {post.quantity && <span> &middot; {post.quantity}</span>}
+                      </p>
+                      {post.sold_price != null && (
+                        <p className="text-[11px] font-semibold text-harvest-700 mt-0.5">
+                          ✓ Sold for ₹{post.sold_price} {post.sold_quantity ? `(${post.sold_quantity})` : ''}
+                        </p>
+                      )}
+                      <p className="text-xs text-forest-900/40 mt-0.5">
+                        {t('profile.interestedCount', { count: post.likes_count })}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Lifecycle Controls Bar */}
+                  <div className="flex items-center justify-between pt-2 border-t border-cloud-100 text-xs">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {/* Active -> Mark Sold or Pause */}
+                      {postStatus === 'active' && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSoldModalPost(post)
+                              setSoldForm({
+                                sold_price: post.price ? String(post.price) : '',
+                                sold_quantity: post.quantity || '',
+                                notes: '',
+                              })
+                            }}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200 hover:bg-emerald-100 active:scale-95 transition-all"
+                          >
+                            <CheckCircle size={13} /> {t('listing.actions.markSold', 'Mark Sold')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleStatusChange(post.id, 'paused')}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 font-medium border border-amber-200 hover:bg-amber-100 active:scale-95 transition-all"
+                          >
+                            <Pause size={12} /> {t('listing.actions.pause', 'Pause')}
+                          </button>
+                        </>
+                      )}
+
+                      {/* Paused -> Resume or Mark Sold */}
+                      {isPaused && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleStatusChange(post.id, 'active')}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200 hover:bg-emerald-100 active:scale-95 transition-all"
+                          >
+                            <Play size={12} /> {t('listing.actions.resume', 'Resume')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSoldModalPost(post)
+                              setSoldForm({
+                                sold_price: post.price ? String(post.price) : '',
+                                sold_quantity: post.quantity || '',
+                                notes: '',
+                              })
+                            }}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-cloud-100 text-forest-800 font-medium hover:bg-cloud-200 active:scale-95 transition-all"
+                          >
+                            <CheckCircle size={13} /> {t('listing.actions.markSold', 'Mark Sold')}
+                          </button>
+                        </>
+                      )}
+
+                      {/* Sold -> Option to Relist if deal fell through */}
+                      {isSold && (
+                        <button
+                          type="button"
+                          onClick={() => handleStatusChange(post.id, 'active')}
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-cloud-100 text-forest-800 font-medium hover:bg-cloud-200 active:scale-95 transition-all"
+                        >
+                          <RefreshCw size={12} /> {t('listing.actions.relist', 'Re-list')}
+                        </button>
+                      )}
+
+                      {/* Draft -> Publish */}
+                      {isDraft && (
+                        <button
+                          type="button"
+                          onClick={() => handleStatusChange(post.id, 'active')}
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-forest-700 text-white font-medium hover:bg-forest-800 active:scale-95 transition-all"
+                        >
+                          <Play size={12} /> {t('listing.actions.publish', 'Publish')}
+                        </button>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => handleDeletePost(post.id)}
+                      className="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center shrink-0 transition-colors"
+                      aria-label={t('profile.deleteAria')}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         )}
       </main>
+
+      {/* Mark as Sold Modal */}
+      {soldModalPost && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-5 shadow-float border border-cloud-200 space-y-4 animate-pop-in">
+            <div>
+              <h3 className="font-display font-bold text-forest-950 text-lg">
+                {t('listing.markSoldModal.title', 'Mark Crop as Sold')}
+              </h3>
+              <p className="text-xs text-forest-900/60 mt-1">
+                {t('listing.markSoldModal.subtitle', 'Record the final deal terms to update your marketplace inventory.')}
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-forest-900 block mb-1">
+                  {t('listing.markSoldModal.soldPrice', 'Final Selling Price (₹ per unit)')}
+                </label>
+                <input
+                  type="number"
+                  step="any"
+                  min="0"
+                  value={soldForm.sold_price}
+                  onChange={(e) => setSoldForm((f) => ({ ...f, sold_price: e.target.value }))}
+                  placeholder={t('listing.markSoldModal.soldPricePlaceholder', 'e.g. 2350')}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-cloud-200 bg-cloud-50 focus:bg-white focus:border-forest-400 outline-none text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-forest-900 block mb-1">
+                  {t('listing.markSoldModal.soldQuantity', 'Sold Quantity')}
+                </label>
+                <input
+                  type="text"
+                  value={soldForm.sold_quantity}
+                  onChange={(e) => setSoldForm((f) => ({ ...f, sold_quantity: e.target.value }))}
+                  placeholder={t('listing.markSoldModal.soldQuantityPlaceholder', 'e.g. 50 Quintals')}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-cloud-200 bg-cloud-50 focus:bg-white focus:border-forest-400 outline-none text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-forest-900 block mb-1">
+                  {t('listing.markSoldModal.notes', 'Transaction Notes (Optional)')}
+                </label>
+                <textarea
+                  rows={2}
+                  value={soldForm.notes}
+                  onChange={(e) => setSoldForm((f) => ({ ...f, notes: e.target.value }))}
+                  placeholder={t('listing.markSoldModal.notesPlaceholder', 'e.g. Sold to local mill')}
+                  className="w-full px-3.5 py-2 rounded-xl border border-cloud-200 bg-cloud-50 focus:bg-white focus:border-forest-400 outline-none text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setSoldModalPost(null)}
+                className="flex-1 py-2.5 rounded-xl border border-cloud-200 text-forest-900/70 text-xs font-semibold hover:bg-cloud-100"
+              >
+                {t('listing.markSoldModal.cancel', 'Cancel')}
+              </button>
+              <button
+                type="button"
+                disabled={statusUpdating}
+                onClick={() => handleStatusChange(soldModalPost.id, 'sold', soldForm)}
+                className="flex-1 py-2.5 rounded-xl bg-forest-700 text-white text-xs font-bold hover:bg-forest-800 disabled:opacity-70 flex items-center justify-center gap-1.5 shadow-sm"
+              >
+                {statusUpdating ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+                {t('listing.markSoldModal.confirm', 'Confirm Sold Out')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
