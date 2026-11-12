@@ -7,8 +7,8 @@ import {
   Check,
   ChevronRight,
   ChevronLeft,
-  Sprout,
-  Building2,
+  Calendar,
+  Clock,
   MapPin,
   IndianRupee,
   AlertCircle,
@@ -16,25 +16,32 @@ import {
   Eye,
   RefreshCw,
   Loader2,
-  Calendar,
-  Layers,
-  Wand2,
+  Edit2,
+  ChevronDown,
+  ChevronUp,
+  Image as ImageIcon,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useTranslation } from 'react-i18next'
 import TopBar from '../components/TopBar.jsx'
 import ImagePicker from '../components/ImagePicker.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
-import { createPost, getCropsCatalog, getPriceGuidance, cropAssist } from '../services/api.js'
+import { createPost, getCropsCatalog, getPriceGuidance } from '../services/api.js'
 import { createSpeechRecognizer, isSpeechRecognitionSupported } from '../utils/voiceInput.js'
 import { translateCropName, translateUnit, translateAgriCategory } from '../utils/i18nHelpers.js'
-import { getSelectedLanguage, speak } from '../utils/onboarding.js'
+import { getSelectedLanguage } from '../utils/onboarding.js'
 
 const CATEGORIES = ['All', 'Cereals', 'Vegetables', 'Spices', 'Cash Crops', 'Pulses', 'Fruits']
-const STANDARD_UNITS = ['Kg', 'Quintal', 'Ton', 'Bags (50kg)', 'Boxes']
-const QUALITY_GRADES = ['Grade A / Premium', 'Standard / Grade B', 'Organic']
+const STANDARD_UNITS = ['Kg', 'Quintal', 'Ton']
 const DRAFT_KEY_PREFIX = 'agriconnect_draft_post_'
 const DRAFT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
+
+// Helper to get formatted date string 'YYYY-MM-DD'
+function getOffsetDateString(daysOffset = 0) {
+  const d = new Date()
+  d.setDate(d.getDate() + daysOffset)
+  return d.toISOString().split('T')[0]
+}
 
 export default function CreatePost() {
   const { user } = useAuth()
@@ -43,64 +50,79 @@ export default function CreatePost() {
   const isFarmer = user?.role === 'farmer'
   const currentLang = getSelectedLanguage()
 
-  // Authenticated user-scoped draft key to prevent leaking across accounts
+  // Authenticated user-scoped draft key
   const draftKey = user?.id ? `${DRAFT_KEY_PREFIX}${user.id}` : null
   const [draftRestored, setDraftRestored] = useState(false)
   const isDraftLoadedRef = useRef(false)
 
-  // Step state: 1, 2, or 3
+  // Guided Steps:
+  // 1: Select Crop
+  // 2: Enter Quantity
+  // 3: Enter Expected Price
+  // 4: Select Delivery Time
+  // 5: Final Review & Publishing
   const [step, setStep] = useState(1)
 
-  // Master Crops Catalog
+  // Master Crops Catalog & Search
   const [catalog, setCatalog] = useState([])
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [cropSearch, setCropSearch] = useState('')
   const [loadingCatalog, setLoadingCatalog] = useState(false)
 
-  // Form State (Preserved across all 3 steps)
+  // 4 Core Posting Information State + Profile Fallbacks
   const [form, setForm] = useState({
+    // Step 1: Crop
     crop_name: '',
     category: '',
-    variety: '',
-    quality_grade: 'Grade A / Premium',
+    // Step 2: Quantity
     quantity_num: '',
     unit: 'Quintal',
+    // Step 3: Expected Price
     price: '',
+    price_unit: 'Quintal',
     is_negotiable: false,
+    // Step 4: Delivery Time
+    delivery_choice: 'today', // 'today' | 'tomorrow' | 'custom'
+    target_date: getOffsetDateString(0),
+    time_of_day: 'anytime',
+    // Optional / Profile defaults
+    variety: '',
     location: user?.location || '',
-    target_date: '',
     title: '',
     description: '',
     image: null,
   })
 
-  // Voice & AI State
+  // Validation Error States per step
+  const [errors, setErrors] = useState({})
+
+  // Voice Input State per step
   const [isListening, setIsListening] = useState(false)
   const [voiceTranscript, setVoiceTranscript] = useState('')
-  const [aiSuggestions, setAiSuggestions] = useState(null)
-  const [aiProcessing, setAiProcessing] = useState(false)
   const recognizerRef = useRef(null)
   const transcriptRef = useRef('')
-  const hasProcessedRef = useRef(false)
 
   // Mandi Price Guidance
   const [priceGuidance, setPriceGuidance] = useState(null)
   const [loadingGuidance, setLoadingGuidance] = useState(false)
+
+  // Optional Section Toggle in Review Step
+  const [showOptionalDetails, setShowOptionalDetails] = useState(false)
 
   // Submission State
   const [submitting, setSubmitting] = useState(false)
   const isPublishingRef = useRef(false)
   const [publishedPost, setPublishedPost] = useState(null)
 
-  // Load Crops Catalog
+  // Load Crops Catalog on mount
   useEffect(() => {
     async function loadCatalog() {
       setLoadingCatalog(true)
       try {
         const res = await getCropsCatalog()
-        setCatalog(res.data)
+        setCatalog(res.data || [])
       } catch {
-        // Fallback static list
+        // Fallback static list handled gracefully
       } finally {
         setLoadingCatalog(false)
       }
@@ -108,7 +130,7 @@ export default function CreatePost() {
     loadCatalog()
   }, [])
 
-  // Task 1: Restore saved draft on mount if available and valid
+  // Restore saved draft on mount
   useEffect(() => {
     if (!draftKey) {
       isDraftLoadedRef.current = true
@@ -125,17 +147,17 @@ export default function CreatePost() {
         } else if (parsed.form && typeof parsed.form === 'object') {
           const f = parsed.form
           const hasData = Boolean(
-            f.crop_name || f.quantity_num || f.price || f.description || f.title || f.variety
+            f.crop_name || f.quantity_num || f.price || f.target_date
           )
           if (hasData) {
             setForm((prev) => ({
               ...prev,
               ...f,
-              // Never restore base64 data URLs into form image to prevent quota bloat
               image: f.image && !f.image.startsWith('data:') ? f.image : null,
               location: f.location || prev.location,
+              price_unit: f.price_unit || f.unit || prev.price_unit,
             }))
-            if (parsed.step && parsed.step >= 1 && parsed.step <= 3) {
+            if (parsed.step && parsed.step >= 1 && parsed.step <= 5) {
               setStep(parsed.step)
             }
             setDraftRestored(true)
@@ -151,32 +173,28 @@ export default function CreatePost() {
     } finally {
       isDraftLoadedRef.current = true
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draftKey])
+  }, [draftKey, t])
 
-  // Task 1: Auto-save draft changes as farmer progresses
+  // Auto-save draft changes as farmer progresses
   useEffect(() => {
     if (!isDraftLoadedRef.current || !draftKey) return
 
-    // Check if form has any meaningful data to save
     const hasData = Boolean(
       form.crop_name?.trim() ||
       form.quantity_num ||
       form.price ||
       form.variety?.trim() ||
-      form.description?.trim() ||
-      (form.title?.trim() && form.title !== `Fresh Harvest ${form.crop_name}`)
+      form.description?.trim()
     )
 
     if (!hasData) return
 
     const draftPayload = {
-      version: 1,
+      version: 2,
       timestamp: Date.now(),
       step,
       form: {
         ...form,
-        // Strip base64 data URLs to protect localStorage quota
         image: form.image && !form.image.startsWith('data:') ? form.image : null,
       },
     }
@@ -197,24 +215,27 @@ export default function CreatePost() {
     setForm({
       crop_name: '',
       category: '',
-      variety: '',
-      quality_grade: 'Grade A / Premium',
       quantity_num: '',
       unit: 'Quintal',
       price: '',
+      price_unit: 'Quintal',
       is_negotiable: false,
+      delivery_choice: 'today',
+      target_date: getOffsetDateString(0),
+      time_of_day: 'anytime',
+      variety: '',
       location: user?.location || '',
-      target_date: '',
       title: '',
       description: '',
       image: null,
     })
     setStep(1)
     setDraftRestored(false)
+    setErrors({})
     toast.success(t('createPost.draftDiscardedToast', 'Draft discarded'))
   }
 
-  // When crop_name changes, fetch price guidance and default unit
+  // Fetch Mandi guidance when crop changes
   useEffect(() => {
     if (!form.crop_name) return
     const matched = catalog.find(
@@ -241,6 +262,9 @@ export default function CreatePost() {
 
   function update(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }))
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: null }))
+    }
   }
 
   // Select crop from card
@@ -250,12 +274,12 @@ export default function CreatePost() {
       crop_name: crop.name,
       category: crop.category,
       unit: crop.default_unit || prev.unit,
-      price: prev.price || (crop.min_price ? String(crop.min_price) : prev.price),
-      title: prev.title || `${isFarmer ? 'Fresh Harvest' : 'Need'} ${crop.name}`,
+      price_unit: crop.default_unit || prev.price_unit,
     }))
+    setErrors((prev) => ({ ...prev, crop_name: null }))
   }
 
-  // Voice Input Handler (Speech-to-Text)
+  // Voice Input Handler: Speech-to-Text per Step
   function toggleVoiceInput() {
     if (isListening) {
       recognizerRef.current?.stop()
@@ -264,12 +288,11 @@ export default function CreatePost() {
     }
 
     if (!isSpeechRecognitionSupported()) {
-      toast.error(t('createPost.voiceNotSupported', 'Voice recognition is not supported in this browser. Please type or select a crop.'))
+      toast.error(t('createPost.voiceNotSupported', 'Voice recognition is not supported in this browser. Please type or select directly.'))
       return
     }
 
     transcriptRef.current = ''
-    hasProcessedRef.current = false
     setVoiceTranscript('')
 
     const recognizer = createSpeechRecognizer({
@@ -277,7 +300,6 @@ export default function CreatePost() {
       onStart: () => {
         setIsListening(true)
         transcriptRef.current = ''
-        hasProcessedRef.current = false
         setVoiceTranscript('')
       },
       onResult: ({ text }) => {
@@ -289,23 +311,16 @@ export default function CreatePost() {
         setIsListening(false)
         const errType = err?.type || err
         if (errType === 'not-allowed') {
-          toast.error(t('createPost.voiceErrors.micDenied', 'Microphone permission denied. Please allow microphone access or select a crop.'))
-        } else if (errType === 'no-speech') {
-          toast.error(t('createPost.voiceErrors.noSpeech', 'No speech detected. Please speak clearly into the microphone.'))
-        } else if (errType === 'network') {
-          toast.error(t('createPost.voiceErrors.networkError', 'Network issue with voice recognition. Please check connection or select a crop.'))
-        } else if (errType === 'aborted') {
-          // User aborted / stopped, ignore
-        } else {
-          toast.error(t('createPost.voiceErrors.generic', 'Could not recognize speech. Please try speaking again or select a crop.'))
+          toast.error(t('createPost.voiceErrors.micDenied', 'Microphone permission denied.'))
+        } else if (errType !== 'aborted') {
+          toast.error(t('createPost.voiceErrors.generic', 'Could not recognize speech. Please tap to enter.'))
         }
       },
       onEnd: () => {
         setIsListening(false)
         const captured = transcriptRef.current.trim()
-        if (captured && !hasProcessedRef.current) {
-          hasProcessedRef.current = true
-          processAiVoice(captured)
+        if (captured) {
+          applySpokenVoiceToCurrentStep(captured)
         }
       },
     })
@@ -316,79 +331,94 @@ export default function CreatePost() {
     }
   }
 
-  // Call AI Assistant on Spoken / Typed sentence
-  async function processAiVoice(transcript) {
-    if (!transcript.trim()) return
-    setAiProcessing(true)
-    try {
-      const res = await cropAssist({
-        text: transcript,
-        language: currentLang,
-        role: user?.role || 'farmer',
-      })
-      setAiSuggestions(res.data)
-      toast.success(t('createPost.aiExtractedToast', 'AI analyzed your speech! Review suggestions below.'))
-    } catch {
-      toast.error(t('createPost.aiErrorToast', 'Could not parse speech with AI. You can enter details manually.'))
-    } finally {
-      setAiProcessing(false)
+  // Parses spoken text and populates the active step's answer
+  function applySpokenVoiceToCurrentStep(spokenText) {
+    const lower = spokenText.toLowerCase()
+
+    if (step === 1) {
+      // Step 1: Detect crop name
+      const matched = catalog.find(
+        (c) =>
+          lower.includes(c.name.toLowerCase()) ||
+          (c.keywords && c.keywords.some((kw) => lower.includes(kw.toLowerCase()))) ||
+          (c.telugu && lower.includes(c.telugu.toLowerCase())) ||
+          (c.hindi && lower.includes(c.hindi.toLowerCase()))
+      )
+      if (matched) {
+        handleSelectCrop(matched)
+        toast.success(`Selected ${matched.name}!`)
+      } else {
+        setCropSearch(spokenText)
+        toast.info(`Searching for "${spokenText}"`)
+      }
+    } else if (step === 2) {
+      // Step 2: Detect quantity number and unit
+      const numMatch = lower.match(/\d+(\.\d+)?/)
+      if (numMatch) {
+        update('quantity_num', numMatch[0])
+        if (lower.includes('ton') || lower.includes('టన్ను') || lower.includes('टन')) {
+          update('unit', 'Ton')
+          update('price_unit', 'Ton')
+        } else if (lower.includes('kg') || lower.includes('కిలో') || lower.includes('किग्रा')) {
+          update('unit', 'Kg')
+          update('price_unit', 'Kg')
+        } else if (lower.includes('quintal') || lower.includes('క్వింటాల్') || lower.includes('क्विंटल')) {
+          update('unit', 'Quintal')
+          update('price_unit', 'Quintal')
+        }
+        toast.success(`Quantity entered: ${numMatch[0]}`)
+      } else {
+        toast.error('Could not detect quantity number. Please enter with keyboard.')
+      }
+    } else if (step === 3) {
+      // Step 3: Detect price number
+      const numMatch = lower.match(/\d+(\.\d+)?/)
+      if (numMatch) {
+        update('price', numMatch[0])
+        toast.success(`Price entered: ₹${numMatch[0]}`)
+      } else {
+        toast.error('Could not detect price. Please enter with keyboard.')
+      }
     }
   }
 
-  // Apply AI suggestions to form
-  function applyAiSuggestions() {
-    if (!aiSuggestions) return
-    setForm((prev) => {
-      const updated = { ...prev }
-      if (aiSuggestions.detected_crop) updated.crop_name = aiSuggestions.detected_crop
-      if (aiSuggestions.category) updated.category = aiSuggestions.category
-      if (aiSuggestions.variety) updated.variety = aiSuggestions.variety
-      if (aiSuggestions.unit) updated.unit = aiSuggestions.unit
-      if (aiSuggestions.price) updated.price = String(aiSuggestions.price)
-      if (aiSuggestions.is_negotiable !== undefined) updated.is_negotiable = aiSuggestions.is_negotiable
-      if (aiSuggestions.location) updated.location = aiSuggestions.location
-      if (aiSuggestions.quality_grade) updated.quality_grade = aiSuggestions.quality_grade
-      if (aiSuggestions.suggested_title) updated.title = aiSuggestions.suggested_title
-      if (aiSuggestions.suggested_description) updated.description = aiSuggestions.suggested_description
-      if (aiSuggestions.quantity_amount) {
-        const numPart = aiSuggestions.quantity_amount.split(' ')[0]
-        if (!isNaN(parseFloat(numPart))) updated.quantity_num = numPart
+  // Step Validation & Progression
+  function validateAndNext(currentStep) {
+    if (currentStep === 1) {
+      if (!form.crop_name.trim()) {
+        setErrors((prev) => ({ ...prev, crop_name: t('createPost.q1Error', 'Please select a crop to continue') }))
+        toast.error(t('createPost.q1Error', 'Please select a crop to continue'))
+        return
       }
-      return updated
-    })
-    setAiSuggestions(null)
-    toast.success(t('createPost.appliedAi', 'Applied AI details to your listing!'))
-  }
-
-  // AI Description Generator
-  function handleGenerateAiDescription() {
-    const crop = form.crop_name || 'crop'
-    const qty = form.quantity_num ? `${form.quantity_num} ${form.unit}` : ''
-    const grade = form.quality_grade || 'Grade A'
-    const loc = form.location || 'farm'
-    const variety = form.variety ? `(${form.variety})` : ''
-
-    let desc = ''
-    if (isFarmer) {
-      if (currentLang === 'te') {
-        desc = `తాజా ${grade} రకం ${crop} ${variety} పంట నేరుగా మా పొలం నుండి అందుబాటులో ఉంది. పరిమాణం: ${qty || 'తగినంత'}. మంచి నాణ్యతతో క్రమబద్ధీకరించబడింది. లొకేషన్: ${loc}. ఆసక్తిగల కొనుగోలుదారులు సంప్రదించవచ్చు.`
-      } else if (currentLang === 'hi') {
-        desc = `ताजा ${grade} गुणवत्ता वाली ${crop} ${variety} सीधे खेत से बिक्री के लिए उपलब्ध है। मात्रा: ${qty || 'उपलब्ध'}. अच्छी तरह से छंटाई की गई फसल। स्थान: ${loc}. इच्छुक खरीदार कॉल या व्हाट्सएप करें।`
-      } else {
-        desc = `Freshly harvested ${grade} ${crop} ${variety} available directly from farm. Quantity: ${qty || 'in stock'}. Cleaned and sorted for high quality. Available at ${loc}. Direct buyers welcome.`
+      setErrors({})
+      setStep(2)
+    } else if (currentStep === 2) {
+      const q = parseFloat(form.quantity_num)
+      if (isNaN(q) || q <= 0) {
+        setErrors((prev) => ({ ...prev, quantity_num: t('createPost.q2Error', 'Please enter a valid quantity greater than 0') }))
+        toast.error(t('createPost.q2Error', 'Please enter a valid quantity greater than 0'))
+        return
       }
-    } else {
-      if (currentLang === 'te') {
-        desc = `మా పరిశ్రమకు మంచి నాణ్యత గల ${crop} ${variety} తక్షణమే అవసరం. పరిమాణం: ${qty || 'అవసరమైనంత'}. లొకేషన్: ${loc}. సత్వర చెల్లింపు హామీ.`
-      } else if (currentLang === 'hi') {
-        desc = `हमारे उद्योग के लिए उच्च गुणवत्ता वाली ${crop} ${variety} की आवश्यकता है। मात्रा: ${qty || 'आवश्यकतानुसार'}. स्थान: ${loc}. त्वरित भुगतान.`
-      } else {
-        desc = `Urgent industrial requirement for high quality ${crop} ${variety}. Quantity needed: ${qty || 'Open'}. Delivery to: ${loc}. Prompt and transparent payment terms.`
+      setErrors({})
+      setStep(3)
+    } else if (currentStep === 3) {
+      const p = parseFloat(form.price)
+      if (isNaN(p) || p <= 0) {
+        setErrors((prev) => ({ ...prev, price: t('createPost.q3Error', 'Please enter an expected price greater than 0') }))
+        toast.error(t('createPost.q3Error', 'Please enter an expected price greater than 0'))
+        return
       }
+      setErrors({})
+      setStep(4)
+    } else if (currentStep === 4) {
+      if (!form.target_date) {
+        setErrors((prev) => ({ ...prev, target_date: t('createPost.q4Error', 'Please select a delivery date') }))
+        toast.error(t('createPost.q4Error', 'Please select a delivery date'))
+        return
+      }
+      setErrors({})
+      setStep(5) // Review
     }
-
-    update('description', desc)
-    toast.success(t('createPost.descGenerated', 'Generated description with AI!'))
   }
 
   // Pre-fill Recommended Mandi Price
@@ -397,30 +427,44 @@ export default function CreatePost() {
     toast.success(t('createPost.priceApplied', 'Mandi benchmark price applied!'))
   }
 
-  // Validation before advancing
-  function canProceedToStep2() {
-    return Boolean(form.crop_name.trim())
+  // Delivery Choice handler
+  function handleDeliveryChoice(choice) {
+    update('delivery_choice', choice)
+    if (choice === 'today') {
+      update('target_date', getOffsetDateString(0))
+    } else if (choice === 'tomorrow') {
+      update('target_date', getOffsetDateString(1))
+    }
   }
 
-  function canProceedToStep3() {
-    return Boolean(form.crop_name.trim() && (form.title.trim() || form.crop_name.trim()))
-  }
-
-  // Submit Listing
+  // Submit Listing (From Step 5 Review)
   async function handlePublish() {
     if (isPublishingRef.current || submitting) return
 
     if (!form.crop_name.trim()) {
       setStep(1)
-      toast.error(t('createPost.errors.cropFarmer', 'Please select a crop'))
+      toast.error(t('createPost.q1Error', 'Please select a crop'))
       return
     }
 
     const titleToUse =
       form.title.trim() ||
-      `${isFarmer ? 'Fresh' : 'Requirement:'} ${form.crop_name} ${form.variety ? `(${form.variety})` : ''} ${form.quantity_num ? `- ${form.quantity_num} ${form.unit}` : ''}`.trim()
+      `${isFarmer ? 'Fresh Harvest' : 'Requirement:'} ${form.crop_name} ${
+        form.quantity_num ? `- ${form.quantity_num} ${form.unit}` : ''
+      }`.trim()
 
     const quantityFormatted = form.quantity_num ? `${form.quantity_num} ${form.unit}` : null
+
+    // Formatted readable delivery text
+    let deliveryFormatted = form.target_date
+    if (form.delivery_choice === 'today') {
+      deliveryFormatted = `Today (${form.target_date})`
+    } else if (form.delivery_choice === 'tomorrow') {
+      deliveryFormatted = `Tomorrow (${form.target_date})`
+    }
+    if (form.time_of_day && form.time_of_day !== 'anytime') {
+      deliveryFormatted += ` - ${form.time_of_day}`
+    }
 
     isPublishingRef.current = true
     setSubmitting(true)
@@ -430,28 +474,31 @@ export default function CreatePost() {
         crop_name: form.crop_name.trim(),
         category: form.category || null,
         variety: form.variety.trim() || null,
-        quality_grade: form.quality_grade || null,
+        quality_grade: 'Grade A / Premium',
         quantity: quantityFormatted,
         price: form.price ? parseFloat(form.price) : null,
         is_negotiable: form.is_negotiable,
-        location: form.location.trim() || null,
-        target_date: form.target_date || null,
+        location: form.location.trim() || user?.location || null,
+        target_date: deliveryFormatted,
         description: form.description.trim() || null,
         image: form.image,
       })
 
       setPublishedPost(res.data)
-      // Task 1: Clear saved draft upon successful publication
       if (draftKey) {
         try {
           localStorage.removeItem(draftKey)
         } catch {}
       }
       setDraftRestored(false)
-      toast.success(isFarmer ? t('createPost.successToastFarmer') : t('createPost.successToastIndustry'))
+      toast.success(
+        isFarmer
+          ? t('createPost.successToastFarmer', 'Crop posted! Industries will see it now.')
+          : t('createPost.successToastIndustry', 'Requirement posted!')
+      )
     } catch (err) {
       if (err?.isTimeout) {
-        toast.error(t('common.networkTimeout', 'Network request timed out. Your draft is safely saved — check connection and try again.'))
+        toast.error(t('common.networkTimeout', 'Network request timed out. Your draft is safely saved.'))
       } else if (err?.isNetworkError) {
         toast.error(t('common.offlineError', 'You appear to be offline. Your draft is safely saved.'))
       } else {
@@ -470,8 +517,8 @@ export default function CreatePost() {
     const matchesSearch =
       !cropSearch.trim() ||
       crop.name.toLowerCase().includes(cropSearch.toLowerCase()) ||
-      crop.telugu.toLowerCase().includes(cropSearch.toLowerCase()) ||
-      crop.hindi.toLowerCase().includes(cropSearch.toLowerCase())
+      (crop.telugu && crop.telugu.toLowerCase().includes(cropSearch.toLowerCase())) ||
+      (crop.hindi && crop.hindi.toLowerCase().includes(cropSearch.toLowerCase()))
     return matchesCategory && matchesSearch
   })
 
@@ -480,96 +527,104 @@ export default function CreatePost() {
     (c) => c.name.toLowerCase() === form.crop_name.toLowerCase()
   )
 
-  // SUCCESS CELEBRATION MODAL
+  // ============================================================
+  // SUCCESS CELEBRATION SCREEN
+  // ============================================================
   if (publishedPost) {
     return (
-      <div className="min-h-screen bg-cloud-50 flex flex-col justify-center items-center px-4 py-8">
-        <div className="bg-white max-w-md w-full rounded-3xl p-6 shadow-float border border-cloud-200 text-center animate-pop-in">
-          <div className="w-20 h-20 bg-forest-100 border-2 border-forest-300 rounded-full flex items-center justify-center mx-auto mb-4 text-forest-700 shadow-card">
-            <Check size={40} strokeWidth={3} />
+      <div className="min-h-screen bg-[#F9FAF7] flex flex-col justify-center items-center px-4 py-8">
+        <div className="bg-white max-w-md w-full rounded-3xl p-6 sm:p-8 shadow-xl border border-gray-200 text-center animate-pop-in">
+          <div className="w-20 h-20 bg-green-100 border-2 border-[#1E5E3A] rounded-full flex items-center justify-center mx-auto mb-4 text-[#1E5E3A] shadow-md">
+            <Check size={44} strokeWidth={3} />
           </div>
 
-          <span className="text-xs bg-harvest-100 text-harvest-800 font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-            {isFarmer ? t('createPost.successBadgeFarmer', 'Crop Listed Live!') : t('createPost.successBadgeIndustry', 'Requirement Live!')}
+          <span className="text-xs bg-amber-100 text-[#D9822B] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+            {isFarmer
+              ? t('createPost.successBadgeFarmer', 'Crop Listed Live!')
+              : t('createPost.successBadgeIndustry', 'Requirement Live!')}
           </span>
 
-          <h2 className="font-display font-bold text-forest-950 text-2xl mt-3">
+          <h2 className="font-display font-bold text-gray-900 text-2xl sm:text-3xl mt-3">
             {publishedPost.title}
           </h2>
 
-          <p className="text-xs text-forest-900/60 mt-1">
+          <p className="text-sm text-gray-600 mt-2">
             {isFarmer
               ? t('createPost.successFarmerHelp', 'Your crop is now visible to verified industries in the marketplace.')
               : t('createPost.successIndustryHelp', 'Your requirement is now visible to verified farmers in the marketplace.')}
           </p>
 
-          <div className="bg-forest-50/70 rounded-2xl p-4 my-5 text-left border border-forest-100 space-y-2 text-xs">
+          <div className="bg-green-50/70 rounded-2xl p-4 sm:p-5 my-5 text-left border border-green-200 space-y-2.5 text-sm">
             <div className="flex justify-between">
-              <span className="text-forest-900/60">{t('postCard.crop', 'Crop')}:</span>
-              <span className="font-bold text-forest-950">{publishedPost.crop_name}</span>
+              <span className="text-gray-600 font-medium">{t('createPost.reviewCrop', 'Crop')}:</span>
+              <span className="font-bold text-gray-900">{publishedPost.crop_name}</span>
             </div>
             {publishedPost.quantity && (
               <div className="flex justify-between">
-                <span className="text-forest-900/60">{t('postCard.qty', 'Quantity')}:</span>
-                <span className="font-semibold text-forest-950">{publishedPost.quantity}</span>
+                <span className="text-gray-600 font-medium">{t('createPost.reviewQty', 'Quantity')}:</span>
+                <span className="font-bold text-gray-900">{publishedPost.quantity}</span>
               </div>
             )}
             {publishedPost.price && (
               <div className="flex justify-between">
-                <span className="text-forest-900/60">{t('postCard.price', 'Price')}:</span>
-                <span className="font-bold text-harvest-700">₹{publishedPost.price}</span>
+                <span className="text-gray-600 font-medium">{t('createPost.reviewPrice', 'Price')}:</span>
+                <span className="font-bold text-[#D9822B]">₹{publishedPost.price}</span>
+              </div>
+            )}
+            {publishedPost.target_date && (
+              <div className="flex justify-between">
+                <span className="text-gray-600 font-medium">{t('createPost.reviewDelivery', 'Delivery Time')}:</span>
+                <span className="font-semibold text-gray-900">{publishedPost.target_date}</span>
               </div>
             )}
             <div className="flex justify-between">
-              <span className="text-forest-900/60">{t('postCard.location', 'Location')}:</span>
-              <span className="font-semibold text-forest-950">{publishedPost.location || user?.location}</span>
+              <span className="text-gray-600 font-medium">{t('postCard.location', 'Location')}:</span>
+              <span className="font-semibold text-gray-900">{publishedPost.location || user?.location}</span>
             </div>
           </div>
 
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             <button
               onClick={() => navigate('/matches')}
-              className="w-full bg-harvest-500 hover:bg-harvest-600 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-card"
+              className="w-full bg-[#D9822B] hover:bg-[#b86c22] text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-98 transition-all shadow-md min-h-[52px] text-base"
             >
-              <Sparkles size={18} />
-              {isFarmer ? t('createPost.seeBuyersBtn', 'See Matching Buyers Now') : t('createPost.seeCropsBtn', 'See Matching Crops Now')}
+              <Sparkles size={20} />
+              {isFarmer
+                ? t('createPost.seeBuyersBtn', 'See Matching Buyers Now')
+                : t('createPost.seeCropsBtn', 'See Matching Crops Now')}
             </button>
 
             <button
               onClick={() => navigate('/')}
-              className="w-full bg-forest-700 hover:bg-forest-800 text-white font-semibold py-3.5 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all"
+              className="w-full bg-[#1E5E3A] hover:bg-[#16482c] text-white font-semibold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-98 transition-all min-h-[52px] text-base"
             >
-              <Eye size={18} />
+              <Eye size={20} />
               {t('createPost.viewMarketplace', 'View Marketplace Feed')}
             </button>
 
             <button
               onClick={() => {
-                if (draftKey) {
-                  try {
-                    localStorage.removeItem(draftKey)
-                  } catch {}
-                }
-                setDraftRestored(false)
                 setPublishedPost(null)
                 setStep(1)
                 setForm({
                   crop_name: '',
                   category: '',
-                  variety: '',
-                  quality_grade: 'Grade A / Premium',
                   quantity_num: '',
                   unit: 'Quintal',
                   price: '',
+                  price_unit: 'Quintal',
                   is_negotiable: false,
+                  delivery_choice: 'today',
+                  target_date: getOffsetDateString(0),
+                  time_of_day: 'anytime',
+                  variety: '',
                   location: user?.location || '',
-                  target_date: '',
                   title: '',
                   description: '',
                   image: null,
                 })
               }}
-              className="w-full py-2.5 text-xs text-forest-800 font-semibold hover:bg-cloud-100 rounded-xl transition-colors"
+              className="w-full py-3 text-sm text-[#1E5E3A] font-bold hover:bg-gray-100 rounded-xl transition-colors min-h-[48px]"
             >
               + {isFarmer ? t('createPost.postAnotherFarmer', 'Post Another Crop') : t('createPost.postAnotherIndustry', 'Post Another Requirement')}
             </button>
@@ -579,44 +634,60 @@ export default function CreatePost() {
     )
   }
 
+  // ============================================================
+  // GUIDED 4-STEP WIZARD + REVIEW
+  // ============================================================
   return (
-    <div className="min-h-screen pb-32 bg-cloud-50">
+    <div className="min-h-screen pb-32 bg-[#F9FAF7]">
       <TopBar
         title={isFarmer ? t('createPost.titleFarmer', 'Post Your Crop') : t('createPost.titleIndustry', 'Post Requirement')}
-        subtitle={t('createPost.stepCounter', { current: step, total: 3, defaultValue: `Step ${step} of 3` })}
+        subtitle={
+          step <= 4
+            ? t('createPost.guidedStepCounter', { current: step, defaultValue: `Step ${step} of 4` })
+            : t('createPost.guidedFinalReview', 'Final Review')
+        }
         showSearch={false}
       />
 
-      {/* Progress Bar (Step 1 of 3, Step 2 of 3, Step 3 of 3) */}
+      {/* 4-Segment Progress Bar */}
       <div className="max-w-md mx-auto px-4 pt-3">
-        <div className="bg-white rounded-2xl p-3 border border-cloud-200/80 shadow-xs">
-          <div className="flex items-center justify-between mb-2 text-xs font-bold text-forest-900">
-            <span className={step >= 1 ? 'text-forest-800 flex items-center gap-1' : 'text-forest-900/40'}>
-              {step > 1 ? <Check size={14} className="text-forest-600" /> : '1.'} {t('createPost.steps.step1', 'Select Crop')}
+        <div className="bg-white rounded-2xl p-3.5 border border-gray-200/80 shadow-xs">
+          <div className="flex items-center justify-between mb-2 text-xs font-bold text-gray-700">
+            <span className={step >= 1 ? 'text-[#1E5E3A] font-extrabold' : 'text-gray-400'}>
+              1. {t('createPost.reviewCrop', 'Crop')}
             </span>
-            <span className={step >= 2 ? 'text-forest-800 flex items-center gap-1' : 'text-forest-900/40'}>
-              {step > 2 ? <Check size={14} className="text-forest-600" /> : '2.'} {t('createPost.steps.step2', 'Crop Details')}
+            <span className={step >= 2 ? 'text-[#1E5E3A] font-extrabold' : 'text-gray-400'}>
+              2. {t('createPost.reviewQty', 'Quantity')}
             </span>
-            <span className={step === 3 ? 'text-harvest-700 font-bold' : 'text-forest-900/40'}>
-              3. {t('createPost.steps.step3', 'Review & Publish')}
+            <span className={step >= 3 ? 'text-[#1E5E3A] font-extrabold' : 'text-gray-400'}>
+              3. {t('createPost.reviewPrice', 'Price')}
+            </span>
+            <span className={step >= 4 ? 'text-[#1E5E3A] font-extrabold' : 'text-gray-400'}>
+              4. {t('createPost.reviewDelivery', 'Delivery')}
             </span>
           </div>
-          <div className="w-full h-2 bg-cloud-200 rounded-full overflow-hidden flex">
-            <div
-              className="bg-forest-700 h-full transition-all duration-300"
-              style={{ width: `${(step / 3) * 100}%` }}
-            />
+
+          {/* 4 Segment Bars */}
+          <div className="grid grid-cols-4 gap-1.5 h-2.5">
+            {[1, 2, 3, 4].map((s) => (
+              <div
+                key={s}
+                className={`h-full rounded-full transition-all duration-300 ${
+                  step >= s ? 'bg-[#1E5E3A]' : 'bg-gray-200'
+                }`}
+              />
+            ))}
           </div>
         </div>
       </div>
 
       <main className="max-w-md mx-auto px-4 pt-4">
-        {/* Task 1: Restored Draft Notification Banner */}
+        {/* Restored Draft Banner */}
         {draftRestored && (
-          <div className="bg-forest-50 border border-forest-200 rounded-2xl p-3 flex items-center justify-between gap-3 text-xs text-forest-900 shadow-xs mb-4 animate-fade-in">
+          <div className="bg-green-50 border border-green-200 rounded-2xl p-3 flex items-center justify-between gap-3 text-xs text-gray-900 shadow-xs mb-4">
             <div className="flex items-center gap-2 min-w-0">
-              <CheckCircle2 size={16} className="text-forest-700 shrink-0" />
-              <span className="font-medium truncate">
+              <CheckCircle2 size={18} className="text-[#1E5E3A] shrink-0" />
+              <span className="font-semibold truncate">
                 {t('createPost.draftRestoredNotice', 'Your previous draft has been restored.')}
               </span>
             </div>
@@ -624,14 +695,14 @@ export default function CreatePost() {
               <button
                 type="button"
                 onClick={handleDiscardDraft}
-                className="text-red-700 hover:text-red-800 font-semibold underline text-[11px] px-1 py-0.5"
+                className="text-red-700 hover:text-red-800 font-bold underline text-xs px-1 py-0.5"
               >
                 {t('createPost.discardDraftBtn', 'Discard & Start Fresh')}
               </button>
               <button
                 type="button"
                 onClick={() => setDraftRestored(false)}
-                className="text-forest-900/50 hover:text-forest-900 font-bold px-1 text-sm"
+                className="text-gray-500 hover:text-gray-800 font-bold px-1.5 text-base"
                 aria-label="Dismiss banner"
               >
                 &times;
@@ -639,130 +710,62 @@ export default function CreatePost() {
             </div>
           </div>
         )}
+
         {/* ============================================================ */}
-        {/* STEP 1: WHAT ARE YOU SELLING?                               */}
+        {/* STEP 1: WHAT CROP DO YOU HAVE?                               */}
         {/* ============================================================ */}
         {step === 1 && (
           <div className="space-y-4 animate-slide-up">
-            {/* Voice Input Prompt Banner */}
-            <div className="bg-gradient-to-r from-forest-800 to-forest-900 rounded-3xl p-4 text-white shadow-card relative overflow-hidden">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] bg-harvest-500 text-white font-bold px-2 py-0.5 rounded-full uppercase">
-                      AI Voice Assistant
-                    </span>
-                  </div>
-                  <h2 className="font-semibold text-white text-base mt-1">
-                    {t('createPost.speakPrompt', 'Speak your crop details in Telugu, Hindi or English')}
-                  </h2>
-                  <p className="text-xs text-forest-200/80 mt-1">
-                    {t('createPost.speakExample', 'e.g. "I have 50 quintals Sona Masoori paddy in Miryalaguda"')}
-                  </p>
-                </div>
+            {/* Step 1 Question Card */}
+            <div className="bg-white rounded-3xl p-5 border border-gray-200 shadow-sm">
+              <span className="inline-block text-[11px] font-bold uppercase tracking-wider text-[#1E5E3A] bg-green-100 px-3 py-1 rounded-full mb-2">
+                {t('createPost.guidedStepCounter', { current: 1, defaultValue: 'Step 1 of 4' })}
+              </span>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight">
+                {isFarmer
+                  ? t('createPost.q1CropFarmer', 'What crop do you have?')
+                  : t('createPost.q1CropIndustry', 'What crop do you need?')}
+              </h1>
+              <p className="text-sm text-gray-600 mt-1">
+                {isFarmer
+                  ? t('createPost.q1SubtitleFarmer', 'Select your crop from familiar crops below or search')
+                  : t('createPost.q1SubtitleIndustry', 'Select the crop you wish to buy or search below')}
+              </p>
 
+              {/* Optional Voice Mic Button */}
+              <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between gap-3">
                 <button
                   type="button"
                   onClick={toggleVoiceInput}
                   aria-label="Toggle voice input"
-                  className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-all shadow-float active:scale-95 ${
+                  className={`flex-1 py-3 px-4 rounded-2xl flex items-center justify-center gap-2 font-bold text-sm transition-all min-h-[48px] ${
                     isListening
                       ? 'bg-red-500 text-white animate-pulse'
-                      : 'bg-harvest-500 hover:bg-harvest-600 text-white'
+                      : 'bg-green-50 hover:bg-green-100 text-[#1E5E3A] border border-green-200'
                   }`}
                 >
-                  {isListening ? <MicOff size={26} /> : <Mic size={26} />}
+                  {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+                  <span>{isListening ? 'Listening...' : t('createPost.q1SpeakBtn', '🎙️ Speak Crop Name')}</span>
                 </button>
               </div>
 
-              {/* Listening Ripple & Transcript */}
               {isListening && (
-                <div className="mt-3 pt-3 border-t border-white/10 flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-red-400 animate-ping shrink-0" />
-                  <p className="text-xs text-harvest-300 font-medium italic truncate">
-                    {voiceTranscript || t('createPost.listeningStatus', 'Listening... speak clearly into microphone')}
-                  </p>
-                </div>
+                <p className="text-xs text-red-600 font-semibold mt-2 text-center animate-pulse">
+                  {voiceTranscript || 'Speak your crop clearly into microphone...'}
+                </p>
               )}
             </div>
 
-            {/* AI Assistant Extraction Results Banner */}
-            {aiProcessing && (
-              <div className="bg-white rounded-2xl p-4 border border-cloud-200 flex items-center gap-3 shadow-sm">
-                <Loader2 size={18} className="animate-spin text-forest-600" />
-                <span className="text-xs text-forest-900 font-medium">
-                  {t('createPost.aiExtracting', 'AgriConnect AI is analyzing crop, quantity, and price...')}
-                </span>
-              </div>
-            )}
-
-            {aiSuggestions && (
-              <div className="bg-forest-50 border border-forest-300 rounded-3xl p-4 shadow-card animate-pop-in">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-1.5 text-forest-900 font-bold text-xs">
-                    <Sparkles size={14} className="text-forest-700" />
-                    <span>{t('createPost.aiSuggestionsFound', 'AI Extracted Details')}</span>
-                  </div>
-                  <span className="text-[10px] bg-forest-200 text-forest-900 px-2 py-0.5 rounded-full font-semibold">
-                    {Math.round((aiSuggestions.confidence_score || 0.9) * 100)}% Match
-                  </span>
-                </div>
-
-                <div className="space-y-1.5 text-xs text-forest-900/80 mb-3">
-                  {aiSuggestions.detected_crop && (
-                    <p>
-                      <strong>{t('postCard.crop', 'Crop')}:</strong> {aiSuggestions.detected_crop}{' '}
-                      {aiSuggestions.variety ? `(${aiSuggestions.variety})` : ''}
-                    </p>
-                  )}
-                  {aiSuggestions.quantity_amount && (
-                    <p>
-                      <strong>{t('postCard.qty', 'Quantity')}:</strong> {aiSuggestions.quantity_amount}
-                    </p>
-                  )}
-                  {aiSuggestions.price && (
-                    <p>
-                      <strong>{t('postCard.price', 'Price')}:</strong> ₹{aiSuggestions.price}
-                    </p>
-                  )}
-                  {aiSuggestions.location && (
-                    <p>
-                      <strong>{t('postCard.location', 'Location')}:</strong> {aiSuggestions.location}
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={applyAiSuggestions}
-                    className="flex-1 bg-forest-700 hover:bg-forest-800 text-white font-bold text-xs py-2.5 rounded-2xl flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow-sm"
-                  >
-                    <Check size={14} /> {t('createPost.applyAiBtn', 'Apply AI Suggestions')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAiSuggestions(null)}
-                    className="px-3 py-2.5 bg-white border border-forest-200 text-forest-800 rounded-2xl text-xs font-semibold"
-                  >
-                    {t('common.cancel', 'Dismiss')}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Selected Crop Confirmation Badge */}
+            {/* Selected Crop Pill (If crop chosen) */}
             {form.crop_name && (
-              <div className="bg-white rounded-2xl p-3 border-2 border-forest-600 shadow-sm flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-xl bg-forest-100 flex items-center justify-center text-xl shrink-0">
-                    {activeCropObj?.icon || '🌾'}
-                  </div>
+              <div className="bg-green-100/80 border-2 border-[#1E5E3A] rounded-2xl p-4 flex items-center justify-between shadow-sm">
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">{activeCropObj?.icon || '🌾'}</span>
                   <div>
-                    <span className="text-[10px] text-forest-600 font-bold uppercase tracking-wider">
-                      {t('createPost.selectedCropBadge', 'Selected Crop')}
+                    <span className="text-[10px] text-[#1E5E3A] font-extrabold uppercase tracking-wide block">
+                      {t('createPost.q1SelectedBadge', 'Selected Crop')}
                     </span>
-                    <p className="font-bold text-forest-950 text-base leading-tight">
+                    <p className="font-extrabold text-gray-900 text-lg">
                       {translateCropName(t, form.crop_name)}
                     </p>
                   </div>
@@ -770,38 +773,44 @@ export default function CreatePost() {
                 <button
                   type="button"
                   onClick={() => update('crop_name', '')}
-                  className="text-xs font-bold text-forest-700 hover:text-forest-900 bg-forest-50 px-2.5 py-1.5 rounded-xl border border-forest-200"
+                  className="text-xs font-bold text-red-700 bg-white hover:bg-red-50 px-3 py-1.5 rounded-xl border border-red-200"
                 >
-                  {t('common.change', 'Change')}
+                  {t('createPost.q1ChangeCrop', 'Change Crop')}
                 </button>
               </div>
             )}
 
-            {/* Search Crop Input */}
-            <div>
-              <label className="text-xs font-bold text-forest-950 block mb-1.5 uppercase tracking-wide">
-                {isFarmer ? t('createPost.chooseCropHeader', 'Or Select Your Crop Below') : t('createPost.chooseReqHeader', 'Select Crop Requirement')}
-              </label>
+            {/* Simple Search Input */}
+            <div className="relative">
               <input
                 type="text"
-                className="w-full px-4 py-3 rounded-2xl border border-cloud-200 bg-white focus:border-forest-500 focus:ring-4 focus:ring-forest-100 outline-none text-sm transition-all"
-                placeholder={t('createPost.searchCropPlaceholder', 'Search crop name (వరి, धान, Cotton, Tomato...)')}
+                className="w-full px-4 py-3.5 rounded-2xl border border-gray-200 bg-white focus:border-[#1E5E3A] focus:ring-4 focus:ring-green-100 outline-none text-base font-medium shadow-xs"
+                placeholder={t('createPost.q1SearchPlaceholder', 'Search crop name (వరి, धान, Cotton, Tomato...)')}
                 value={cropSearch}
                 onChange={(e) => setCropSearch(e.target.value)}
               />
+              {cropSearch && (
+                <button
+                  type="button"
+                  onClick={() => setCropSearch('')}
+                  className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-700 font-bold"
+                >
+                  &times;
+                </button>
+              )}
             </div>
 
             {/* Category Filter Chips */}
-            <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
               {CATEGORIES.map((cat) => (
                 <button
                   key={cat}
                   type="button"
                   onClick={() => setSelectedCategory(cat)}
-                  className={`text-xs px-3 py-1.5 rounded-full font-semibold shrink-0 transition-all active:scale-95 ${
+                  className={`text-xs px-3.5 py-2 rounded-full font-bold shrink-0 transition-all active:scale-95 min-h-[36px] ${
                     selectedCategory === cat
-                      ? 'bg-forest-700 text-white shadow-xs'
-                      : 'bg-white border border-cloud-200 text-forest-900/70 hover:bg-cloud-100'
+                      ? 'bg-[#1E5E3A] text-white shadow-sm'
+                      : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-100'
                   }`}
                 >
                   {translateAgriCategory(t, cat)}
@@ -809,15 +818,15 @@ export default function CreatePost() {
               ))}
             </div>
 
-            {/* Large Visual Crop Selection Cards */}
+            {/* Crop Grid Cards */}
             {loadingCatalog ? (
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-2 gap-3">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="h-24 rounded-2xl skeleton" />
+                  <div key={i} className="h-28 rounded-2xl bg-gray-200 animate-pulse" />
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[380px] overflow-y-auto pr-1">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[360px] overflow-y-auto pr-1">
                 {filteredCatalog.map((crop) => {
                   const isSelected = form.crop_name.toLowerCase() === crop.name.toLowerCase()
                   return (
@@ -825,26 +834,30 @@ export default function CreatePost() {
                       key={crop.name}
                       type="button"
                       onClick={() => handleSelectCrop(crop)}
-                      className={`p-3 rounded-2xl text-left border-2 transition-all flex flex-col justify-between min-h-[96px] active:scale-95 ${
+                      className={`p-3.5 rounded-2xl text-left border-2 transition-all flex flex-col justify-between min-h-[105px] active:scale-98 ${
                         isSelected
-                          ? 'border-forest-600 bg-forest-50/80 shadow-card ring-2 ring-forest-400'
-                          : 'border-cloud-200 bg-white hover:border-forest-300 shadow-xs'
+                          ? 'border-[#1E5E3A] bg-green-50 shadow-md ring-2 ring-green-300'
+                          : 'border-gray-200 bg-white hover:border-[#1E5E3A]/60 shadow-xs'
                       }`}
                     >
                       <div className="flex items-center justify-between w-full">
-                        <span className="text-2xl">{crop.icon}</span>
+                        <span className="text-3xl">{crop.icon}</span>
                         {isSelected && (
-                          <div className="w-5 h-5 rounded-full bg-forest-700 text-white flex items-center justify-center">
-                            <Check size={12} strokeWidth={3} />
+                          <div className="w-6 h-6 rounded-full bg-[#1E5E3A] text-white flex items-center justify-center">
+                            <Check size={14} strokeWidth={3} />
                           </div>
                         )}
                       </div>
                       <div className="mt-2">
-                        <p className="font-bold text-forest-950 text-sm leading-tight">
+                        <p className="font-extrabold text-gray-900 text-base leading-tight">
                           {translateCropName(t, crop.name)}
                         </p>
-                        <p className="text-[11px] text-forest-900/50 truncate mt-0.5">
-                          {currentLang === 'te' ? crop.telugu.split('(')[0] : currentLang === 'hi' ? crop.hindi.split('(')[0] : crop.category}
+                        <p className="text-xs text-gray-500 truncate mt-0.5">
+                          {currentLang === 'te'
+                            ? crop.telugu.split('(')[0]
+                            : currentLang === 'hi'
+                            ? crop.hindi.split('(')[0]
+                            : crop.category}
                         </p>
                       </div>
                     </button>
@@ -853,482 +866,786 @@ export default function CreatePost() {
               </div>
             )}
 
-            {/* Continue to Step 2 Button */}
+            {errors.crop_name && (
+              <p className="text-xs font-bold text-red-600 flex items-center gap-1.5 mt-1">
+                <AlertCircle size={14} /> {errors.crop_name}
+              </p>
+            )}
+
+            {/* Next Button */}
             <div className="pt-2">
               <button
                 type="button"
-                disabled={!canProceedToStep2()}
-                onClick={() => setStep(2)}
-                className="w-full bg-forest-700 hover:bg-forest-800 disabled:opacity-40 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-card min-h-[48px]"
+                onClick={() => validateAndNext(1)}
+                className={`w-full font-extrabold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-98 transition-all shadow-md min-h-[56px] text-lg ${
+                  form.crop_name.trim()
+                    ? 'bg-[#1E5E3A] hover:bg-[#16482c] text-white'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
               >
-                <span>{t('createPost.continueToDetails', 'Continue to Crop Details')}</span>
-                <ChevronRight size={18} />
+                <span>{t('createPost.q1NextBtn', 'Next: Enter Quantity →')}</span>
+                <ChevronRight size={22} />
               </button>
             </div>
           </div>
         )}
 
         {/* ============================================================ */}
-        {/* STEP 2: CROP DETAILS                                         */}
+        {/* STEP 2: HOW MUCH QUANTITY DO YOU HAVE?                       */}
         {/* ============================================================ */}
         {step === 2 && (
           <div className="space-y-4 animate-slide-up">
-            {/* Top Crop summary badge */}
-            <div className="bg-forest-50 border border-forest-200 rounded-2xl p-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">{activeCropObj?.icon || '🌾'}</span>
-                <div>
-                  <p className="font-bold text-forest-950 text-sm">{translateCropName(t, form.crop_name)}</p>
-                  <p className="text-[11px] text-forest-900/50">{form.category || 'Agricultural Crop'}</p>
-                </div>
+            {/* Step 2 Question Card */}
+            <div className="bg-white rounded-3xl p-5 sm:p-6 border border-gray-200 shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#1E5E3A] bg-green-100 px-3 py-1 rounded-full">
+                  {t('createPost.guidedStepCounter', { current: 2, defaultValue: 'Step 2 of 4' })}
+                </span>
+                <span className="text-xs font-bold text-gray-600 flex items-center gap-1">
+                  {activeCropObj?.icon} {translateCropName(t, form.crop_name)}
+                </span>
               </div>
-              <button
-                type="button"
-                onClick={() => setStep(1)}
-                className="text-xs font-semibold text-forest-700 underline"
-              >
-                {t('common.change', 'Change Crop')}
-              </button>
-            </div>
 
-            {/* MANDI BENCHMARK PRICE GUIDANCE BADGE */}
-            {priceGuidance && (
-              <div className="bg-amber-50 border border-amber-200 rounded-3xl p-4 shadow-sm">
-                <div className="flex items-center justify-between mb-1.5">
-                  <div className="flex items-center gap-1.5 text-amber-900 font-bold text-xs">
-                    <IndianRupee size={14} className="text-amber-700" />
-                    <span>{t('createPost.mandiBenchmarkTitle', 'Mandi Market Guidance')}</span>
-                  </div>
-                  <span className="text-[10px] bg-amber-200/80 text-amber-900 font-semibold px-2 py-0.5 rounded-full">
-                    {priceGuidance.market_name}
-                  </span>
-                </div>
-                <p className="text-xs text-amber-950/80 mb-2 leading-relaxed">
-                  {t('createPost.typicalRange', {
-                    crop: form.crop_name,
-                    min: priceGuidance.min_price,
-                    max: priceGuidance.max_price,
-                    unit: priceGuidance.unit,
-                    defaultValue: `Typical market range: ₹${priceGuidance.min_price} – ₹${priceGuidance.max_price} per ${priceGuidance.unit}`,
-                  })}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => handleUseMandiPrice(priceGuidance.modal_price)}
-                  className="bg-white hover:bg-amber-100/60 border border-amber-300 text-amber-900 font-bold text-xs py-1.5 px-3 rounded-xl flex items-center gap-1 active:scale-95 transition-all"
-                >
-                  💡 {t('createPost.useSuggestedPrice', { price: priceGuidance.modal_price, defaultValue: `Use Recommended Price: ₹${priceGuidance.modal_price}` })}
-                </button>
-              </div>
-            )}
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight">
+                {isFarmer
+                  ? t('createPost.q2QtyFarmer', 'How much quantity do you have?')
+                  : t('createPost.q2QtyIndustry', 'How much quantity do you need?')}
+              </h1>
+              <p className="text-sm text-gray-600 mt-1">
+                {t('createPost.q2Subtitle', {
+                  crop: translateCropName(t, form.crop_name),
+                  defaultValue: `Enter available harvest quantity for ${translateCropName(t, form.crop_name)}`,
+                })}
+              </p>
 
-            {/* Quantity & Unit Selection */}
-            <div className="bg-white rounded-3xl p-4 border border-cloud-200 shadow-xs space-y-3">
-              <label className="text-xs font-bold text-forest-950 uppercase tracking-wide block">
-                {isFarmer ? t('createPost.quantityLabel', 'Available Quantity') : t('createPost.quantityRequiredLabel', 'Required Quantity')} *
-              </label>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
+              {/* Large Numeric Input */}
+              <div className="mt-6 mb-4">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">
+                  {t('createPost.reviewQty', 'Quantity')}
+                </label>
+                <div className="relative">
                   <input
                     type="number"
                     inputMode="decimal"
-                    className="w-full px-4 py-3 rounded-2xl border border-cloud-200 bg-cloud-50 focus:bg-white focus:border-forest-500 outline-none text-sm font-semibold"
-                    placeholder="e.g. 50"
+                    autoFocus
+                    className={`w-full text-center text-3xl sm:text-4xl font-extrabold py-4 px-4 rounded-2xl border-2 outline-none transition-all shadow-inner ${
+                      errors.quantity_num
+                        ? 'border-red-500 bg-red-50 text-red-900'
+                        : 'border-gray-200 bg-gray-50/70 focus:bg-white focus:border-[#1E5E3A] text-gray-900'
+                    }`}
+                    placeholder="0"
                     value={form.quantity_num}
                     onChange={(e) => update('quantity_num', e.target.value)}
                   />
+                  <span className="absolute right-4 top-5 font-bold text-gray-500 text-base">
+                    {translateUnit(t, form.unit)}
+                  </span>
                 </div>
-                <div>
-                  <select
-                    className="w-full px-3 py-3 rounded-2xl border border-cloud-200 bg-cloud-50 focus:bg-white focus:border-forest-500 outline-none text-sm font-semibold"
-                    value={form.unit}
-                    onChange={(e) => update('unit', e.target.value)}
-                  >
-                    {STANDARD_UNITS.map((u) => (
-                      <option key={u} value={u}>
-                        {translateUnit(t, u)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Quick Quantity Presets */}
-              <div className="flex gap-1.5 pt-1">
-                {['10', '50', '100', '500'].map((val) => (
-                  <button
-                    key={val}
-                    type="button"
-                    onClick={() => update('quantity_num', val)}
-                    className="text-xs px-2.5 py-1 rounded-xl bg-cloud-100 hover:bg-forest-100 text-forest-900 font-medium active:scale-95 transition-all"
-                  >
-                    {val} {translateUnit(t, form.unit)}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Expected Price & Negotiable Toggle */}
-            <div className="bg-white rounded-3xl p-4 border border-cloud-200 shadow-xs space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-forest-950 uppercase tracking-wide">
-                  {isFarmer ? t('createPost.priceLabelFarmer', 'Expected Price (₹)') : t('createPost.priceLabelIndustry', 'Budget Offer (₹)')}
-                </label>
-                <span className="text-[11px] text-forest-900/50">per {translateUnit(t, form.unit)}</span>
-              </div>
-
-              <div className="relative">
-                <span className="absolute left-4 top-3.5 text-forest-900/40 font-bold">₹</span>
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  className="w-full pl-8 pr-4 py-3 rounded-2xl border border-cloud-200 bg-cloud-50 focus:bg-white focus:border-forest-500 outline-none text-sm font-bold text-harvest-700"
-                  placeholder="e.g. 2300"
-                  value={form.price}
-                  onChange={(e) => update('price', e.target.value)}
-                />
-              </div>
-
-              {/* Negotiable Toggle */}
-              <label className="flex items-center gap-2 cursor-pointer pt-1">
-                <input
-                  type="checkbox"
-                  checked={form.is_negotiable}
-                  onChange={(e) => update('is_negotiable', e.target.checked)}
-                  className="w-4 h-4 rounded text-forest-700 accent-forest-700"
-                />
-                <span className="text-xs font-semibold text-forest-900">
-                  {t('createPost.priceNegotiableLabel', 'Price is negotiable upon discussion')}
-                </span>
-              </label>
-            </div>
-
-            {/* Variety & Quality Grade */}
-            <div className="bg-white rounded-3xl p-4 border border-cloud-200 shadow-xs space-y-3">
-              <div>
-                <label className="text-xs font-bold text-forest-950 uppercase tracking-wide block mb-1.5">
-                  {t('createPost.varietyLabel', 'Crop Variety')}
-                </label>
-                <input
-                  type="text"
-                  className="w-full px-4 py-3 rounded-2xl border border-cloud-200 bg-cloud-50 focus:bg-white focus:border-forest-500 outline-none text-sm"
-                  placeholder="e.g. Sona Masoori, Teja, Bunny..."
-                  value={form.variety}
-                  onChange={(e) => update('variety', e.target.value)}
-                />
-
-                {/* Quick variety suggestions for this crop */}
-                {activeCropObj?.varieties && activeCropObj.varieties.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {activeCropObj.varieties.map((v) => (
-                      <button
-                        key={v}
-                        type="button"
-                        onClick={() => update('variety', v)}
-                        className={`text-[11px] px-2.5 py-1 rounded-xl transition-all ${
-                          form.variety === v
-                            ? 'bg-forest-700 text-white font-bold'
-                            : 'bg-cloud-100 hover:bg-forest-50 text-forest-900 font-medium'
-                        }`}
-                      >
-                        {v}
-                      </button>
-                    ))}
-                  </div>
+                {errors.quantity_num && (
+                  <p className="text-xs font-bold text-red-600 flex items-center gap-1.5 mt-2">
+                    <AlertCircle size={14} /> {errors.quantity_num}
+                  </p>
                 )}
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-forest-950 uppercase tracking-wide block mb-1.5">
-                  {t('createPost.qualityLabel', 'Quality Grade')}
+              {/* Unit Choices: Kg, Quintal, Ton */}
+              <div className="mt-4">
+                <label className="text-xs font-bold text-gray-700 uppercase tracking-wide block mb-2">
+                  {t('common.unit', 'Unit')}
                 </label>
-                <div className="flex gap-2">
-                  {QUALITY_GRADES.map((g) => (
+                <div className="grid grid-cols-3 gap-2.5">
+                  {STANDARD_UNITS.map((u) => {
+                    const isSelected = form.unit === u
+                    return (
+                      <button
+                        key={u}
+                        type="button"
+                        onClick={() => {
+                          update('unit', u)
+                          update('price_unit', u)
+                        }}
+                        className={`py-3.5 px-2 rounded-2xl font-bold text-sm sm:text-base border-2 transition-all min-h-[50px] flex items-center justify-center gap-1.5 active:scale-95 ${
+                          isSelected
+                            ? 'bg-[#1E5E3A] text-white border-[#1E5E3A] shadow-md'
+                            : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        {isSelected && <Check size={16} strokeWidth={3} />}
+                        <span>{translateUnit(t, u)}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Quick Preset Chips */}
+              <div className="mt-5 pt-4 border-t border-gray-100">
+                <span className="text-xs font-semibold text-gray-500 block mb-2">
+                  {t('createPost.q2QuickPresets', 'Quick presets:')}
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {['10', '25', '50', '100', '250', '500'].map((preset) => (
                     <button
-                      key={g}
+                      key={preset}
                       type="button"
-                      onClick={() => update('quality_grade', g)}
-                      className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all ${
-                        form.quality_grade === g
-                          ? 'bg-forest-700 text-white shadow-xs'
-                          : 'bg-cloud-100 text-forest-900/70 hover:bg-cloud-200'
+                      onClick={() => update('quantity_num', preset)}
+                      className={`text-xs sm:text-sm font-bold px-3.5 py-2 rounded-xl transition-all min-h-[38px] active:scale-95 ${
+                        form.quantity_num === preset
+                          ? 'bg-green-100 text-[#1E5E3A] border-2 border-[#1E5E3A]'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
-                      {g}
+                      {preset} {translateUnit(t, form.unit)}
                     </button>
                   ))}
                 </div>
               </div>
-            </div>
 
-            {/* Location & Harvest Date */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-bold text-forest-950 uppercase tracking-wide block mb-1">
-                  {t('createPost.locationLabel', 'Location')}
-                </label>
-                <input
-                  type="text"
-                  className="w-full px-3 py-2.5 rounded-2xl border border-cloud-200 bg-white focus:border-forest-500 outline-none text-xs"
-                  placeholder="Village / District"
-                  value={form.location}
-                  onChange={(e) => update('location', e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-forest-950 uppercase tracking-wide block mb-1">
-                  {isFarmer ? t('createPost.harvestDateLabel', 'Harvest Date') : t('createPost.requiredBeforeLabel', 'Required By')}
-                </label>
-                <input
-                  type="date"
-                  className="w-full px-3 py-2.5 rounded-2xl border border-cloud-200 bg-white focus:border-forest-500 outline-none text-xs"
-                  value={form.target_date}
-                  onChange={(e) => update('target_date', e.target.value)}
-                />
+              {/* Optional Voice Mic */}
+              <div className="mt-4 pt-3 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={toggleVoiceInput}
+                  className={`w-full py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 font-bold text-xs transition-all ${
+                    isListening
+                      ? 'bg-red-500 text-white animate-pulse'
+                      : 'bg-green-50 hover:bg-green-100 text-[#1E5E3A]'
+                  }`}
+                >
+                  {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+                  <span>{isListening ? 'Listening...' : t('createPost.q2SpeakBtn', '🎙️ Speak Quantity (e.g. 50 quintals)')}</span>
+                </button>
               </div>
             </div>
 
-            {/* Photo Upload */}
-            <ImagePicker
-              value={form.image}
-              onChange={(url) => update('image', url)}
-              label={isFarmer ? t('createPost.photoLabelFarmer', 'Add Crop Photos (Recommended)') : t('createPost.photoLabelIndustry', 'Add Photo / Specification (Optional)')}
-            />
-
-            {/* Title & AI Description Generator */}
-            <div className="bg-white rounded-3xl p-4 border border-cloud-200 shadow-xs space-y-3">
-              <div>
-                <label className="text-xs font-bold text-forest-950 uppercase tracking-wide block mb-1">
-                  {isFarmer ? t('createPost.postTitleLabel', 'Listing Title') : t('createPost.requirementTitleLabel', 'Requirement Title')}
-                </label>
-                <input
-                  type="text"
-                  className="w-full px-4 py-2.5 rounded-2xl border border-cloud-200 bg-cloud-50 focus:bg-white focus:border-forest-500 outline-none text-sm font-semibold"
-                  placeholder={
-                    isFarmer
-                      ? `Fresh Harvest ${form.crop_name || 'Crop'} (${form.quantity_num || ''} ${form.unit})`
-                      : `Need ${form.crop_name || 'Crop'} ${form.quantity_num || ''} ${form.unit}`
-                  }
-                  value={form.title}
-                  onChange={(e) => update('title', e.target.value)}
-                />
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-bold text-forest-950 uppercase tracking-wide">
-                    {t('createPost.descriptionLabel', 'Description')}
-                  </label>
-                  <button
-                    type="button"
-                    onClick={handleGenerateAiDescription}
-                    className="flex items-center gap-1 text-xs text-forest-700 bg-forest-50 hover:bg-forest-100 px-2.5 py-1 rounded-full font-bold border border-forest-200 active:scale-95 transition-all"
-                  >
-                    <Wand2 size={13} /> {t('createPost.aiGenerateDesc', 'AI Write Description')}
-                  </button>
-                </div>
-                <textarea
-                  rows={3}
-                  className="w-full px-4 py-2.5 rounded-2xl border border-cloud-200 bg-cloud-50 focus:bg-white focus:border-forest-500 outline-none text-xs leading-relaxed"
-                  placeholder={t('createPost.descPlaceholderFarmer', 'Describe your harvest quality, freshness, and packaging details...')}
-                  value={form.description}
-                  onChange={(e) => update('description', e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* Navigation Buttons */}
-            <div className="flex gap-2.5 pt-2">
+            {/* Back & Next Navigation */}
+            <div className="flex gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="flex-1 py-3.5 rounded-2xl border border-cloud-200 text-forest-900 font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-all min-h-[48px]"
+                className="w-1/3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-4 rounded-2xl flex items-center justify-center gap-1 active:scale-98 transition-all min-h-[56px] text-base"
               >
-                <ChevronLeft size={16} />
-                {t('common.back', 'Back')}
+                <ChevronLeft size={20} />
+                <span>{t('createPost.q2BackBtn', 'Back')}</span>
               </button>
+
               <button
                 type="button"
-                onClick={() => setStep(3)}
-                className="flex-[2] bg-forest-700 hover:bg-forest-800 text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-card min-h-[48px]"
+                onClick={() => validateAndNext(2)}
+                className="flex-1 bg-[#1E5E3A] hover:bg-[#16482c] text-white font-extrabold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-98 transition-all shadow-md min-h-[56px] text-lg"
               >
-                <span>{t('createPost.reviewBtn', 'Review & Publish')}</span>
-                <ChevronRight size={18} />
+                <span>{t('createPost.q2NextBtn', 'Next: Enter Price →')}</span>
+                <ChevronRight size={22} />
               </button>
             </div>
           </div>
         )}
 
         {/* ============================================================ */}
-        {/* STEP 3: REVIEW AND PUBLISH                                   */}
+        {/* STEP 3: WHAT IS YOUR EXPECTED PRICE?                        */}
         {/* ============================================================ */}
         {step === 3 && (
           <div className="space-y-4 animate-slide-up">
-            <div className="flex items-center justify-between">
-              <h2 className="font-display font-bold text-forest-950 text-lg">
-                {t('createPost.previewHeader', 'Review Your Listing')}
-              </h2>
-              <span className="text-xs bg-forest-100 text-forest-800 font-bold px-2.5 py-1 rounded-full">
-                {isFarmer ? t('createPost.previewBadgeFarmer', 'Farmer Listing Preview') : t('createPost.previewBadgeIndustry', 'Industry Requirement Preview')}
-              </span>
-            </div>
-
-            {/* LIVE BUYER PREVIEW CARD */}
-            <div className="bg-white rounded-3xl shadow-float border-2 border-forest-600/30 overflow-hidden">
-              <div className="bg-forest-700 text-white px-4 py-2 flex items-center justify-between text-xs font-semibold">
-                <span>{t('createPost.howBuyersSeeIt', 'How buyers will see your listing')}</span>
-                <span className="text-harvest-300 font-bold">✓ Ready to Post</span>
+            {/* Step 3 Question Card */}
+            <div className="bg-white rounded-3xl p-5 sm:p-6 border border-gray-200 shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#1E5E3A] bg-green-100 px-3 py-1 rounded-full">
+                  {t('createPost.guidedStepCounter', { current: 3, defaultValue: 'Step 3 of 4' })}
+                </span>
+                <span className="text-xs font-bold text-gray-600 flex items-center gap-1">
+                  {form.quantity_num} {translateUnit(t, form.unit)} · {translateCropName(t, form.crop_name)}
+                </span>
               </div>
 
-              {/* Photo preview */}
-              {form.image ? (
-                <div className="w-full aspect-[16/9] bg-cloud-100 overflow-hidden">
-                  <img src={form.image} alt={form.title} className="w-full h-full object-cover" />
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight">
+                {isFarmer
+                  ? t('createPost.q3PriceFarmer', 'What is your expected price?')
+                  : t('createPost.q3PriceIndustry', 'What is your budget price?')}
+              </h1>
+              <p className="text-sm text-gray-600 mt-1">
+                {isFarmer
+                  ? t('createPost.q3SubtitleFarmer', 'Enter your expected price per unit')
+                  : t('createPost.q3SubtitleIndustry', 'Enter your budget price per unit')}
+              </p>
+
+              {/* Large Price Input */}
+              <div className="mt-6 mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    {t('createPost.reviewPrice', 'Expected Price')}
+                  </label>
+                  <span className="text-xs font-bold text-[#1E5E3A]">
+                    per {translateUnit(t, form.price_unit)}
+                  </span>
                 </div>
-              ) : (
-                <div className="w-full py-8 bg-forest-50/50 flex flex-col items-center justify-center text-forest-800/60">
-                  <span className="text-4xl mb-1">{activeCropObj?.icon || '🌾'}</span>
-                  <span className="text-xs">{t('createPost.noPhotoAdded', 'Listing with no photo (Using crop icon)')}</span>
+
+                <div className="relative">
+                  <span className="absolute left-4 top-4 text-2xl font-extrabold text-gray-400">₹</span>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    autoFocus
+                    className={`w-full text-center text-3xl sm:text-4xl font-extrabold py-4 px-10 rounded-2xl border-2 outline-none transition-all shadow-inner ${
+                      errors.price
+                        ? 'border-red-500 bg-red-50 text-red-900'
+                        : 'border-gray-200 bg-gray-50/70 focus:bg-white focus:border-[#1E5E3A] text-[#D9822B]'
+                    }`}
+                    placeholder="0"
+                    value={form.price}
+                    onChange={(e) => update('price', e.target.value)}
+                  />
+                  <span className="absolute right-4 top-5 font-bold text-gray-500 text-sm">
+                    / {translateUnit(t, form.price_unit)}
+                  </span>
+                </div>
+                {errors.price && (
+                  <p className="text-xs font-bold text-red-600 flex items-center gap-1.5 mt-2">
+                    <AlertCircle size={14} /> {errors.price}
+                  </p>
+                )}
+              </div>
+
+              {/* Price Unit Selector (Per kg, Per quintal, Per ton) */}
+              <div className="mt-4">
+                <label className="text-xs font-bold text-gray-700 uppercase tracking-wide block mb-2">
+                  {t('createPost.priceUnit', 'Price Unit')}
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {STANDARD_UNITS.map((u) => {
+                    const isSelected = form.price_unit === u
+                    return (
+                      <button
+                        key={u}
+                        type="button"
+                        onClick={() => update('price_unit', u)}
+                        className={`py-3 px-2 rounded-2xl font-bold text-xs sm:text-sm border-2 transition-all min-h-[46px] flex items-center justify-center gap-1 active:scale-95 ${
+                          isSelected
+                            ? 'bg-[#1E5E3A] text-white border-[#1E5E3A] shadow-sm'
+                            : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        {isSelected && <Check size={14} strokeWidth={3} />}
+                        <span>per {translateUnit(t, u)}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Mandi Market Reference Card (Reassuring benchmark) */}
+              {priceGuidance && (
+                <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-4 mt-5 text-left">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-extrabold text-amber-900 flex items-center gap-1">
+                      <IndianRupee size={14} />
+                      {t('createPost.q3MandiTitle', 'Mandi Market Guidance')}
+                    </span>
+                    <span className="text-[10px] bg-amber-200/80 text-amber-900 font-bold px-2 py-0.5 rounded-full">
+                      {priceGuidance.market_name}
+                    </span>
+                  </div>
+                  <p className="text-xs text-amber-950 font-medium">
+                    {t('createPost.q3MandiRange', {
+                      market: priceGuidance.market_name,
+                      min: priceGuidance.min_price,
+                      max: priceGuidance.max_price,
+                      unit: priceGuidance.unit,
+                      defaultValue: `Typical market range: ₹${priceGuidance.min_price} – ₹${priceGuidance.max_price} per ${priceGuidance.unit}`,
+                    })}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => handleUseMandiPrice(priceGuidance.modal_price)}
+                    className="mt-2.5 bg-white hover:bg-amber-100/60 border border-amber-300 text-amber-900 font-bold text-xs py-2 px-3.5 rounded-xl active:scale-95 transition-all shadow-xs"
+                  >
+                    {t('createPost.q3UseMandi', {
+                      price: priceGuidance.modal_price,
+                      defaultValue: `💡 Use Recommended Price: ₹${priceGuidance.modal_price}`,
+                    })}
+                  </button>
                 </div>
               )}
 
-              <div className="p-4 space-y-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h3 className="font-display font-bold text-forest-950 text-base leading-snug">
-                      {form.title.trim() || `${isFarmer ? 'Fresh' : 'Requirement:'} ${form.crop_name}`}
-                    </h3>
-                    <p className="text-xs text-forest-900/60 flex items-center gap-1 mt-0.5">
-                      <MapPin size={12} /> {form.location || user?.location || 'Location Not Specified'}
-                    </p>
-                  </div>
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-forest-100 text-forest-800 shrink-0">
-                    {translateCropName(t, form.crop_name)}
-                  </span>
-                </div>
+              {/* Negotiable Toggle */}
+              <label className="flex items-center gap-3 cursor-pointer mt-4 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                <input
+                  type="checkbox"
+                  checked={form.is_negotiable}
+                  onChange={(e) => update('is_negotiable', e.target.checked)}
+                  className="w-5 h-5 rounded text-[#1E5E3A] accent-[#1E5E3A]"
+                />
+                <span className="text-sm font-semibold text-gray-800">
+                  {t('createPost.q3Negotiable', 'Price is negotiable upon discussion')}
+                </span>
+              </label>
 
-                {form.description && (
-                  <p className="text-xs text-forest-900/80 leading-relaxed bg-cloud-50 p-2.5 rounded-2xl border border-cloud-200/80">
-                    {form.description}
-                  </p>
-                )}
-
-                {/* Details Pills */}
-                <div className="grid grid-cols-2 gap-2 pt-1">
-                  <div className="bg-cloud-100/80 rounded-2xl p-2.5 text-xs">
-                    <span className="text-forest-900/50 block text-[10px] uppercase font-bold">{t('postCard.qty', 'Quantity')}</span>
-                    <span className="font-bold text-forest-950">
-                      {form.quantity_num ? `${form.quantity_num} ${translateUnit(t, form.unit)}` : 'Open'}
-                    </span>
-                  </div>
-
-                  <div className="bg-harvest-50 rounded-2xl p-2.5 text-xs border border-harvest-200/60">
-                    <span className="text-harvest-800/70 block text-[10px] uppercase font-bold">{t('postCard.price', 'Price')}</span>
-                    <span className="font-bold text-harvest-700 text-sm">
-                      {form.price ? `₹${form.price} / ${translateUnit(t, form.unit)}` : 'Negotiable'}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {form.variety && (
-                    <span className="text-[11px] font-semibold bg-forest-50 text-forest-800 px-2.5 py-1 rounded-xl border border-forest-200">
-                      Variety: {form.variety}
-                    </span>
-                  )}
-                  {form.quality_grade && (
-                    <span className="text-[11px] font-semibold bg-emerald-50 text-emerald-800 px-2.5 py-1 rounded-xl border border-emerald-200">
-                      Grade: {form.quality_grade}
-                    </span>
-                  )}
-                  {form.is_negotiable && (
-                    <span className="text-[11px] font-semibold bg-amber-50 text-amber-800 px-2.5 py-1 rounded-xl border border-amber-200">
-                      Price Negotiable
-                    </span>
-                  )}
-                </div>
-
-                {/* Seller Preview Footer */}
-                <div className="pt-3 border-t border-cloud-100 flex items-center justify-between text-xs text-forest-900/60">
-                  <span className="font-semibold text-forest-950">{user?.name} (You)</span>
-                  <span className="text-[11px] bg-forest-100 text-forest-800 px-2 py-0.5 rounded-full font-bold">
-                    ✓ Verified Mobile Contact
-                  </span>
-                </div>
+              {/* Optional Voice Mic */}
+              <div className="mt-4 pt-3 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={toggleVoiceInput}
+                  className={`w-full py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 font-bold text-xs transition-all ${
+                    isListening
+                      ? 'bg-red-500 text-white animate-pulse'
+                      : 'bg-green-50 hover:bg-green-100 text-[#1E5E3A]'
+                  }`}
+                >
+                  {isListening ? <MicOff size={16} /> : <Mic size={16} />}
+                  <span>{isListening ? 'Listening...' : t('createPost.q3SpeakBtn', '🎙️ Speak Price')}</span>
+                </button>
               </div>
             </div>
 
-            {/* Checklist & Quick Edit Jumps */}
-            <div className="bg-white rounded-3xl p-4 border border-cloud-200 space-y-2 text-xs">
-              <div className="flex items-center justify-between py-1 border-b border-cloud-100">
-                <span className="text-forest-900/70">{t('createPost.checkCrop', 'Crop & Category')}:</span>
+            {/* Back & Next Navigation */}
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setStep(2)}
+                className="w-1/3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-4 rounded-2xl flex items-center justify-center gap-1 active:scale-98 transition-all min-h-[56px] text-base"
+              >
+                <ChevronLeft size={20} />
+                <span>{t('createPost.q3BackBtn', 'Back')}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => validateAndNext(3)}
+                className="flex-1 bg-[#1E5E3A] hover:bg-[#16482c] text-white font-extrabold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-98 transition-all shadow-md min-h-[56px] text-lg"
+              >
+                <span>{t('createPost.q3NextBtn', 'Next: Delivery Time →')}</span>
+                <ChevronRight size={22} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ============================================================ */}
+        {/* STEP 4: WHEN CAN YOU DELIVER YOUR CROP?                     */}
+        {/* ============================================================ */}
+        {step === 4 && (
+          <div className="space-y-4 animate-slide-up">
+            {/* Step 4 Question Card */}
+            <div className="bg-white rounded-3xl p-5 sm:p-6 border border-gray-200 shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#1E5E3A] bg-green-100 px-3 py-1 rounded-full">
+                  {t('createPost.guidedStepCounter', { current: 4, defaultValue: 'Step 4 of 4' })}
+                </span>
+                <span className="text-xs font-bold text-gray-600 flex items-center gap-1">
+                  {form.quantity_num} {translateUnit(t, form.unit)} @ ₹{form.price}
+                </span>
+              </div>
+
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight">
+                {isFarmer
+                  ? t('createPost.q4DeliveryFarmer', 'When can you deliver your crop?')
+                  : t('createPost.q4DeliveryIndustry', 'When do you need delivery?')}
+              </h1>
+              <p className="text-sm text-gray-600 mt-1">
+                {t('createPost.q4Subtitle', 'Choose when your harvest will be ready for pickup or delivery')}
+              </p>
+
+              {/* Visual Delivery Choices: Today / Tomorrow / Choose another date */}
+              <div className="mt-6 space-y-3">
+                {/* Option 1: Today */}
+                <button
+                  type="button"
+                  onClick={() => handleDeliveryChoice('today')}
+                  className={`w-full p-4 sm:p-5 rounded-2xl border-2 text-left transition-all flex items-center justify-between active:scale-98 min-h-[64px] ${
+                    form.delivery_choice === 'today'
+                      ? 'border-[#1E5E3A] bg-green-50 shadow-md ring-2 ring-green-300'
+                      : 'border-gray-200 bg-white hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-10 h-10 rounded-xl bg-green-100 text-[#1E5E3A] flex items-center justify-center font-bold">
+                      <Clock size={22} />
+                    </div>
+                    <div>
+                      <p className="font-extrabold text-gray-900 text-base sm:text-lg">
+                        {t('createPost.q4Today', 'Today')}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {t('createPost.q4TodayDesc', 'Ready for pickup or delivery immediately')}
+                      </p>
+                    </div>
+                  </div>
+                  {form.delivery_choice === 'today' && (
+                    <div className="w-6 h-6 rounded-full bg-[#1E5E3A] text-white flex items-center justify-center">
+                      <Check size={14} strokeWidth={3} />
+                    </div>
+                  )}
+                </button>
+
+                {/* Option 2: Tomorrow */}
+                <button
+                  type="button"
+                  onClick={() => handleDeliveryChoice('tomorrow')}
+                  className={`w-full p-4 sm:p-5 rounded-2xl border-2 text-left transition-all flex items-center justify-between active:scale-98 min-h-[64px] ${
+                    form.delivery_choice === 'tomorrow'
+                      ? 'border-[#1E5E3A] bg-green-50 shadow-md ring-2 ring-green-300'
+                      : 'border-gray-200 bg-white hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-10 h-10 rounded-xl bg-green-100 text-[#1E5E3A] flex items-center justify-center font-bold">
+                      <Calendar size={22} />
+                    </div>
+                    <div>
+                      <p className="font-extrabold text-gray-900 text-base sm:text-lg">
+                        {t('createPost.q4Tomorrow', 'Tomorrow')}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {t('createPost.q4TomorrowDesc', 'Ready next day')}
+                      </p>
+                    </div>
+                  </div>
+                  {form.delivery_choice === 'tomorrow' && (
+                    <div className="w-6 h-6 rounded-full bg-[#1E5E3A] text-white flex items-center justify-center">
+                      <Check size={14} strokeWidth={3} />
+                    </div>
+                  )}
+                </button>
+
+                {/* Option 3: Choose another date */}
+                <button
+                  type="button"
+                  onClick={() => handleDeliveryChoice('custom')}
+                  className={`w-full p-4 sm:p-5 rounded-2xl border-2 text-left transition-all flex items-center justify-between active:scale-98 min-h-[64px] ${
+                    form.delivery_choice === 'custom'
+                      ? 'border-[#1E5E3A] bg-green-50 shadow-md ring-2 ring-green-300'
+                      : 'border-gray-200 bg-white hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-10 h-10 rounded-xl bg-amber-100 text-[#D9822B] flex items-center justify-center font-bold">
+                      <Calendar size={22} />
+                    </div>
+                    <div>
+                      <p className="font-extrabold text-gray-900 text-base sm:text-lg">
+                        {t('createPost.q4Custom', 'Choose another date')}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {t('createPost.q4CustomDesc', 'Specify exact future date')}
+                      </p>
+                    </div>
+                  </div>
+                  {form.delivery_choice === 'custom' && (
+                    <div className="w-6 h-6 rounded-full bg-[#1E5E3A] text-white flex items-center justify-center">
+                      <Check size={14} strokeWidth={3} />
+                    </div>
+                  )}
+                </button>
+              </div>
+
+              {/* Date Picker if 'custom' is active */}
+              {form.delivery_choice === 'custom' && (
+                <div className="mt-4 p-4 rounded-2xl bg-gray-50 border border-gray-200 animate-fade-in space-y-3">
+                  <label className="text-xs font-bold text-gray-700 uppercase tracking-wide block">
+                    {t('createPost.q4DatePickerLabel', 'Select delivery date:')}
+                  </label>
+                  <input
+                    type="date"
+                    min={getOffsetDateString(0)}
+                    value={form.target_date}
+                    onChange={(e) => update('target_date', e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-base font-bold text-gray-900 outline-none focus:border-[#1E5E3A]"
+                  />
+
+                  {/* Quick Shortcut Pills */}
+                  <div className="flex gap-2 pt-1">
+                    {[
+                      { label: '+3 Days', days: 3 },
+                      { label: '+1 Week', days: 7 },
+                      { label: '+2 Weeks', days: 14 },
+                    ].map((opt) => (
+                      <button
+                        key={opt.label}
+                        type="button"
+                        onClick={() => update('target_date', getOffsetDateString(opt.days))}
+                        className="text-xs font-bold px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-100"
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Time of day option (Clean chips) */}
+              <div className="mt-5 pt-4 border-t border-gray-100">
+                <label className="text-xs font-bold text-gray-600 block mb-2">
+                  {t('createPost.q4TimeOfDayLabel', 'Preferred time of day (optional):')}
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'anytime', label: t('createPost.q4Anytime', 'Any time') },
+                    { id: 'morning', label: t('createPost.q4Morning', 'Morning') },
+                    { id: 'afternoon', label: t('createPost.q4Afternoon', 'Afternoon') },
+                  ].map((tod) => (
+                    <button
+                      key={tod.id}
+                      type="button"
+                      onClick={() => update('time_of_day', tod.id)}
+                      className={`text-xs font-bold py-2.5 px-2 rounded-xl border transition-all ${
+                        form.time_of_day === tod.id
+                          ? 'bg-[#1E5E3A] text-white border-[#1E5E3A]'
+                          : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      {tod.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {errors.target_date && (
+                <p className="text-xs font-bold text-red-600 flex items-center gap-1.5 mt-3">
+                  <AlertCircle size={14} /> {errors.target_date}
+                </p>
+              )}
+            </div>
+
+            {/* Back & Next Navigation */}
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setStep(3)}
+                className="w-1/3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-4 rounded-2xl flex items-center justify-center gap-1 active:scale-98 transition-all min-h-[56px] text-base"
+              >
+                <ChevronLeft size={20} />
+                <span>{t('createPost.q4BackBtn', 'Back')}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => validateAndNext(4)}
+                className="flex-1 bg-[#1E5E3A] hover:bg-[#16482c] text-white font-extrabold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-98 transition-all shadow-md min-h-[56px] text-lg"
+              >
+                <span>{t('createPost.q4NextBtn', 'Review & Publish →')}</span>
+                <ChevronRight size={22} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ============================================================ */}
+        {/* STEP 5: FINAL REVIEW & PUBLISHING                            */}
+        {/* ============================================================ */}
+        {step === 5 && (
+          <div className="space-y-4 animate-slide-up">
+            {/* Review Heading Card */}
+            <div className="bg-white rounded-3xl p-5 border border-gray-200 shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#1E5E3A] bg-green-100 px-3 py-1 rounded-full">
+                  {t('createPost.guidedFinalReview', 'Final Review')}
+                </span>
+                <span className="text-xs font-bold text-green-700 flex items-center gap-1">
+                  <Check size={14} strokeWidth={3} /> Ready to Post
+                </span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight">
+                {t('createPost.reviewTitle', 'Review Your Crop Listing')}
+              </h1>
+              <p className="text-sm text-gray-600 mt-1">
+                {t('createPost.reviewSubtitle', 'Check your details before posting to verified buyers')}
+              </p>
+            </div>
+
+            {/* 4 Summary Cards with One-Click Edit Action */}
+            <div className="bg-white rounded-3xl p-5 border border-gray-200 shadow-sm space-y-4">
+              {/* Item 1: Crop */}
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-gray-50 border border-gray-100">
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">{activeCropObj?.icon || '🌾'}</span>
+                  <div>
+                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wide block">
+                      {t('createPost.reviewCrop', 'Crop')}
+                    </span>
+                    <p className="font-extrabold text-gray-900 text-lg">
+                      {translateCropName(t, form.crop_name)}
+                    </p>
+                  </div>
+                </div>
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="font-bold text-forest-700 hover:underline flex items-center gap-1"
+                  className="flex items-center gap-1 text-xs font-bold text-[#1E5E3A] bg-green-100/80 hover:bg-green-200/80 px-3 py-1.5 rounded-xl transition-all"
                 >
-                  {form.crop_name} <span className="text-[10px] bg-cloud-100 px-1.5 py-0.5 rounded">Edit</span>
+                  <Edit2 size={13} />
+                  <span>{t('createPost.reviewEdit', 'Edit')}</span>
                 </button>
               </div>
 
-              <div className="flex items-center justify-between py-1 border-b border-cloud-100">
-                <span className="text-forest-900/70">{t('createPost.checkQty', 'Quantity & Price')}:</span>
+              {/* Item 2: Quantity */}
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-gray-50 border border-gray-100">
+                <div>
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wide block">
+                    {t('createPost.reviewQty', 'Quantity')}
+                  </span>
+                  <p className="font-extrabold text-gray-900 text-lg">
+                    {form.quantity_num} {translateUnit(t, form.unit)}
+                  </p>
+                </div>
                 <button
                   type="button"
                   onClick={() => setStep(2)}
-                  className="font-bold text-forest-700 hover:underline flex items-center gap-1"
+                  className="flex items-center gap-1 text-xs font-bold text-[#1E5E3A] bg-green-100/80 hover:bg-green-200/80 px-3 py-1.5 rounded-xl transition-all"
                 >
-                  {form.quantity_num || 'Not set'} {form.unit} &middot; ₹{form.price || 'Negotiable'}{' '}
-                  <span className="text-[10px] bg-cloud-100 px-1.5 py-0.5 rounded">Edit</span>
+                  <Edit2 size={13} />
+                  <span>{t('createPost.reviewEdit', 'Edit')}</span>
                 </button>
               </div>
 
-              <div className="flex items-center justify-between py-1">
-                <span className="text-forest-900/70">{t('createPost.checkLocation', 'Location & Contact')}:</span>
+              {/* Item 3: Expected Price */}
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-gray-50 border border-gray-100">
+                <div>
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wide block">
+                    {t('createPost.reviewPrice', 'Expected Price')}
+                  </span>
+                  <div className="flex items-baseline gap-1.5">
+                    <p className="font-extrabold text-[#D9822B] text-xl">
+                      ₹{form.price}
+                    </p>
+                    <span className="text-xs text-gray-600 font-semibold">
+                      per {translateUnit(t, form.price_unit)}
+                    </span>
+                    {form.is_negotiable && (
+                      <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full ml-1">
+                        Negotiable
+                      </span>
+                    )}
+                  </div>
+                </div>
                 <button
                   type="button"
-                  onClick={() => setStep(2)}
-                  className="font-bold text-forest-700 hover:underline flex items-center gap-1"
+                  onClick={() => setStep(3)}
+                  className="flex items-center gap-1 text-xs font-bold text-[#1E5E3A] bg-green-100/80 hover:bg-green-200/80 px-3 py-1.5 rounded-xl transition-all"
                 >
-                  {form.location || 'Default'} <span className="text-[10px] bg-cloud-100 px-1.5 py-0.5 rounded">Edit</span>
+                  <Edit2 size={13} />
+                  <span>{t('createPost.reviewEdit', 'Edit')}</span>
                 </button>
+              </div>
+
+              {/* Item 4: Delivery Time */}
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-gray-50 border border-gray-100">
+                <div>
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wide block">
+                    {t('createPost.reviewDelivery', 'Delivery Time')}
+                  </span>
+                  <p className="font-extrabold text-gray-900 text-base">
+                    {form.delivery_choice === 'today'
+                      ? `${t('createPost.q4Today', 'Today')} (${form.target_date})`
+                      : form.delivery_choice === 'tomorrow'
+                      ? `${t('createPost.q4Tomorrow', 'Tomorrow')} (${form.target_date})`
+                      : form.target_date}
+                    {form.time_of_day !== 'anytime' && ` · ${form.time_of_day}`}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setStep(4)}
+                  className="flex items-center gap-1 text-xs font-bold text-[#1E5E3A] bg-green-100/80 hover:bg-green-200/80 px-3 py-1.5 rounded-xl transition-all"
+                >
+                  <Edit2 size={13} />
+                  <span>{t('createPost.reviewEdit', 'Edit')}</span>
+                </button>
+              </div>
+
+              {/* Seller & Location (Auto-filled from profile) */}
+              <div className="p-3 rounded-2xl bg-green-50/60 border border-green-200/60 flex items-center justify-between text-xs text-gray-700">
+                <div className="flex items-center gap-2">
+                  <MapPin size={16} className="text-[#1E5E3A] shrink-0" />
+                  <div>
+                    <span className="font-bold text-gray-900">{user?.name}</span>
+                    <span className="text-gray-500"> · {form.location || user?.location}</span>
+                  </div>
+                </div>
+                <span className="text-[10px] bg-green-200/70 text-green-900 font-bold px-2 py-0.5 rounded-full">
+                  ✓ Verified Mobile
+                </span>
               </div>
             </div>
 
-            {/* Navigation & Big Action Button */}
+            {/* Optional Collapsed Section (Photos & Notes) */}
+            <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setShowOptionalDetails(!showOptionalDetails)}
+                className="w-full p-4 flex items-center justify-between text-left text-sm font-bold text-gray-700 hover:bg-gray-50 transition-all min-h-[48px]"
+              >
+                <div className="flex items-center gap-2">
+                  <ImageIcon size={18} className="text-[#1E5E3A]" />
+                  <span>{t('createPost.optionalDetails', 'Add photos or notes (Optional)')}</span>
+                </div>
+                {showOptionalDetails ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+              </button>
+
+              {showOptionalDetails && (
+                <div className="p-4 pt-1 border-t border-gray-100 space-y-4 animate-fade-in">
+                  <ImagePicker
+                    value={form.image}
+                    onChange={(url) => update('image', url)}
+                    label={t('createPost.optionalPhotos', 'Crop Photos (Optional)')}
+                  />
+
+                  <div>
+                    <label className="text-xs font-bold text-gray-700 block mb-1">
+                      {t('createPost.optionalVariety', 'Crop Variety (Optional)')}
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm"
+                      placeholder={t('createPost.optionalVarietyPlaceholder', 'e.g. Sona Masoori, Teja, Bunny...')}
+                      value={form.variety}
+                      onChange={(e) => update('variety', e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-gray-700 block mb-1">
+                      {t('createPost.optionalNotes', 'Additional Notes / Description (Optional)')}
+                    </label>
+                    <textarea
+                      rows={2}
+                      className="w-full px-3.5 py-2 rounded-xl border border-gray-200 text-sm"
+                      placeholder={t('createPost.optionalNotesPlaceholder', 'Describe harvest quality, freshness, packaging...')}
+                      value={form.description}
+                      onChange={(e) => update('description', e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Post My Crop Primary Action */}
             <div className="space-y-2.5 pt-2">
               <button
                 type="button"
                 disabled={submitting}
                 onClick={handlePublish}
-                className="w-full bg-forest-700 hover:bg-forest-800 text-white font-bold text-base py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-float min-h-[48px]"
+                className="w-full bg-[#1E5E3A] hover:bg-[#16482c] disabled:opacity-50 text-white font-extrabold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-98 transition-all shadow-lg min-h-[56px] text-lg"
               >
                 {submitting ? (
                   <>
-                    <Loader2 size={20} className="animate-spin" />
+                    <Loader2 size={22} className="animate-spin" />
                     <span>{t('createPost.publishing', 'Publishing Listing...')}</span>
                   </>
                 ) : (
-                  <>
-                    <Sprout size={20} />
-                    <span>
-                      {isFarmer
-                        ? t('createPost.publishCropBtn', '🌾 Publish Crop Now')
-                        : t('createPost.publishReqBtn', '📢 Publish Requirement Now')}
-                    </span>
-                  </>
+                  <span>
+                    {isFarmer
+                      ? t('createPost.postCropBtn', '🌾 Post My Crop')
+                      : t('createPost.postReqBtn', '📢 Post Requirement')}
+                  </span>
                 )}
               </button>
 
               <button
                 type="button"
                 disabled={submitting}
-                onClick={() => setStep(2)}
-                className="w-full py-3 rounded-2xl border border-cloud-200 text-forest-900/80 font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-cloud-100 active:scale-95 transition-all min-h-[44px]"
+                onClick={() => setStep(4)}
+                className="w-full py-3 text-sm text-gray-600 font-bold hover:bg-gray-200/50 rounded-xl transition-colors min-h-[44px]"
               >
-                <ChevronLeft size={16} />
-                {t('createPost.backToDetails', 'Back to Crop Details')}
+                {t('createPost.reviewBack', '← Back to Delivery')}
               </button>
             </div>
           </div>
