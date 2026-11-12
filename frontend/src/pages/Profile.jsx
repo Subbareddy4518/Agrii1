@@ -471,7 +471,7 @@ export default function Profile() {
                         onClick={() => handleDeletePost(post.id)}
                         className="w-10 h-10 rounded-xl bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center shrink-0 transition-colors"
                         aria-label={t('profile.deleteAria')}
-                        title="Admin permanent delete"
+                        title={t('common.delete', 'Delete')}
                       >
                         <Trash2 size={15} />
                       </button>
@@ -506,7 +506,7 @@ export default function Profile() {
                 type="button"
                 onClick={() => setArchiveModalPost(null)}
                 className="text-forest-900/40 hover:text-forest-900 p-1"
-                aria-label="Close"
+                aria-label={t('common.close', 'Close')}
               >
                 <X size={18} />
               </button>

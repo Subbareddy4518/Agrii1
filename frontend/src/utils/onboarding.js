@@ -40,6 +40,7 @@ export function getSelectedLanguage() {
  * the code via i18next's languageChanged listener.
  */
 export function setSelectedLanguage(lang) {
+  stopSpeaking()
   i18n.changeLanguage(lang)
 }
 

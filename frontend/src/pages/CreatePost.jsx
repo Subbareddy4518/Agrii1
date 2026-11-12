@@ -48,9 +48,10 @@ function getOffsetDateString(daysOffset = 0) {
 export default function CreatePost() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const isFarmer = user?.role === 'farmer'
-  const currentLang = getSelectedLanguage()
+  const currentLang = i18n.language || getSelectedLanguage()
+  const ttsLang = currentLang === 'te' ? 'te-IN' : currentLang === 'hi' ? 'hi-IN' : 'en-IN'
 
   // Authenticated user-scoped draft key
   const draftKey = user?.id ? `${DRAFT_KEY_PREFIX}${user.id}` : null
@@ -269,41 +270,34 @@ export default function CreatePost() {
   }
 
   // ============================================================
-  // AI SPOKEN AUDIO GUIDANCE (TEXT-TO-SPEECH)
+  // AI SPOKEN AUDIO GUIDANCE (MULTILINGUAL TEXT-TO-SPEECH)
   // Speaks every instruction while visually displaying the question
+  // Synchronized across Telugu (te-IN), Hindi (hi-IN) & English (en-IN)
   // ============================================================
   function speakStepInstruction(stepNum) {
     stopSpeaking()
     setIsSpeakingInstruction(true)
 
+    let text = ''
     if (stepNum === 1) {
-      speak('మొదటి దశ: మీ పంట చిత్రాన్ని తాకండి', {
-        lang: 'te-IN',
-        onStart: () => setIsSpeakingInstruction(true),
-        onEnd: () => setIsSpeakingInstruction(false),
-      })
+      text = t('createPost.audioStep1')
     } else if (stepNum === 2) {
-      const cropText = translateCropName(t, form.crop_name) || 'పంట'
-      speak(`రెండవ దశ: ${cropText} ఎంత పరిమాణం ఉందో ప్లస్ మరియు మైనస్ బటన్లతో ఎంచుకోండి`, {
-        lang: 'te-IN',
-        onStart: () => setIsSpeakingInstruction(true),
-        onEnd: () => setIsSpeakingInstruction(false),
-      })
+      const cropText = translateCropName(t, form.crop_name) || t('createPost.stepCropName', 'Crop')
+      text = t('createPost.audioStep2', { crop: cropText })
     } else if (stepNum === 3) {
-      speak('మూడవ దశ: మీరు ఆశించే ధరను ప్లస్ మరియు మైనస్ బటన్లతో లేదా కీప్యాడ్‌తో నిర్ణయించండి', {
-        lang: 'te-IN',
-        onStart: () => setIsSpeakingInstruction(true),
-        onEnd: () => setIsSpeakingInstruction(false),
-      })
+      text = t('createPost.audioStep3')
     } else if (stepNum === 4) {
-      speak('నాల్గవ దశ: మీ పంట ఎప్పుడు సిద్ధంగా ఉంటుందో కింద తాకండి', {
-        lang: 'te-IN',
-        onStart: () => setIsSpeakingInstruction(true),
-        onEnd: () => setIsSpeakingInstruction(false),
-      })
+      text = t('createPost.audioStep4')
     } else if (stepNum === 5) {
       readSummaryAloud()
+      return
     }
+
+    speak(text, {
+      lang: ttsLang,
+      onStart: () => setIsSpeakingInstruction(true),
+      onEnd: () => setIsSpeakingInstruction(false),
+    })
   }
 
   // Automatically speak step instruction on step change
@@ -312,25 +306,38 @@ export default function CreatePost() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step])
 
+  // Stop previous audio immediately when language changes
+  useEffect(() => {
+    stopSpeaking()
+    setIsSpeakingInstruction(false)
+  }, [i18n.language])
+
   // Read full listing summary aloud before publication (Requirement 8)
   function readSummaryAloud() {
     stopSpeaking()
     setIsSpeakingInstruction(true)
 
-    const cropText = translateCropName(t, form.crop_name) || 'పంట'
-    const unitText = form.unit === 'Quintal' ? 'క్వింటాళ్లు' : form.unit === 'Ton' ? 'టన్నులు' : 'కిలోలు'
-    const priceUnitText = form.price_unit === 'Quintal' ? 'క్వింటాల్‌కు' : form.price_unit === 'Ton' ? 'టన్నుకు' : 'కిలోకు'
+    const cropText = translateCropName(t, form.crop_name) || t('createPost.stepCropName', 'Crop')
+    const unitText = translateUnit(t, form.unit)
+    const priceUnitText = translateUnit(t, form.price_unit)
     const deliveryText =
       form.delivery_choice === 'today'
-        ? 'ఈరోజే'
+        ? t('createPost.q4Today')
         : form.delivery_choice === 'tomorrow'
-        ? 'రేపు'
+        ? t('createPost.q4Tomorrow')
         : form.target_date
 
-    const summaryText = `పంట వివరాల సారాంశం: పంట ${cropText}, పరిమాణం ${form.quantity_num} ${unitText}, ఆశించే ధర ${form.price} రూపాయలు ${priceUnitText}, డెలివరీ ${deliveryText}. మార్కెట్లో పోస్ట్ చేయడానికి కింద ఉన్న ఆకుపచ్చ బటన్ తాకండి.`
+    const summaryText = t('createPost.audioSummary', {
+      crop: cropText,
+      qty: form.quantity_num,
+      unit: unitText,
+      price: form.price,
+      priceUnit: priceUnitText,
+      delivery: deliveryText,
+    })
 
     speak(summaryText, {
-      lang: 'te-IN',
+      lang: ttsLang,
       onStart: () => setIsSpeakingInstruction(true),
       onEnd: () => setIsSpeakingInstruction(false),
     })
@@ -347,7 +354,7 @@ export default function CreatePost() {
     }))
     setErrors((prev) => ({ ...prev, crop_name: null }))
 
-    // Pronounce crop name aloud in Telugu
+    // Pronounce crop name aloud in selected language
     const voiceText =
       currentLang === 'te'
         ? crop.telugu
@@ -359,7 +366,7 @@ export default function CreatePost() {
           : crop.name
         : crop.name
 
-    speak(voiceText, 'te-IN')
+    speak(voiceText, ttsLang)
   }
 
   // Plus / Minus adjustments for Quantity
@@ -367,9 +374,8 @@ export default function CreatePost() {
     const current = parseFloat(form.quantity_num) || 0
     const nextVal = Math.max(1, current + delta)
     update('quantity_num', String(nextVal))
-    // Announce aloud in Telugu
-    const unitName = form.unit === 'Quintal' ? 'క్వింటాళ్లు' : form.unit === 'Ton' ? 'టన్నులు' : 'కిలోలు'
-    speak(`${nextVal} ${unitName}`, 'te-IN')
+    const unitName = translateUnit(t, form.unit)
+    speak(`${nextVal} ${unitName}`, ttsLang)
   }
 
   // Plus / Minus adjustments for Price
@@ -377,8 +383,7 @@ export default function CreatePost() {
     const current = parseFloat(form.price) || 0
     const nextVal = Math.max(10, current + delta)
     update('price', String(nextVal))
-    // Announce aloud in Telugu
-    speak(`ధర ${nextVal} రూపాయలు`, 'te-IN')
+    speak(t('createPost.spokenPrice', { price: nextVal }), ttsLang)
   }
 
   // On-screen numeric keypad input (zero typing on phone keyboard required)
@@ -407,12 +412,12 @@ export default function CreatePost() {
     update('delivery_choice', choice)
     if (choice === 'today') {
       update('target_date', getOffsetDateString(0))
-      speak('ఈరోజే డెలివరీ', 'te-IN')
+      speak(t('createPost.deliveryToday'), ttsLang)
     } else if (choice === 'tomorrow') {
       update('target_date', getOffsetDateString(1))
-      speak('రేపు డెలివరీ', 'te-IN')
+      speak(t('createPost.deliveryTomorrow'), ttsLang)
     } else {
-      speak('వేరే తేదీని ఎంచుకోండి', 'te-IN')
+      speak(t('createPost.deliveryCustom'), ttsLang)
     }
   }
 
@@ -422,12 +427,10 @@ export default function CreatePost() {
 
     if (currentStep === 1) {
       if (!form.crop_name.trim()) {
-        setErrors((prev) => ({
-          ...prev,
-          crop_name: t('createPost.q1Error', 'Please select a crop to continue'),
-        }))
-        toast.error(t('createPost.q1Error', 'Please select a crop to continue'))
-        speak('దయచేసి కొనసాగడానికి ఒక పంటను ఎంచుకోండి', 'te-IN')
+        const errMsg = t('createPost.q1Error', 'Please select a crop to continue')
+        setErrors((prev) => ({ ...prev, crop_name: errMsg }))
+        toast.error(errMsg)
+        speak(errMsg, ttsLang)
         return
       }
       setErrors({})
@@ -435,12 +438,10 @@ export default function CreatePost() {
     } else if (currentStep === 2) {
       const q = parseFloat(form.quantity_num)
       if (isNaN(q) || q <= 0) {
-        setErrors((prev) => ({
-          ...prev,
-          quantity_num: t('createPost.q2Error', 'Please enter a valid quantity greater than 0'),
-        }))
-        toast.error(t('createPost.q2Error', 'Please enter a valid quantity greater than 0'))
-        speak('దయచేసి సరైన పరిమాణాన్ని ఎంచుకోండి', 'te-IN')
+        const errMsg = t('createPost.q2Error', 'Please enter a valid quantity greater than 0')
+        setErrors((prev) => ({ ...prev, quantity_num: errMsg }))
+        toast.error(errMsg)
+        speak(errMsg, ttsLang)
         return
       }
       setErrors({})
@@ -448,24 +449,20 @@ export default function CreatePost() {
     } else if (currentStep === 3) {
       const p = parseFloat(form.price)
       if (isNaN(p) || p <= 0) {
-        setErrors((prev) => ({
-          ...prev,
-          price: t('createPost.q3Error', 'Please enter an expected price greater than 0'),
-        }))
-        toast.error(t('createPost.q3Error', 'Please enter an expected price greater than 0'))
-        speak('దయచేసి ఆశించే ధరను నమోదు చేయండి', 'te-IN')
+        const errMsg = t('createPost.q3Error', 'Please enter an expected price greater than 0')
+        setErrors((prev) => ({ ...prev, price: errMsg }))
+        toast.error(errMsg)
+        speak(errMsg, ttsLang)
         return
       }
       setErrors({})
       setStep(4)
     } else if (currentStep === 4) {
       if (!form.target_date) {
-        setErrors((prev) => ({
-          ...prev,
-          target_date: t('createPost.q4Error', 'Please select a delivery date'),
-        }))
-        toast.error(t('createPost.q4Error', 'Please select a delivery date'))
-        speak('దయచేసి డెలివరీ తేదీని ఎంచుకోండి', 'te-IN')
+        const errMsg = t('createPost.q4Error', 'Please select a delivery date')
+        setErrors((prev) => ({ ...prev, target_date: errMsg }))
+        toast.error(errMsg)
+        speak(errMsg, ttsLang)
         return
       }
       setErrors({})
@@ -528,10 +525,7 @@ export default function CreatePost() {
         } catch {}
       }
       setDraftRestored(false)
-      speak(
-        'మీ పంట విజయవంతంగా మార్కెట్లో పోస్ట్ చేయబడింది! కొనుగోలుదారులు త్వరలోనే మిమ్మల్ని సంప్రదిస్తారు.',
-        'te-IN'
-      )
+      speak(t('createPost.audioSuccessCelebration'), ttsLang)
       toast.success(
         isFarmer
           ? t('createPost.successToastFarmer', 'Crop posted! Industries will see it now.')
@@ -949,14 +943,7 @@ export default function CreatePost() {
                       onClick={() => {
                         update('unit', u)
                         update('price_unit', u)
-                        speak(
-                          u === 'Quintal'
-                            ? 'క్వింటాల్ ఎంచుకోబడింది'
-                            : u === 'Ton'
-                            ? 'టన్ను ఎంచుకోబడింది'
-                            : 'కిలో ఎంచుకోబడింది',
-                          'te-IN'
-                        )
+                        speak(`${translateUnit(t, u)} ${t('createPost.unitSelected')}`, ttsLang)
                       }}
                       className={`py-3.5 px-2 rounded-2xl font-bold text-sm sm:text-base border-2 transition-all min-h-[50px] flex items-center justify-center gap-1.5 active:scale-95 ${
                         isSelected
@@ -965,7 +952,7 @@ export default function CreatePost() {
                       }`}
                     >
                       {isSelected && <Check size={16} strokeWidth={3} />}
-                      <span>{u === 'Quintal' ? 'క్వింటాల్' : u === 'Ton' ? 'టన్ను' : 'కిలో'}</span>
+                      <span>{translateUnit(t, u)}</span>
                     </button>
                   )
                 })}
@@ -1074,7 +1061,7 @@ export default function CreatePost() {
                     type="button"
                     onClick={() => {
                       update('price', String(priceGuidance.modal_price))
-                      speak(`మండీ సిఫార్సు ధర ${priceGuidance.modal_price} రూపాయలు ఎంచుకోబడింది`, 'te-IN')
+                      speak(t('createPost.mandiRecommendationSelected', { price: priceGuidance.modal_price }), ttsLang)
                     }}
                     className="mt-2 bg-white hover:bg-amber-100 text-amber-950 font-bold text-xs py-1.5 px-3 rounded-xl border border-amber-300 shadow-xs"
                   >
@@ -1372,7 +1359,7 @@ export default function CreatePost() {
                 <div className="flex items-center gap-2 text-gray-700">
                   <MapPin size={16} className="text-[#1E5E3A] shrink-0" />
                   <span>
-                    <strong>{t('postCard.location', 'Location')}:</strong> {form.location || user?.location || 'Profile Registered Location'}
+                    <strong>{t('postCard.location', 'Location')}:</strong> {form.location || user?.location || t('createPost.profileLocation', 'Profile Registered Location')}
                   </span>
                 </div>
                 <span className="text-[10px] text-green-700 font-bold bg-green-100 px-2 py-0.5 rounded-full">
@@ -1411,7 +1398,7 @@ export default function CreatePost() {
                       type="text"
                       value={form.variety}
                       onChange={(e) => update('variety', e.target.value)}
-                      placeholder="ఉదా: BPT 5204, సోనా మసూరి"
+                      placeholder={t('createPost.varietyPlaceholder', 'e.g. BPT 5204, Sona Masoori')}
                       className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
                     />
                   </div>
@@ -1424,7 +1411,7 @@ export default function CreatePost() {
                       rows={2}
                       value={form.description}
                       onChange={(e) => update('description', e.target.value)}
-                      placeholder="పంట నాణ్యత లేదా ఇతర వివరాలు..."
+                      placeholder={t('createPost.descPlaceholder', 'Crop quality, grade or additional details...')}
                       className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
                     />
                   </div>
@@ -1452,7 +1439,7 @@ export default function CreatePost() {
                 {submitting ? (
                   <Loader2 size={22} className="animate-spin" />
                 ) : (
-                  <span>{t('createPost.publishBtn', '🌾 నా పంటను పోస్ట్ చేయండి (Publish Crop)')}</span>
+                  <span>{t('createPost.publishBtn', '🌾 నా పంటను పోస్ట్ చేయండి')}</span>
                 )}
               </button>
             </div>

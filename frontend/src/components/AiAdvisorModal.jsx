@@ -157,7 +157,7 @@ export default function AiAdvisorModal({ isOpen, onClose }) {
           <button
             onClick={onClose}
             className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white active:scale-95 transition-all"
-            aria-label="Close"
+            aria-label={t('common.close', 'Close')}
           >
             <X size={18} />
           </button>

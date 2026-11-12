@@ -42,7 +42,7 @@ export default function TopBar({ title, subtitle, showSearch = true, onLogoClick
             <button
               type="button"
               onClick={() => setShowLangMenu((s) => !s)}
-              aria-label="Change language"
+              aria-label={t('common.changeLanguage', 'Change language')}
               className="min-h-[44px] h-11 px-3 rounded-2xl bg-white border border-cloud-200/80 shadow-card flex items-center gap-1.5 text-xs font-semibold text-forest-800 active:scale-95 transition-all min-w-[44px]"
             >
               <Globe size={16} className="text-forest-600 shrink-0" />
