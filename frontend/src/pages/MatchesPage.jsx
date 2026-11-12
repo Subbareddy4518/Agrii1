@@ -7,7 +7,7 @@ import EmptyState from '../components/EmptyState.jsx'
 import PostCardSkeleton from '../components/PostCardSkeleton.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 import { getMyMatches } from '../services/api.js'
-import { translateCropName, translateUnit } from '../utils/i18nHelpers.js'
+import { translateCropName, translateUnit, translateMatchReason, translateDistance } from '../utils/i18nHelpers.js'
 
 export default function MatchesPage() {
   const { user } = useAuth()
@@ -39,9 +39,13 @@ export default function MatchesPage() {
 
   function handleWhatsApp(post, cropName) {
     const label = isFarmer ? t('postCard.requirementWord', 'requirement') : t('postCard.cropWord', 'crop')
-    const text = encodeURIComponent(
-      `Hello ${post.owner.name}, I saw your ${label} for ${cropName} on AgriConnect SmartMatch. I would like to discuss it.`
-    )
+    const messageTemplate = t('matches.whatsappMessage', {
+      name: post.owner.name,
+      label,
+      crop: cropName,
+      defaultValue: `Hello ${post.owner.name}, I saw your ${label} for ${cropName} on AgriConnect SmartMatch. I would like to discuss it.`
+    })
+    const text = encodeURIComponent(messageTemplate)
     window.open(`https://wa.me/91${post.owner.mobile.replace(/\D/g, '').slice(-10)}?text=${text}`, '_blank')
   }
 
@@ -128,7 +132,7 @@ export default function MatchesPage() {
                       </span>
                       {item.distance_approx && (
                         <span className="text-[11px] text-forest-900/50 bg-white px-2 py-0.5 rounded-full border border-forest-200/50">
-                          {item.distance_approx}
+                          {translateDistance(t, item.distance_approx)}
                         </span>
                       )}
                     </div>
@@ -216,7 +220,7 @@ export default function MatchesPage() {
                           {item.reasons.map((reason, idx) => (
                             <li key={idx} className="text-xs text-forest-900/80 flex items-start gap-1.5">
                               <CheckCircle2 size={13} className="text-forest-600 shrink-0 mt-0.5" />
-                              <span>{reason}</span>
+                              <span>{translateMatchReason(t, reason)}</span>
                             </li>
                           ))}
                         </ul>

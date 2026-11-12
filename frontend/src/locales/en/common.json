@@ -186,13 +186,37 @@
     "emptyTitle": "No matches found yet",
     "emptyFarmer": "Post a crop listing to let AI automatically match you with interested industry buyers!",
     "emptyIndustry": "Post a requirement to discover verified farmers who have harvested your required crops.",
-    "loadError": "Could not load AI matches"
+    "loadError": "Could not load AI matches",
+    "distance": {
+      "nearby": "Nearby (< 50 km)",
+      "regional": "Regional",
+      "open": "Any Region"
+    },
+    "reasons": {
+      "directCrop": "Direct crop match for {{crop}}",
+      "priceMetFarmer": "Price matched: Buyer offer (₹{{offer}}) meets your asking price (₹{{asking}})",
+      "priceCloseFarmer": "Price negotiable: Buyer budget (₹{{offer}}) is close to your rate (₹{{asking}})",
+      "priceMetIndustry": "Within budget: Farmer rate (₹{{rate}}) meets your budget (₹{{budget}})",
+      "priceCloseIndustry": "Close to budget: Farmer asking ₹{{asking}} vs your budget ₹{{budget}}",
+      "volumeBuyer": "Volume compatibility: Buyer needs {{qty}}",
+      "activeDemand": "Active listing for high-demand {{crop}}",
+      "sameDistrict": "Same district or region: {{location}}",
+      "locatedIn": "Located in: {{location}}",
+      "directContact": "Direct Phone Call & WhatsApp verified"
+    },
+    "whatsappMessage": "Hello {{name}}, I saw your {{label}} for {{crop}} on AgriConnect SmartMatch. I would like to discuss it."
   },
   "aiAdvisor": {
     "title": "AgriConnect AI Advisor",
     "subtitle": "Crop prices, selling tips & market guidance",
     "thinking": "AgriConnect AI is analyzing...",
-    "error": "AI Assistant could not respond. Please try again."
+    "error": "AI Assistant could not respond. Please try again.",
+    "placeholder": "Ask about market prices, selling tips...",
+    "done": "Done",
+    "speakQuestion": "Speak question",
+    "send": "Send",
+    "voiceNotSupported": "Voice input is not supported in this browser. Please type.",
+    "voiceError": "Could not recognize speech. Please try speaking again or type."
   },
   "report": {
     "title": "Report Listing",
@@ -202,7 +226,19 @@
     "submit": "Submit Report",
     "successToast": "Report submitted. Our moderation team will review it.",
     "errorToast": "Could not submit report.",
-    "buttonTitle": "Report listing"
+    "buttonTitle": "Report listing",
+    "reasons": {
+      "incorrectDetails": "Incorrect price or crop details",
+      "spamDuplicate": "Spam or duplicate listing",
+      "misleadingQuality": "Misleading quality or variety claims",
+      "unresponsiveFake": "Unresponsive or fake contact",
+      "inappropriateContent": "Inappropriate or offensive content"
+    },
+    "confirmTitle": "Confirm Report Submission",
+    "confirmDesc": "Are you sure you want to report this listing? Our moderation team investigates all reports to protect farmers and buyers.",
+    "confirmAction": "Yes, Submit Report",
+    "cancelAction": "Keep Listing (Go Back)",
+    "selectReasonError": "Please select a reason for reporting."
   },
   "agriCategories": {
     "all": "All Crops",
@@ -290,13 +326,13 @@
     "viewMarketplace": "View Marketplace Feed",
     "postAnotherFarmer": "Post Another Crop",
     "postAnotherIndustry": "Post Another Requirement",
-    "voiceNotSupported": "Voice recognition is not supported in this browser. Please type or select a crop.",
+    "voiceNotSupported": "Voice recognition is not supported in this browser. Please select a crop below.",
     "voiceErrors": {
-      "micDenied": "Microphone permission denied. Please allow microphone access or select a crop.",
-      "noSpeech": "No speech detected. Please speak clearly into the microphone.",
-      "networkError": "Network issue with voice recognition. Please check connection or select a crop.",
-      "generic": "Could not recognize speech. Please try speaking again or select a crop.",
-      "emptySpeech": "No speech was heard. Tap the microphone and try speaking again."
+      "micDenied": "Microphone blocked. Allow microphone in browser settings or select a crop below.",
+      "noSpeech": "No speech detected. Speak close to microphone or select a crop below.",
+      "networkError": "Connection slow. Check your internet or select a crop below.",
+      "generic": "Could not hear clearly. Tap microphone to retry or select a crop below.",
+      "emptySpeech": "No speech was heard. Speak clearly into microphone or select a crop below."
     },
     "aiExtractedToast": "AI analyzed your speech! Review suggestions below.",
     "aiErrorToast": "Could not parse speech with AI. You can enter details manually.",
@@ -354,12 +390,16 @@
       "title": {
         "newCropPosted": "New crop posted",
         "newRequirementPosted": "New requirement posted",
-        "someoneInterested": "Someone is interested"
+        "someoneInterested": "Someone is interested",
+        "statusUpdated": "Listing Status Updated",
+        "cropSoldOut": "Crop Sold Out"
       },
       "message": {
         "postedCropNear": "{{name}} posted {{crop}} near {{location}}.",
         "postedRequirement": "{{name}} posted a new requirement.",
-        "interestedInCrop": "{{name}} is interested in your {{crop}} post."
+        "interestedInCrop": "{{name}} is interested in your {{crop}} post.",
+        "statusUpdatedAdmin": "Your post '{{title}}' status was updated to '{{status}}' by administration.",
+        "cropSoldOut": "The listing for {{crop}} by {{name}} has been marked as sold."
       }
     }
   },

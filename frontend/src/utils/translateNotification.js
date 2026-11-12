@@ -34,6 +34,14 @@ const TITLE_PATTERNS = [
     regex: /^someone is interested$/i,
     key: 'notifications.templates.title.someoneInterested',
   },
+  {
+    regex: /^listing status updated$/i,
+    key: 'notifications.templates.title.statusUpdated',
+  },
+  {
+    regex: /^crop sold out$/i,
+    key: 'notifications.templates.title.cropSoldOut',
+  },
 ]
 
 /* -------------------------------------------------------------------------- */
@@ -74,6 +82,30 @@ const MESSAGE_PATTERNS = [
     buildParams: (t, [, name, crop]) => ({
       name,
       crop: translateCropName(t, crop),
+    }),
+  },
+
+  {
+    // Your post 'Paddy' status was updated to 'archived' by administration.
+    regex: /^Your post '(.+?)' status was updated to '(.+?)' by administration\.?$/i,
+
+    key: 'notifications.templates.message.statusUpdatedAdmin',
+
+    buildParams: (t, [, title, status]) => ({
+      title,
+      status: t(`listing.status.${status.toLowerCase()}`, status),
+    }),
+  },
+
+  {
+    // The listing for Paddy by Ramesh has been marked as sold.
+    regex: /^The listing for (.+?) by (.+?) has been marked as sold\.?$/i,
+
+    key: 'notifications.templates.message.cropSoldOut',
+
+    buildParams: (t, [, crop, name]) => ({
+      crop: translateCropName(t, crop),
+      name,
     }),
   },
 ]

@@ -95,7 +95,7 @@ export default function AiAdvisorModal({ isOpen, onClose }) {
     }
 
     if (!isSpeechRecognitionSupported()) {
-      toast.error('Voice input is not supported in this browser. Please type.')
+      toast.error(t('aiAdvisor.voiceNotSupported', 'Voice input is not supported in this browser. Please type.'))
       return
     }
 
@@ -105,9 +105,18 @@ export default function AiAdvisorModal({ isOpen, onClose }) {
       onResult: ({ text }) => {
         setInput(text)
       },
-      onError: (msg) => {
+      onError: (err) => {
         setIsListening(false)
-        toast.error(msg)
+        const errType = err?.type || err
+        if (errType === 'not-allowed') {
+          toast.error(t('createPost.voiceErrors.micDenied', 'Microphone blocked. Allow microphone in browser settings or type.'))
+        } else if (errType === 'no-speech') {
+          toast.error(t('createPost.voiceErrors.noSpeech', 'No speech detected. Speak close to microphone or type.'))
+        } else if (errType === 'network') {
+          toast.error(t('createPost.voiceErrors.networkError', 'Connection slow. Check your internet or type.'))
+        } else {
+          toast.error(t('aiAdvisor.voiceError', 'Could not recognize speech. Please try speaking again or type.'))
+        }
       },
       onEnd: () => {
         setIsListening(false)
@@ -230,7 +239,7 @@ export default function AiAdvisorModal({ isOpen, onClose }) {
               onClick={() => recognizerRef.current?.stop()}
               className="text-xs underline text-harvest-900 font-bold"
             >
-              Done
+              {t('aiAdvisor.done', 'Done')}
             </button>
           </div>
         )}
@@ -245,7 +254,7 @@ export default function AiAdvisorModal({ isOpen, onClose }) {
                 ? 'bg-red-500 text-white animate-pulse'
                 : 'bg-forest-50 text-forest-700 border border-forest-200 hover:bg-forest-100'
             }`}
-            title="Speak question"
+            title={t('aiAdvisor.speakQuestion', 'Speak question')}
           >
             <Mic size={18} />
           </button>
@@ -253,13 +262,7 @@ export default function AiAdvisorModal({ isOpen, onClose }) {
           <input
             type="text"
             className="flex-1 px-4 py-2.5 rounded-2xl border border-cloud-200 bg-cloud-50 focus:bg-white focus:border-forest-400 focus:ring-2 focus:ring-forest-100 outline-none text-sm transition-all"
-            placeholder={
-              currentLang === 'te'
-                ? 'ధరలు లేదా సలహా గురించి అడగండి...'
-                : currentLang === 'hi'
-                ? 'भाव या सलाह के बारे में पूछें...'
-                : 'Ask about market prices, selling tips...'
-            }
+            placeholder={t('aiAdvisor.placeholder', 'Ask about market prices, selling tips...')}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
@@ -272,7 +275,7 @@ export default function AiAdvisorModal({ isOpen, onClose }) {
             onClick={() => handleSend()}
             disabled={!input.trim() || loading}
             className="w-11 h-11 rounded-2xl bg-forest-700 hover:bg-forest-800 disabled:opacity-40 text-white flex items-center justify-center shrink-0 active:scale-95 transition-all shadow-card"
-            title="Send"
+            title={t('aiAdvisor.send', 'Send')}
           >
             <Send size={16} />
           </button>

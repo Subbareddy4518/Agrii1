@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Bell, Heart, Sprout, Building2, CheckCheck } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useTranslation } from 'react-i18next'
@@ -10,14 +11,16 @@ import { timeAgo } from '../utils/time.js'
 import { translateNotificationTitle, translateNotificationMessage } from '../utils/translateNotification.js'
 
 function iconFor(title = '') {
-  if (title.toLowerCase().includes('interested')) return Heart
-  if (title.toLowerCase().includes('crop')) return Sprout
+  const lower = title.toLowerCase()
+  if (lower.includes('interested')) return Heart
+  if (lower.includes('crop') || lower.includes('sold')) return Sprout
   return Building2
 }
 
 export default function Notifications() {
   const { user } = useAuth()
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -48,12 +51,23 @@ export default function Notifications() {
   }
 
   async function handleOpen(n) {
-    if (n.is_read) return
-    setItems((prev) => prev.map((i) => (i.id === n.id ? { ...i, is_read: true } : i)))
-    try {
-      await markNotificationRead(n.id)
-    } catch {
-      /* non-critical */
+    if (!n.is_read) {
+      setItems((prev) => prev.map((i) => (i.id === n.id ? { ...i, is_read: true } : i)))
+      try {
+        await markNotificationRead(n.id)
+      } catch {
+        /* non-critical */
+      }
+    }
+
+    // Task 5: Contextual navigation to relevant screen
+    const titleLower = (n.title || '').toLowerCase()
+    if (titleLower.includes('interested') || titleLower.includes('status') || titleLower.includes('sold')) {
+      navigate('/profile')
+    } else if (titleLower.includes('crop') || titleLower.includes('requirement')) {
+      navigate('/matches')
+    } else {
+      navigate('/')
     }
   }
 
