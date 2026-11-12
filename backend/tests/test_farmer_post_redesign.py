@@ -159,9 +159,9 @@ class TestFarmerPostRedesign(unittest.TestCase):
         feed = posts.get_feed(page=1, page_size=10, sort="latest", db=self.db, user=self.buyer)
         self.assertEqual(len(feed.items), 0)
 
-    def test_voice_mode_conversational_payload(self):
-        """Conversational voice mode captures Telugu parsed fields and publishes successfully."""
-        # Simulated parsed fields from Voice Assistant: Paddy, 50 Quintal, 2350, Today
+    def test_ai_guided_mode_payload(self):
+        """AI Guided Posting captures 4 core fields and publishes successfully."""
+        # Simulated payload from AI Guided Posting: Paddy, 50 Quintal, 2350, Today
         payload = schemas.PostCreate(
             title="Fresh Harvest Paddy - 50 Quintal",
             crop_name="Paddy",
