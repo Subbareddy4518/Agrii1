@@ -23,7 +23,7 @@ export default function LanguageSelect() {
   }
 
   function handleContinue() {
-    navigate('/voice')
+    navigate('/welcome')
   }
 
   return (

@@ -64,7 +64,10 @@ export function createSpeechRecognizer({ onResult, onError, onEnd, onStart, lang
     } else if (event.error === 'network') {
       msg = 'Network issue with voice recognition. You can type manually.'
     }
-    onError?.(msg, event)
+    const errObj = new String(msg)
+    errObj.type = event.error
+    errObj.message = msg
+    onError?.(errObj, event)
   }
 
   recognition.onend = () => {

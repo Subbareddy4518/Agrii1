@@ -65,7 +65,7 @@ export default function Welcome() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.4 }}
-          onClick={() => navigate('/language')}
+          onClick={() => navigate('/voice')}
           aria-label={t('onboarding.welcome.getStartedAria')}
           className="w-full bg-forest-700 hover:bg-forest-800 text-white font-semibold py-3.5 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all mt-8 shadow-float focus:outline-none focus:ring-4 focus:ring-forest-600/40"
         >

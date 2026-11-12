@@ -5,10 +5,11 @@ Feed logic is the core of the app - a farmer only ever sees industry
 requirement posts, and an industry only ever sees farmer crop posts.
 """
 import os
+import re
 import shutil
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, BackgroundTasks
 from sqlalchemy.orm import Session, joinedload
@@ -19,6 +20,7 @@ import schemas
 import trust
 from database import get_db, SessionLocal
 from auth import get_current_user
+from .ai_services import CROPS_CATALOG
 
 router = APIRouter(prefix="/api/posts", tags=["posts"])
 
@@ -37,6 +39,72 @@ def serialize_post(post: models.Post, current_user_id: int, liked_ids: set) -> s
         out.owner.is_verified = bool(getattr(post.owner, "is_verified", False))
         out.owner.trust_score = int(getattr(post.owner, "trust_score", 100))
     return out
+
+
+def resolve_canonical_crops(term: Optional[str]) -> List[str]:
+    """
+    Resolves an input query or crop parameter into matching canonical crop names
+    from CROPS_CATALOG, supporting Telugu, Hindi, transliterated, and English names.
+    Ensures regional searches return the correct crop without matching unrelated crops.
+    """
+    if not term:
+        return []
+    cleaned = term.strip().lower()
+    if not cleaned:
+        return []
+
+    matched = []
+    query_tokens = [t.strip().lower() for t in re.split(r'[\s,]+', cleaned) if t.strip()]
+
+    for crop in CROPS_CATALOG:
+        canonical_name = crop["name"]
+        canonical_lower = canonical_name.lower()
+
+        # Check full term exact match with canonical name or token exact match
+        if canonical_lower == cleaned or canonical_lower in query_tokens:
+            if canonical_name not in matched:
+                matched.append(canonical_name)
+            continue
+
+        # Primary native names from telugu/hindi fields (e.g. 'వరి', 'ధాన')
+        primary_native = []
+        tel_match = re.search(r'^([^\s(]+)', crop.get("telugu", ""))
+        if tel_match:
+            primary_native.append(tel_match.group(1).strip().lower())
+        hin_match = re.search(r'^([^\s(/]+)', crop.get("hindi", ""))
+        if hin_match:
+            primary_native.append(hin_match.group(1).strip().lower())
+
+        crop_matched = False
+
+        # 1. Exact match with primary native names
+        for pn in primary_native:
+            if pn and (pn == cleaned or pn in query_tokens):
+                crop_matched = True
+                break
+
+        if crop_matched:
+            if canonical_name not in matched:
+                matched.append(canonical_name)
+            continue
+
+        # 2. Match with keywords: ONLY match if keyword exactly equals cleaned term, or equals one of query tokens
+        for kw in crop.get("keywords", []):
+            k = kw.strip().lower()
+            if not k or len(k) < 2:
+                continue
+            if k == cleaned or k in query_tokens:
+                crop_matched = True
+                break
+            # Multi-word keyword (e.g. 'sona masoori', 'red gram') matching substring of query
+            if ' ' in k and k in cleaned:
+                crop_matched = True
+                break
+
+        if crop_matched and canonical_name not in matched:
+            matched.append(canonical_name)
+
+    return matched
 
 
 # --------------------------------------------------------------------------
@@ -251,9 +319,14 @@ def search_posts(
 
     if q:
         like = f"%{q}%"
+        canonical_crops = resolve_canonical_crops(q)
+        crop_filters = [models.Post.crop_name.ilike(like)]
+        if canonical_crops:
+            crop_filters.append(models.Post.crop_name.in_(canonical_crops))
+
         query = query.join(models.User, models.Post.user_id == models.User.id).filter(
             or_(
-                models.Post.crop_name.ilike(like),
+                *crop_filters,
                 models.Post.location.ilike(like),
                 models.User.name.ilike(like),
                 models.Post.title.ilike(like),
@@ -261,7 +334,16 @@ def search_posts(
             )
         )
     if crop:
-        query = query.filter(models.Post.crop_name.ilike(f"%{crop}%"))
+        canonical_crops = resolve_canonical_crops(crop)
+        if canonical_crops:
+            query = query.filter(
+                or_(
+                    models.Post.crop_name.in_(canonical_crops),
+                    models.Post.crop_name.ilike(f"%{crop}%"),
+                )
+            )
+        else:
+            query = query.filter(models.Post.crop_name.ilike(f"%{crop}%"))
     if category and category.lower() != "all":
         query = query.filter(models.Post.category.ilike(f"%{category}%"))
     if location:

@@ -73,6 +73,8 @@ export default function CreatePost() {
   const [aiSuggestions, setAiSuggestions] = useState(null)
   const [aiProcessing, setAiProcessing] = useState(false)
   const recognizerRef = useRef(null)
+  const transcriptRef = useRef('')
+  const hasProcessedRef = useRef(false)
 
   // Mandi Price Guidance
   const [priceGuidance, setPriceGuidance] = useState(null)
@@ -152,23 +154,44 @@ export default function CreatePost() {
       return
     }
 
+    transcriptRef.current = ''
+    hasProcessedRef.current = false
+    setVoiceTranscript('')
+
     const recognizer = createSpeechRecognizer({
       lang: currentLang,
       onStart: () => {
         setIsListening(true)
+        transcriptRef.current = ''
+        hasProcessedRef.current = false
         setVoiceTranscript('')
       },
       onResult: ({ text }) => {
-        setVoiceTranscript(text)
+        const cleaned = (text || '').trim()
+        transcriptRef.current = cleaned
+        setVoiceTranscript(cleaned)
       },
-      onError: (msg) => {
+      onError: (err) => {
         setIsListening(false)
-        toast.error(msg)
+        const errType = err?.type || err
+        if (errType === 'not-allowed') {
+          toast.error(t('createPost.voiceErrors.micDenied', 'Microphone permission denied. Please allow microphone access or select a crop.'))
+        } else if (errType === 'no-speech') {
+          toast.error(t('createPost.voiceErrors.noSpeech', 'No speech detected. Please speak clearly into the microphone.'))
+        } else if (errType === 'network') {
+          toast.error(t('createPost.voiceErrors.networkError', 'Network issue with voice recognition. Please check connection or select a crop.'))
+        } else if (errType === 'aborted') {
+          // User aborted / stopped, ignore
+        } else {
+          toast.error(t('createPost.voiceErrors.generic', 'Could not recognize speech. Please try speaking again or select a crop.'))
+        }
       },
       onEnd: () => {
         setIsListening(false)
-        if (voiceTranscript) {
-          processAiVoice(voiceTranscript)
+        const captured = transcriptRef.current.trim()
+        if (captured && !hasProcessedRef.current) {
+          hasProcessedRef.current = true
+          processAiVoice(captured)
         }
       },
     })

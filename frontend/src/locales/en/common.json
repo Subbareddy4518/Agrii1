@@ -291,6 +291,13 @@
     "postAnotherFarmer": "Post Another Crop",
     "postAnotherIndustry": "Post Another Requirement",
     "voiceNotSupported": "Voice recognition is not supported in this browser. Please type or select a crop.",
+    "voiceErrors": {
+      "micDenied": "Microphone permission denied. Please allow microphone access or select a crop.",
+      "noSpeech": "No speech detected. Please speak clearly into the microphone.",
+      "networkError": "Network issue with voice recognition. Please check connection or select a crop.",
+      "generic": "Could not recognize speech. Please try speaking again or select a crop.",
+      "emptySpeech": "No speech was heard. Tap the microphone and try speaking again."
+    },
     "aiExtractedToast": "AI analyzed your speech! Review suggestions below.",
     "aiErrorToast": "Could not parse speech with AI. You can enter details manually.",
     "photoLabelFarmer": "Add Crop Photos (Recommended)",

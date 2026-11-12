@@ -30,13 +30,10 @@ import { hasSplashShownThisSession, isWelcomeSeen } from './utils/onboarding.js'
 
 /**
  * Onboarding gate: on the very first load of the app (path "/"), a
- * first-time visitor is sent through Splash → Welcome → Language →
- * Voice before ever reaching Login/Home. Returning visitors who have
- * already completed onboarding (welcomeSeen === true) are left alone
- * and fall straight through to the existing protected routes below —
- * this effect only ever *adds* a redirect, it never runs again after
- * the initial mount, so it cannot interfere with normal in-app
- * navigation, deep links, or the existing Login/Register/Home flow.
+ * first-time visitor is sent through Splash → Language → Welcome →
+ * Voice → Registration. Returning visitors who have already completed
+ * onboarding (welcomeSeen === true) are left alone and fall straight
+ * through to the existing protected routes below.
  */
 function useOnboardingGate() {
   const location = useLocation()
@@ -46,7 +43,7 @@ function useOnboardingGate() {
     if (location.pathname !== '/') return
     if (isWelcomeSeen()) return
     if (hasSplashShownThisSession()) {
-      navigate('/welcome', { replace: true })
+      navigate('/language', { replace: true })
     } else {
       navigate('/splash', { replace: true })
     }

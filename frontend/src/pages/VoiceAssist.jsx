@@ -11,7 +11,7 @@ export default function VoiceAssist() {
   function finish(enabled) {
     setVoiceEnabled(enabled)
     markWelcomeSeen()
-    navigate('/login', { replace: true })
+    navigate('/register', { replace: true })
   }
 
   return (

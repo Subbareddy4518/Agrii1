@@ -34,7 +34,7 @@ CROPS_CATALOG = [
         "max_price": 2450.0,
         "modal_price": 2300.0,
         "varieties": ["Sona Masoori", "BPT 5204 (Samba Masoori)", "IR 64", "Basmati", "RNR 15048 (Telangana Sona)"],
-        "keywords": ["paddy", "rice", "vari", "dhaan", "dhan", "chawal", "sona masoori", "bpt", "rnr"],
+        "keywords": ["paddy", "rice", "vari", "dhaan", "dhan", "chawal", "sona masoori", "bpt", "rnr", "వరి", "వరి ధాన్యం", "ధాన్యం", "బియ్యం", "धान", "चावल"],
     },
     {
         "name": "Cotton",
@@ -47,7 +47,7 @@ CROPS_CATALOG = [
         "max_price": 7650.0,
         "modal_price": 7250.0,
         "varieties": ["Bunny BT", "RCH-2", "DCH-32", "Long Staple", "Medium Staple"],
-        "keywords": ["cotton", "patti", "kapas", "kapaas", "ruwi", "bunny", "rch"],
+        "keywords": ["cotton", "patti", "kapas", "kapaas", "ruwi", "bunny", "rch", "పత్తి", "కపాస్", "कपास"],
     },
     {
         "name": "Chilli",
@@ -60,7 +60,7 @@ CROPS_CATALOG = [
         "max_price": 19500.0,
         "modal_price": 16800.0,
         "varieties": ["Teja", "Guntur Sannam (S4)", "Byadgi", "Wonder Hot", "Armoor"],
-        "keywords": ["chilli", "chili", "mirchi", "mirch", "teja", "guntur sannam", "byadgi"],
+        "keywords": ["chilli", "chili", "mirchi", "mirch", "teja", "guntur sannam", "byadgi", "మిర్చి", "మిరపకాయ", "మిరప", "ఎండుమిర్చి", "मिर्च", "लाल मिर्च"],
     },
     {
         "name": "Tomato",
@@ -73,7 +73,7 @@ CROPS_CATALOG = [
         "max_price": 32.0,
         "modal_price": 24.0,
         "varieties": ["Vaishnavi", "Saaho", "Abhinav", "Desi Organic", "Hybrid 1057"],
-        "keywords": ["tomato", "tamata", "tamatar", "tomatoes", "saaho", "vaishnavi"],
+        "keywords": ["tomato", "tamata", "tamatar", "tomatoes", "saaho", "vaishnavi", "టమాటా", "టమాట", "టొమాటో", "टमाटर"],
     },
     {
         "name": "Maize",
@@ -86,7 +86,7 @@ CROPS_CATALOG = [
         "max_price": 2280.0,
         "modal_price": 2100.0,
         "varieties": ["Pioneer 30V92", "NK 6240", "DKC 9108", "Yellow Maize", "Sweet Corn"],
-        "keywords": ["maize", "corn", "mokkajonna", "makka", "bhutta", "pioneer"],
+        "keywords": ["maize", "corn", "mokkajonna", "makka", "bhutta", "pioneer", "మొక్కజొన్న", "మక్క", "మక్కా", "मक्का", "भुट्टा"],
     },
     {
         "name": "Onion",
@@ -99,7 +99,7 @@ CROPS_CATALOG = [
         "max_price": 40.0,
         "modal_price": 30.0,
         "varieties": ["Nasik Red", "Garwa", "Pune Fursungi", "Bellary Red", "White Onion"],
-        "keywords": ["onion", "ulli", "ullipaya", "pyaj", "pyaaz", "kanda", "nasik red"],
+        "keywords": ["onion", "ulli", "ullipaya", "pyaj", "pyaaz", "kanda", "nasik red", "ఉల్లిపాయ", "ఉల్లి", "ఎర్రగడ్డ", "प्याज", "कांदा"],
     },
     {
         "name": "Groundnut",
@@ -112,7 +112,7 @@ CROPS_CATALOG = [
         "max_price": 7100.0,
         "modal_price": 6650.0,
         "varieties": ["Kadiri-6 (K-6)", "TAG-24", "JL-24", "Dharani", "Bold"],
-        "keywords": ["groundnut", "peanut", "verusenaga", "mungfali", "moongfali", "kadiri", "k6"],
+        "keywords": ["groundnut", "peanut", "verusenaga", "mungfali", "moongfali", "kadiri", "k6", "వేరుశనగ", "పల్లీలు", "పల్లీ", "मूंगफली"],
     },
     {
         "name": "Red Gram",
@@ -125,7 +125,7 @@ CROPS_CATALOG = [
         "max_price": 7600.0,
         "modal_price": 7150.0,
         "varieties": ["Asha (ICPL 87119)", "Maruti (ICP 8863)", "PRG 176", "White Toor"],
-        "keywords": ["red gram", "toor", "tur", "kandulu", "arhar", "pigeon pea", "asha"],
+        "keywords": ["red gram", "toor", "tur", "kandulu", "arhar", "pigeon pea", "asha", "కందులు", "కందిపప్పు", "अरहर", "तूर"],
     },
     {
         "name": "Turmeric",
@@ -138,7 +138,7 @@ CROPS_CATALOG = [
         "max_price": 17200.0,
         "modal_price": 14800.0,
         "varieties": ["Nizamabad Finger", "Salem", "Duggirala", "Prathibha"],
-        "keywords": ["turmeric", "pasupu", "haldi", "nizamabad", "finger turmeric"],
+        "keywords": ["turmeric", "pasupu", "haldi", "nizamabad", "finger turmeric", "పసుపు", "हल्दी"],
     },
     {
         "name": "Wheat",
@@ -151,7 +151,7 @@ CROPS_CATALOG = [
         "max_price": 2600.0,
         "modal_price": 2420.0,
         "varieties": ["Sharbati", "Lok-1", "HD 2967", "GW 322", "Desi Wheat"],
-        "keywords": ["wheat", "godhumalu", "gehu", "sharbati", "lok1"],
+        "keywords": ["wheat", "godhumalu", "gehu", "sharbati", "lok1", "గోధుమలు", "గోధుమ", "गेहूं"],
     },
     {
         "name": "Mango",
@@ -164,7 +164,7 @@ CROPS_CATALOG = [
         "max_price": 95.0,
         "modal_price": 68.0,
         "varieties": ["Banganapalli", "Alphonso", "Totapuri", "Dasheri", "Kesar", "Rasalu"],
-        "keywords": ["mango", "mamidi", "aam", "banganapalli", "alphonso", "totapuri", "rasalu"],
+        "keywords": ["mango", "mamidi", "aam", "banganapalli", "alphonso", "totapuri", "rasalu", "మామిడి", "మామిడికాయ", "आम"],
     },
     {
         "name": "Sugarcane",
@@ -177,20 +177,20 @@ CROPS_CATALOG = [
         "max_price": 345.0,
         "modal_price": 330.0,
         "varieties": ["Co 86032", "Co 0238", "CoM 0265"],
-        "keywords": ["sugarcane", "cheraku", "ganna", "sugar cane"],
+        "keywords": ["sugarcane", "cheraku", "ganna", "sugar cane", "చెరకు", "చెరుకు", "गन्ना"],
     },
     {
         "name": "Banana",
         "category": "Fruits",
         "telugu": "అరటి (Banana)",
-        "hindi": "केला (Banana)",
+        "hindi": "కేలా (Banana)",
         "icon": "🍌",
         "default_unit": "Kg",
         "min_price": 16.0,
         "max_price": 28.0,
         "modal_price": 22.0,
         "varieties": ["Grand Naine (G9)", "Robusta", "Yelakki", "Red Banana", "Karpuravalli"],
-        "keywords": ["banana", "arati", "kela", "grand naine", "yelakki"],
+        "keywords": ["banana", "arati", "kela", "grand naine", "yelakki", "అరటి", "అరటిపండు", "केला"],
     },
     {
         "name": "Potato",
@@ -203,7 +203,7 @@ CROPS_CATALOG = [
         "max_price": 28.0,
         "modal_price": 23.0,
         "varieties": ["Kufri Jyoti", "Kufri Pukhraj", "Chipsona", "Desi Red"],
-        "keywords": ["potato", "bangaladumpa", "aloo", "alu", "potatoes"],
+        "keywords": ["potato", "bangaladumpa", "aloo", "alu", "potatoes", "బంగాళాదుంప", "బంగాళదుంప", "ఆలూ", "आलू"],
     },
 ]
 
