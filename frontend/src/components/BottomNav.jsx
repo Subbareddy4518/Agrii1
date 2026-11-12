@@ -1,17 +1,20 @@
 import { NavLink } from 'react-router-dom'
 import { Home, Sparkles, PlusCircle, Bell, User } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-
-const items = [
-  { to: '/', labelKey: 'nav.home', icon: Home },
-  { to: '/matches', labelKey: 'nav.matches', icon: Sparkles },
-  { to: '/post', labelKey: 'nav.post', icon: PlusCircle, isPrimary: true },
-  { to: '/notifications', labelKey: 'nav.alerts', icon: Bell },
-  { to: '/profile', labelKey: 'nav.profile', icon: User },
-]
+import { useAuth } from '../context/AuthContext.jsx'
 
 export default function BottomNav({ unreadCount = 0 }) {
   const { t } = useTranslation()
+  const { user } = useAuth()
+  const isFarmer = user?.role === 'farmer'
+
+  const items = [
+    { to: '/', labelKey: 'nav.home', icon: Home },
+    { to: '/matches', labelKey: 'nav.matches', icon: Sparkles },
+    { to: '/post', labelKey: isFarmer ? 'nav.post' : 'nav.postRequirement', icon: PlusCircle, isPrimary: true },
+    { to: '/notifications', labelKey: 'nav.alerts', icon: Bell },
+    { to: '/profile', labelKey: 'nav.profile', icon: User },
+  ]
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 flex justify-center pb-[max(0.75rem,env(safe-area-inset-bottom))] px-3 pointer-events-none">
       <div className="pointer-events-auto flex items-center justify-between gap-1 bg-white/95 backdrop-blur-md border border-cloud-200/90 shadow-float rounded-3xl px-1.5 py-1.5 w-full max-w-md">

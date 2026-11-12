@@ -23,6 +23,9 @@ import {
   RotateCcw,
   Layers,
   HelpCircle,
+  Building2,
+  Globe,
+  Compass,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useTranslation } from 'react-i18next'
@@ -37,6 +40,20 @@ const CATEGORIES = ['All', 'Cereals', 'Vegetables', 'Spices', 'Cash Crops', 'Pul
 const STANDARD_UNITS = ['Kg', 'Quintal', 'Ton']
 const DRAFT_KEY_PREFIX = 'agriconnect_draft_post_'
 const DRAFT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
+
+// Common districts in Andhra Pradesh & Telangana for instant one-touch buyer selection
+const POPULAR_SOURCING_DISTRICTS = [
+  'Guntur',
+  'Warangal',
+  'Kurnool',
+  'Krishna',
+  'Khammam',
+  'Nalgonda',
+  'Nizamabad',
+  'Anantapur',
+  'East Godavari',
+  'West Godavari',
+]
 
 // Helper to get formatted date string 'YYYY-MM-DD'
 function getOffsetDateString(daysOffset = 0) {
@@ -53,17 +70,16 @@ export default function CreatePost() {
   const currentLang = i18n.language || getSelectedLanguage()
   const ttsLang = currentLang === 'te' ? 'te-IN' : currentLang === 'hi' ? 'hi-IN' : 'en-IN'
 
+  // Total steps: Farmer has 5 (4 questions + Review), Buyer has 6 (5 questions + Review)
+  const totalQuestions = isFarmer ? 4 : 5
+  const reviewStep = isFarmer ? 5 : 6
+
   // Authenticated user-scoped draft key
   const draftKey = user?.id ? `${DRAFT_KEY_PREFIX}${user.id}` : null
   const [draftRestored, setDraftRestored] = useState(false)
   const isDraftLoadedRef = useRef(false)
 
-  // Guided wizard step state:
-  // 1: Crop (పంట)
-  // 2: Quantity (పరిమాణం)
-  // 3: Expected Price (ఆశించే ధర)
-  // 4: Delivery Time (డెలివరీ సమయం)
-  // 5: Final Review & Publishing (సమీక్ష & ప్రచురణ)
+  // Guided wizard step state
   const [step, setStep] = useState(1)
 
   // Audio instruction indicator
@@ -75,25 +91,26 @@ export default function CreatePost() {
   const [cropSearch, setCropSearch] = useState('')
   const [loadingCatalog, setLoadingCatalog] = useState(false)
 
-  // 4 Core Posting Information State + Profile Fallbacks
+  // Posting Information State + Profile Fallbacks
   const [form, setForm] = useState({
     // Step 1: Crop
     crop_name: '',
     category: '',
     // Step 2: Quantity
-    quantity_num: '50',
+    quantity_num: isFarmer ? '50' : '100',
     unit: 'Quintal',
-    // Step 3: Expected Price
-    price: '2350',
+    // Step 3: Price
+    price: isFarmer ? '2350' : '2400',
     price_unit: 'Quintal',
     is_negotiable: false,
-    // Step 4: Delivery Time
-    delivery_choice: 'today', // 'today' | 'tomorrow' | 'custom'
-    target_date: getOffsetDateString(0),
+    // Step 4: Delivery
+    delivery_choice: isFarmer ? 'today' : '15days',
+    target_date: isFarmer ? getOffsetDateString(0) : getOffsetDateString(15),
     time_of_day: 'anytime',
+    // Step 5 (Buyer): Preferred Sourcing Location
+    location: user?.location || '',
     // Optional / Profile defaults
     variety: '',
-    location: user?.location || '',
     title: '',
     description: '',
     image: null,
@@ -157,7 +174,8 @@ export default function CreatePost() {
               location: f.location || prev.location,
               price_unit: f.price_unit || f.unit || prev.price_unit,
             }))
-            if (parsed.step && parsed.step >= 1 && parsed.step <= 5) {
+            const maxStepAllowed = isFarmer ? 5 : 6
+            if (parsed.step && parsed.step >= 1 && parsed.step <= maxStepAllowed) {
               setStep(parsed.step)
             }
             setDraftRestored(true)
@@ -173,7 +191,7 @@ export default function CreatePost() {
     } finally {
       isDraftLoadedRef.current = true
     }
-  }, [draftKey, t])
+  }, [draftKey, isFarmer, t])
 
   // Auto-save draft changes
   useEffect(() => {
@@ -190,7 +208,7 @@ export default function CreatePost() {
     if (!hasData) return
 
     const draftPayload = {
-      version: 4,
+      version: 5,
       timestamp: Date.now(),
       step,
       form: {
@@ -216,16 +234,16 @@ export default function CreatePost() {
     setForm({
       crop_name: '',
       category: '',
-      quantity_num: '50',
+      quantity_num: isFarmer ? '50' : '100',
       unit: 'Quintal',
-      price: '2350',
+      price: isFarmer ? '2350' : '2400',
       price_unit: 'Quintal',
       is_negotiable: false,
-      delivery_choice: 'today',
-      target_date: getOffsetDateString(0),
+      delivery_choice: isFarmer ? 'today' : '15days',
+      target_date: isFarmer ? getOffsetDateString(0) : getOffsetDateString(15),
       time_of_day: 'anytime',
-      variety: '',
       location: user?.location || '',
+      variety: '',
       title: '',
       description: '',
       image: null,
@@ -278,26 +296,52 @@ export default function CreatePost() {
     stopSpeaking()
     setIsSpeakingInstruction(true)
 
-    let text = ''
-    if (stepNum === 1) {
-      text = t('createPost.audioStep1')
-    } else if (stepNum === 2) {
-      const cropText = translateCropName(t, form.crop_name) || t('createPost.stepCropName', 'Crop')
-      text = t('createPost.audioStep2', { crop: cropText })
-    } else if (stepNum === 3) {
-      text = t('createPost.audioStep3')
-    } else if (stepNum === 4) {
-      text = t('createPost.audioStep4')
-    } else if (stepNum === 5) {
-      readSummaryAloud()
-      return
-    }
+    if (isFarmer) {
+      let text = ''
+      if (stepNum === 1) {
+        text = t('createPost.audioStep1')
+      } else if (stepNum === 2) {
+        const cropText = translateCropName(t, form.crop_name) || t('createPost.stepCropName', 'Crop')
+        text = t('createPost.audioStep2', { crop: cropText })
+      } else if (stepNum === 3) {
+        text = t('createPost.audioStep3')
+      } else if (stepNum === 4) {
+        text = t('createPost.audioStep4')
+      } else if (stepNum === 5) {
+        readSummaryAloud()
+        return
+      }
 
-    speak(text, {
-      lang: ttsLang,
-      onStart: () => setIsSpeakingInstruction(true),
-      onEnd: () => setIsSpeakingInstruction(false),
-    })
+      speak(text, {
+        lang: ttsLang,
+        onStart: () => setIsSpeakingInstruction(true),
+        onEnd: () => setIsSpeakingInstruction(false),
+      })
+    } else {
+      // Industry / Buyer Spoken Guidance
+      let text = ''
+      if (stepNum === 1) {
+        text = t('createPost.buyerAudioStep1')
+      } else if (stepNum === 2) {
+        const cropText = translateCropName(t, form.crop_name) || t('createPost.stepCropName', 'Crop')
+        text = t('createPost.buyerAudioStep2', { crop: cropText })
+      } else if (stepNum === 3) {
+        text = t('createPost.buyerAudioStep3')
+      } else if (stepNum === 4) {
+        text = t('createPost.buyerAudioStep4')
+      } else if (stepNum === 5) {
+        text = t('createPost.buyerAudioStep5')
+      } else if (stepNum === 6) {
+        readSummaryAloud()
+        return
+      }
+
+      speak(text, {
+        lang: ttsLang,
+        onStart: () => setIsSpeakingInstruction(true),
+        onEnd: () => setIsSpeakingInstruction(false),
+      })
+    }
   }
 
   // Automatically speak step instruction on step change
@@ -312,7 +356,7 @@ export default function CreatePost() {
     setIsSpeakingInstruction(false)
   }, [i18n.language])
 
-  // Read full listing summary aloud before publication (Requirement 8)
+  // Read full listing/requirement summary aloud before publication
   function readSummaryAloud() {
     stopSpeaking()
     setIsSpeakingInstruction(true)
@@ -320,27 +364,58 @@ export default function CreatePost() {
     const cropText = translateCropName(t, form.crop_name) || t('createPost.stepCropName', 'Crop')
     const unitText = translateUnit(t, form.unit)
     const priceUnitText = translateUnit(t, form.price_unit)
-    const deliveryText =
-      form.delivery_choice === 'today'
-        ? t('createPost.q4Today')
-        : form.delivery_choice === 'tomorrow'
-        ? t('createPost.q4Tomorrow')
-        : form.target_date
 
-    const summaryText = t('createPost.audioSummary', {
-      crop: cropText,
-      qty: form.quantity_num,
-      unit: unitText,
-      price: form.price,
-      priceUnit: priceUnitText,
-      delivery: deliveryText,
-    })
+    if (isFarmer) {
+      const deliveryText =
+        form.delivery_choice === 'today'
+          ? t('createPost.q4Today')
+          : form.delivery_choice === 'tomorrow'
+          ? t('createPost.q4Tomorrow')
+          : form.target_date
 
-    speak(summaryText, {
-      lang: ttsLang,
-      onStart: () => setIsSpeakingInstruction(true),
-      onEnd: () => setIsSpeakingInstruction(false),
-    })
+      const summaryText = t('createPost.audioSummary', {
+        crop: cropText,
+        qty: form.quantity_num,
+        unit: unitText,
+        price: form.price,
+        priceUnit: priceUnitText,
+        delivery: deliveryText,
+      })
+
+      speak(summaryText, {
+        lang: ttsLang,
+        onStart: () => setIsSpeakingInstruction(true),
+        onEnd: () => setIsSpeakingInstruction(false),
+      })
+    } else {
+      // Buyer Spoken Summary
+      const deliveryText =
+        form.delivery_choice === '7days'
+          ? t('createPost.buyerStep4In7Days')
+          : form.delivery_choice === '15days'
+          ? t('createPost.buyerStep4In15Days')
+          : form.delivery_choice === '30days'
+          ? t('createPost.buyerStep4In30Days')
+          : form.target_date
+
+      const locationText = form.location || user?.location || t('createPost.buyerStep5AllRegions')
+
+      const summaryText = t('createPost.buyerAudioSummary', {
+        crop: cropText,
+        qty: form.quantity_num,
+        unit: unitText,
+        price: form.price,
+        priceUnit: priceUnitText,
+        delivery: deliveryText,
+        location: locationText,
+      })
+
+      speak(summaryText, {
+        lang: ttsLang,
+        onStart: () => setIsSpeakingInstruction(true),
+        onEnd: () => setIsSpeakingInstruction(false),
+      })
+    }
   }
 
   // Select crop from visual card
@@ -407,8 +482,8 @@ export default function CreatePost() {
     }
   }
 
-  // Delivery Choice handler
-  function handleDeliveryChoice(choice) {
+  // Delivery Choice handler for Farmer
+  function handleFarmerDeliveryChoice(choice) {
     update('delivery_choice', choice)
     if (choice === 'today') {
       update('target_date', getOffsetDateString(0))
@@ -418,6 +493,23 @@ export default function CreatePost() {
       speak(t('createPost.deliveryTomorrow'), ttsLang)
     } else {
       speak(t('createPost.deliveryCustom'), ttsLang)
+    }
+  }
+
+  // Delivery Requirement handler for Buyer
+  function handleBuyerDeliveryChoice(choice) {
+    update('delivery_choice', choice)
+    if (choice === '7days') {
+      update('target_date', getOffsetDateString(7))
+      speak(t('createPost.buyerStep4In7Days'), ttsLang)
+    } else if (choice === '15days') {
+      update('target_date', getOffsetDateString(15))
+      speak(t('createPost.buyerStep4In15Days'), ttsLang)
+    } else if (choice === '30days') {
+      update('target_date', getOffsetDateString(30))
+      speak(t('createPost.buyerStep4In30Days'), ttsLang)
+    } else {
+      speak(t('createPost.buyerStep4CustomDate'), ttsLang)
     }
   }
 
@@ -449,7 +541,7 @@ export default function CreatePost() {
     } else if (currentStep === 3) {
       const p = parseFloat(form.price)
       if (isNaN(p) || p <= 0) {
-        const errMsg = t('createPost.q3Error', 'Please enter an expected price greater than 0')
+        const errMsg = t('createPost.q3Error', 'Please enter a price greater than 0')
         setErrors((prev) => ({ ...prev, price: errMsg }))
         toast.error(errMsg)
         speak(errMsg, ttsLang)
@@ -465,12 +557,33 @@ export default function CreatePost() {
         speak(errMsg, ttsLang)
         return
       }
+      // Check date is not in past
+      const selected = new Date(form.target_date)
+      const today = new Date(getOffsetDateString(0))
+      if (selected < today) {
+        const errMsg = t('createPost.datePastError', 'Delivery date cannot be in the past')
+        setErrors((prev) => ({ ...prev, target_date: errMsg }))
+        toast.error(errMsg)
+        speak(errMsg, ttsLang)
+        return
+      }
       setErrors({})
-      setStep(5) // Move to Final Review
+      if (isFarmer) {
+        setStep(5) // Farmer moves to Step 5 (Final Review)
+      } else {
+        setStep(5) // Buyer moves to Step 5 (Preferred Sourcing Location)
+      }
+    } else if (currentStep === 5 && !isFarmer) {
+      // Buyer Step 5 Location validation
+      if (!form.location?.trim()) {
+        update('location', user?.location || 'All Regions')
+      }
+      setErrors({})
+      setStep(6) // Buyer moves to Step 6 (Final Review)
     }
   }
 
-  // Submit Listing (From Step 5 Review - Requires Farmer Touch)
+  // Submit Listing / Purchase Requirement (Requires Explicit User Touch)
   async function handlePublish() {
     if (isPublishingRef.current || submitting) return
 
@@ -484,21 +597,33 @@ export default function CreatePost() {
 
     const titleToUse =
       form.title.trim() ||
-      `${isFarmer ? 'Fresh Harvest' : 'Requirement:'} ${form.crop_name} ${
+      `${isFarmer ? 'Fresh Harvest:' : 'Purchase Requirement:'} ${form.crop_name} ${
         form.quantity_num ? `- ${form.quantity_num} ${form.unit}` : ''
       }`.trim()
 
     const quantityFormatted = form.quantity_num ? `${form.quantity_num} ${form.unit}` : null
 
     let deliveryFormatted = form.target_date
-    if (form.delivery_choice === 'today') {
-      deliveryFormatted = `Today (${form.target_date})`
-    } else if (form.delivery_choice === 'tomorrow') {
-      deliveryFormatted = `Tomorrow (${form.target_date})`
+    if (isFarmer) {
+      if (form.delivery_choice === 'today') {
+        deliveryFormatted = `Today (${form.target_date})`
+      } else if (form.delivery_choice === 'tomorrow') {
+        deliveryFormatted = `Tomorrow (${form.target_date})`
+      }
+      if (form.time_of_day && form.time_of_day !== 'anytime') {
+        deliveryFormatted += ` - ${form.time_of_day}`
+      }
+    } else {
+      if (form.delivery_choice === '7days') {
+        deliveryFormatted = `Within 7 Days (${form.target_date})`
+      } else if (form.delivery_choice === '15days') {
+        deliveryFormatted = `Within 15 Days (${form.target_date})`
+      } else if (form.delivery_choice === '30days') {
+        deliveryFormatted = `Within 30 Days (${form.target_date})`
+      }
     }
-    if (form.time_of_day && form.time_of_day !== 'anytime') {
-      deliveryFormatted += ` - ${form.time_of_day}`
-    }
+
+    const locationToUse = form.location.trim() || user?.location || (isFarmer ? 'Local Region' : 'All Regions')
 
     isPublishingRef.current = true
     setSubmitting(true)
@@ -512,7 +637,7 @@ export default function CreatePost() {
         quantity: quantityFormatted,
         price: form.price ? parseFloat(form.price) : null,
         is_negotiable: form.is_negotiable,
-        location: form.location.trim() || user?.location || null,
+        location: locationToUse,
         target_date: deliveryFormatted,
         description: form.description.trim() || null,
         image: form.image,
@@ -525,11 +650,14 @@ export default function CreatePost() {
         } catch {}
       }
       setDraftRestored(false)
-      speak(t('createPost.audioSuccessCelebration'), ttsLang)
+      speak(
+        isFarmer ? t('createPost.audioSuccessCelebration') : t('createPost.buyerAudioSuccessCelebration'),
+        ttsLang
+      )
       toast.success(
         isFarmer
           ? t('createPost.successToastFarmer', 'Crop posted! Industries will see it now.')
-          : t('createPost.successToastIndustry', 'Requirement posted!')
+          : t('createPost.successToastIndustry', 'Purchase requirement posted! Farmers will see it now.')
       )
     } catch (err) {
       if (err?.isTimeout) {
@@ -583,7 +711,7 @@ export default function CreatePost() {
           <span className="text-xs bg-amber-100 text-[#D9822B] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
             {isFarmer
               ? t('createPost.successBadgeFarmer', 'Crop Listed Live!')
-              : t('createPost.successBadgeIndustry', 'Requirement Live!')}
+              : t('createPost.buyerSuccessBadge', 'Requirement Live!')}
           </span>
 
           <h2 className="font-display font-bold text-gray-900 text-2xl sm:text-3xl mt-3">
@@ -593,7 +721,7 @@ export default function CreatePost() {
           <p className="text-sm text-gray-600 mt-2">
             {isFarmer
               ? t('createPost.successFarmerHelp', 'Your crop is now visible to verified industries in the marketplace.')
-              : t('createPost.successIndustryHelp', 'Your requirement is now visible to verified farmers in the marketplace.')}
+              : t('createPost.buyerSuccessHelp', 'Your purchase requirement is now visible to verified farmers across selected regions.')}
           </p>
 
           <div className="bg-green-50/70 rounded-2xl p-4 sm:p-5 my-5 text-left border border-green-200 space-y-2.5 text-sm">
@@ -609,7 +737,9 @@ export default function CreatePost() {
             )}
             {publishedPost.price && (
               <div className="flex justify-between">
-                <span className="text-gray-600 font-medium">{t('createPost.reviewPrice', 'Price')}:</span>
+                <span className="text-gray-600 font-medium">
+                  {isFarmer ? t('createPost.reviewPrice', 'Price') : t('createPost.budgetCeilingLabel', 'Target Budget')}:
+                </span>
                 <span className="font-bold text-[#D9822B]">₹{publishedPost.price}</span>
               </div>
             )}
@@ -651,13 +781,13 @@ export default function CreatePost() {
                 setForm({
                   crop_name: '',
                   category: '',
-                  quantity_num: '50',
+                  quantity_num: isFarmer ? '50' : '100',
                   unit: 'Quintal',
-                  price: '2350',
+                  price: isFarmer ? '2350' : '2400',
                   price_unit: 'Quintal',
                   is_negotiable: false,
-                  delivery_choice: 'today',
-                  target_date: getOffsetDateString(0),
+                  delivery_choice: isFarmer ? 'today' : '15days',
+                  target_date: isFarmer ? getOffsetDateString(0) : getOffsetDateString(15),
                   time_of_day: 'anytime',
                   variety: '',
                   location: user?.location || '',
@@ -683,10 +813,12 @@ export default function CreatePost() {
   return (
     <div className="min-h-screen pb-32 bg-[#F9FAF7]">
       <TopBar
-        title={isFarmer ? t('createPost.titleFarmer', 'Post Your Crop') : t('createPost.titleIndustry', 'Post Requirement')}
+        title={isFarmer ? t('createPost.titleFarmer', 'Post Your Crop') : t('createPost.titleIndustryPost', 'Post Purchase Requirement')}
         subtitle={
-          step <= 4
-            ? t('createPost.guidedStepCounter', { current: step, defaultValue: `Step ${step} of 4` })
+          step <= totalQuestions
+            ? isFarmer
+              ? t('createPost.guidedStepCounter', { current: step, defaultValue: `Step ${step} of 4` })
+              : `Step ${step} of 5`
             : t('createPost.guidedFinalReview', 'Final Review')
         }
         showSearch={false}
@@ -696,7 +828,7 @@ export default function CreatePost() {
       <div className="max-w-md mx-auto px-4 pt-3 flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 text-xs font-extrabold text-[#1E5E3A]">
           <span className="w-2.5 h-2.5 rounded-full bg-green-600 animate-pulse" />
-          <span>{t('createPost.guidedPostingBadge', 'AI గైడెడ్ పోస్టింగ్ · చూసి, తాకి, వినండి')}</span>
+          <span>{t('createPost.guidedPostingBadge', 'AI Guided Posting · See, Touch and Listen')}</span>
         </div>
 
         <button
@@ -731,26 +863,46 @@ export default function CreatePost() {
         </div>
       )}
 
-      {/* 4-Segment Visual Progress Bar */}
+      {/* Visual Progress Bar (4 Segments for Farmer, 5 Segments for Buyer) */}
       <div className="max-w-md mx-auto px-4 pt-2">
         <div className="bg-white rounded-2xl p-3 border border-gray-200/80 shadow-xs">
-          <div className="flex items-center justify-between mb-2 text-xs font-bold text-gray-700">
-            <span className={step >= 1 ? 'text-[#1E5E3A] font-extrabold' : 'text-gray-400'}>
-              1. {t('createPost.stepCropName', 'పంట')}
-            </span>
-            <span className={step >= 2 ? 'text-[#1E5E3A] font-extrabold' : 'text-gray-400'}>
-              2. {t('createPost.stepQtyName', 'పరిమాణం')}
-            </span>
-            <span className={step >= 3 ? 'text-[#1E5E3A] font-extrabold' : 'text-gray-400'}>
-              3. {t('createPost.stepPriceName', 'ధర')}
-            </span>
-            <span className={step >= 4 ? 'text-[#1E5E3A] font-extrabold' : 'text-gray-400'}>
-              4. {t('createPost.stepDeliveryName', 'డెలివరీ')}
-            </span>
-          </div>
+          {isFarmer ? (
+            <div className="flex items-center justify-between mb-2 text-xs font-bold text-gray-700">
+              <span className={step >= 1 ? 'text-[#1E5E3A] font-extrabold' : 'text-gray-400'}>
+                1. {t('createPost.stepCropName', 'పంట')}
+              </span>
+              <span className={step >= 2 ? 'text-[#1E5E3A] font-extrabold' : 'text-gray-400'}>
+                2. {t('createPost.stepQtyName', 'పరిమాణం')}
+              </span>
+              <span className={step >= 3 ? 'text-[#1E5E3A] font-extrabold' : 'text-gray-400'}>
+                3. {t('createPost.stepPriceName', 'ధర')}
+              </span>
+              <span className={step >= 4 ? 'text-[#1E5E3A] font-extrabold' : 'text-gray-400'}>
+                4. {t('createPost.stepDeliveryName', 'డెలివరీ')}
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between mb-2 text-[11px] sm:text-xs font-bold text-gray-700">
+              <span className={step >= 1 ? 'text-[#1E5E3A] font-extrabold' : 'text-gray-400'}>
+                1. {t('createPost.stepCropName', 'పంట')}
+              </span>
+              <span className={step >= 2 ? 'text-[#1E5E3A] font-extrabold' : 'text-gray-400'}>
+                2. {t('createPost.stepQtyName', 'పరిమాణం')}
+              </span>
+              <span className={step >= 3 ? 'text-[#1E5E3A] font-extrabold' : 'text-gray-400'}>
+                3. {t('createPost.stepPriceName', 'ధర')}
+              </span>
+              <span className={step >= 4 ? 'text-[#1E5E3A] font-extrabold' : 'text-gray-400'}>
+                4. {t('createPost.stepDeliveryName', 'డెలివరీ')}
+              </span>
+              <span className={step >= 5 ? 'text-[#1E5E3A] font-extrabold' : 'text-gray-400'}>
+                5. {t('createPost.stepLocationName', 'ప్రాంతం')}
+              </span>
+            </div>
+          )}
 
-          <div className="grid grid-cols-4 gap-1.5 h-2.5">
-            {[1, 2, 3, 4].map((s) => (
+          <div className={`grid gap-1.5 h-2.5 ${isFarmer ? 'grid-cols-4' : 'grid-cols-5'}`}>
+            {Array.from({ length: totalQuestions }, (_, i) => i + 1).map((s) => (
               <div
                 key={s}
                 className={`h-full rounded-full transition-all duration-300 ${
@@ -771,7 +923,9 @@ export default function CreatePost() {
             <div className="bg-white rounded-3xl p-5 border border-gray-200 shadow-sm">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[#1E5E3A] bg-green-100 px-3 py-1 rounded-full">
-                  {t('createPost.guidedStepCounter', { current: 1, defaultValue: 'దశ 1 / 4' })}
+                  {isFarmer
+                    ? t('createPost.guidedStepCounter', { current: 1, defaultValue: 'దశ 1 / 4' })
+                    : `Step 1 / 5`}
                 </span>
                 <span className="text-xs text-gray-500 font-bold flex items-center gap-1">
                   <Volume2 size={14} className="text-[#1E5E3A]" /> {t('createPost.touchSpeaks', 'తాకినప్పుడు వినిపిస్తుంది')}
@@ -779,10 +933,14 @@ export default function CreatePost() {
               </div>
 
               <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight">
-                {t('createPost.touchToSelectCrop', 'మీ పంట చిత్రాన్ని తాకండి')}
+                {isFarmer
+                  ? t('createPost.touchToSelectCrop', 'మీ పంట చిత్రాన్ని తాకండి')
+                  : t('createPost.buyerStep1Title', 'మీకు ఏ పంట అవసరం?')}
               </h1>
               <p className="text-sm text-gray-600 mt-1">
-                {t('createPost.touchToSelectCropSub', 'మీ వద్ద ఉన్న పంటను కింద ఉన్న బొమ్మలలో చూసి ఎంచుకోండి')}
+                {isFarmer
+                  ? t('createPost.touchToSelectCropSub', 'మీ వద్ద ఉన్న పంటను కింద ఉన్న బొమ్మలలో చూసి ఎంచుకోండి')
+                  : t('createPost.buyerStep1Sub', 'మీరు కొనాలనుకుంటున్న పంట బొమ్మను తాకి ఎంచుకోండి')}
               </p>
             </div>
 
@@ -888,7 +1046,9 @@ export default function CreatePost() {
             <div className="bg-white rounded-3xl p-5 sm:p-6 border border-gray-200 shadow-sm text-center">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[#1E5E3A] bg-green-100 px-3 py-1 rounded-full">
-                  {t('createPost.guidedStepCounter', { current: 2, defaultValue: 'దశ 2 / 4' })}
+                  {isFarmer
+                    ? t('createPost.guidedStepCounter', { current: 2, defaultValue: 'దశ 2 / 4' })
+                    : `Step 2 / 5`}
                 </span>
                 <span className="text-xs font-bold text-gray-600 flex items-center gap-1">
                   {activeCropObj?.icon} {translateCropName(t, form.crop_name)}
@@ -896,10 +1056,14 @@ export default function CreatePost() {
               </div>
 
               <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight">
-                {t('createPost.howMuchQty', 'ఎంత పరిమాణం ఉంది?')}
+                {isFarmer
+                  ? t('createPost.howMuchQty', 'ఎంత పరిమాణం ఉంది?')
+                  : t('createPost.buyerStep2Title', 'మీకు ఎంత పరిమాణం అవసరం?')}
               </h1>
               <p className="text-sm text-gray-600 mt-1">
-                {t('createPost.qtyTouchHelp', '+ మరియు - బటన్లతో పరిమాణాన్ని మార్చండి (టైపింగ్ అవసరం లేదు)')}
+                {isFarmer
+                  ? t('createPost.qtyTouchHelp', '+ మరియు - బటన్లతో పరిమాణాన్ని మార్చండి (టైపింగ్ అవసరం లేదు)')
+                  : t('createPost.buyerStep2Sub', '+ మరియు - బటన్లతో అవసరమైన పరిమాణాన్ని మార్చండి (టైపింగ్ అవసరం లేదు)')}
               </p>
 
               {/* Large Numeric Display with Plus and Minus Buttons */}
@@ -918,7 +1082,7 @@ export default function CreatePost() {
                     {form.quantity_num || '0'}
                   </span>
                   <span className="text-xs font-extrabold text-[#1E5E3A] uppercase tracking-wider block mt-1">
-                    {form.unit === 'Quintal' ? 'క్వింటాళ్లు' : form.unit === 'Ton' ? 'టన్నులు' : 'కిలోలు'}
+                    {translateUnit(t, form.unit)}
                   </span>
                 </div>
 
@@ -960,7 +1124,7 @@ export default function CreatePost() {
 
               {/* Quick Preset Increments */}
               <div className="mt-5 pt-4 border-t border-gray-100 flex flex-wrap justify-center gap-2">
-                {['+1', '+5', '+10', '+50', '+100'].map((preset) => (
+                {(isFarmer ? ['+1', '+5', '+10', '+50', '+100'] : ['+10', '+50', '+100', '+500', '+1000']).map((preset) => (
                   <button
                     key={preset}
                     type="button"
@@ -996,25 +1160,31 @@ export default function CreatePost() {
         )}
 
         {/* ============================================================ */}
-        {/* STEP 3: EXPECTED PRICE WITH RUPEE STEPPERS & KEYPAD          */}
+        {/* STEP 3: PRICE (EXPECTED PRICE FOR FARMER / TARGET BUDGET FOR BUYER) */}
         {/* ============================================================ */}
         {step === 3 && (
           <div className="space-y-4 animate-slide-up">
             <div className="bg-white rounded-3xl p-5 sm:p-6 border border-gray-200 shadow-sm text-center">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[#1E5E3A] bg-green-100 px-3 py-1 rounded-full">
-                  {t('createPost.guidedStepCounter', { current: 3, defaultValue: 'దశ 3 / 4' })}
+                  {isFarmer
+                    ? t('createPost.guidedStepCounter', { current: 3, defaultValue: 'దశ 3 / 4' })
+                    : `Step 3 / 5`}
                 </span>
                 <span className="text-xs font-bold text-gray-600">
-                  {form.quantity_num} {form.unit === 'Quintal' ? 'క్వింటాళ్లు' : form.unit}
+                  {form.quantity_num} {translateUnit(t, form.unit)}
                 </span>
               </div>
 
               <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight">
-                {t('createPost.whatExpectedPrice', 'మీరు ఆశించే ధర ఎంత?')}
+                {isFarmer
+                  ? t('createPost.whatExpectedPrice', 'మీరు ఆశించే ధర ఎంత?')
+                  : t('createPost.buyerStep3Title', 'మీ లక్ష్య కొనుగోలు ధర ఎంత?')}
               </h1>
               <p className="text-sm text-gray-600 mt-1">
-                {t('createPost.priceTouchHelp', '+ మరియు - బటన్లతో లేదా కీప్యాడ్‌తో ధరను నిర్ణయించండి')}
+                {isFarmer
+                  ? t('createPost.priceTouchHelp', '+ మరియు - బటన్లతో లేదా కీప్యాడ్‌తో ధరను నిర్ణయించండి')
+                  : t('createPost.buyerStep3Sub', 'ఎంచుకున్న యూనిట్‌కు లక్ష్య కొనుగోలు ధర (గరిష్ట బడ్జెట్ పరిమితి)')}
               </p>
 
               {/* Large Rupee Display */}
@@ -1032,7 +1202,7 @@ export default function CreatePost() {
                     ₹{form.price || '0'}
                   </span>
                   <span className="text-xs font-bold text-gray-600 block mt-1">
-                    / {form.price_unit === 'Quintal' ? 'క్వింటాల్‌కు' : form.price_unit === 'Ton' ? 'టన్నుకు' : 'కిలోకు'}
+                    / {translateUnit(t, form.price_unit)}
                   </span>
                 </div>
 
@@ -1044,6 +1214,15 @@ export default function CreatePost() {
                   +100
                 </button>
               </div>
+
+              {/* Clear Budget Ceiling Notice for Buyer */}
+              {!isFarmer && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-2xl text-left my-3 shadow-xs">
+                  <p className="text-xs text-blue-900 font-semibold leading-relaxed">
+                    {t('createPost.buyerStep3Notice', '💡 బడ్జెట్ పరిమితి: ఈ ధర లోపల లేదా దగ్గరగా ఉన్న రైతుల పంటలు సరిపోల్చబడతాయి.')}
+                  </p>
+                </div>
+              )}
 
               {/* Mandi Benchmark Price Card */}
               {priceGuidance && (
@@ -1117,110 +1296,225 @@ export default function CreatePost() {
         )}
 
         {/* ============================================================ */}
-        {/* STEP 4: TIME OF DELIVERY WITH TOUCH CARDS                    */}
+        {/* STEP 4: TIME OF DELIVERY / DELIVERY REQUIREMENT              */}
         {/* ============================================================ */}
         {step === 4 && (
           <div className="space-y-4 animate-slide-up">
             <div className="bg-white rounded-3xl p-5 border border-gray-200 shadow-sm">
               <span className="text-[11px] font-bold uppercase tracking-wider text-[#1E5E3A] bg-green-100 px-3 py-1 rounded-full mb-2 inline-block">
-                {t('createPost.guidedStepCounter', { current: 4, defaultValue: 'దశ 4 / 4' })}
+                {isFarmer
+                  ? t('createPost.guidedStepCounter', { current: 4, defaultValue: 'దశ 4 / 4' })
+                  : `Step 4 / 5`}
               </span>
               <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight">
-                {t('createPost.whenCanDeliver', 'మీ పంటను ఎప్పుడు అందించగలరు?')}
+                {isFarmer
+                  ? t('createPost.whenCanDeliver', 'మీ పంటను ఎప్పుడు అందించగలరు?')
+                  : t('createPost.buyerStep4Title', 'డెలివరీ ఎప్పటిలోగా కావాలి?')}
               </h1>
               <p className="text-sm text-gray-600 mt-1">
-                {t('createPost.deliveryTouchHelp', 'మీ పంట ఎప్పుడు సిద్ధంగా ఉంటుందో కింద తాకండి')}
+                {isFarmer
+                  ? t('createPost.deliveryTouchHelp', 'మీ పంట ఎప్పుడు సిద్ధంగా ఉంటుందో కింద తాకండి')
+                  : t('createPost.buyerStep4Sub', 'పంట డెలివరీ ఎప్పటిలోగా కావాలో కింద తాకండి')}
               </p>
 
-              <div className="mt-5 space-y-3">
-                {/* Option 1: Today */}
-                <button
-                  type="button"
-                  onClick={() => handleDeliveryChoice('today')}
-                  className={`w-full p-4 rounded-2xl border-2 text-left flex items-center justify-between active:scale-98 min-h-[64px] ${
-                    form.delivery_choice === 'today'
-                      ? 'border-[#1E5E3A] bg-green-50 shadow-md ring-2 ring-green-300'
-                      : 'border-gray-200 bg-white'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Clock size={28} className="text-[#1E5E3A]" />
-                    <div>
-                      <p className="font-extrabold text-gray-900 text-lg">
-                        {t('createPost.q4Today', 'ఈరోజే')}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {t('createPost.q4TodayDesc', 'వెంటనే పికప్ లేదా డెలివరీకి సిద్ధం')}
-                      </p>
+              {isFarmer ? (
+                /* Farmer Options: Today, Tomorrow, Custom */
+                <div className="mt-5 space-y-3">
+                  <button
+                    type="button"
+                    onClick={() => handleFarmerDeliveryChoice('today')}
+                    className={`w-full p-4 rounded-2xl border-2 text-left flex items-center justify-between active:scale-98 min-h-[64px] ${
+                      form.delivery_choice === 'today'
+                        ? 'border-[#1E5E3A] bg-green-50 shadow-md ring-2 ring-green-300'
+                        : 'border-gray-200 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Clock size={28} className="text-[#1E5E3A]" />
+                      <div>
+                        <p className="font-extrabold text-gray-900 text-lg">
+                          {t('createPost.q4Today', 'ఈరోజే')}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {t('createPost.q4TodayDesc', 'వెంటనే పికప్ లేదా డెలివరీకి సిద్ధం')}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  {form.delivery_choice === 'today' && <Check size={18} className="text-[#1E5E3A]" />}
-                </button>
+                    {form.delivery_choice === 'today' && <Check size={18} className="text-[#1E5E3A]" />}
+                  </button>
 
-                {/* Option 2: Tomorrow */}
-                <button
-                  type="button"
-                  onClick={() => handleDeliveryChoice('tomorrow')}
-                  className={`w-full p-4 rounded-2xl border-2 text-left flex items-center justify-between active:scale-98 min-h-[64px] ${
-                    form.delivery_choice === 'tomorrow'
-                      ? 'border-[#1E5E3A] bg-green-50 shadow-md ring-2 ring-green-300'
-                      : 'border-gray-200 bg-white'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Calendar size={28} className="text-[#1E5E3A]" />
-                    <div>
-                      <p className="font-extrabold text-gray-900 text-lg">
-                        {t('createPost.q4Tomorrow', 'రేపు')}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {t('createPost.q4TomorrowDesc', 'మరుసటి రోజు సిద్ధంగా ఉంటుంది')}
-                      </p>
+                  <button
+                    type="button"
+                    onClick={() => handleFarmerDeliveryChoice('tomorrow')}
+                    className={`w-full p-4 rounded-2xl border-2 text-left flex items-center justify-between active:scale-98 min-h-[64px] ${
+                      form.delivery_choice === 'tomorrow'
+                        ? 'border-[#1E5E3A] bg-green-50 shadow-md ring-2 ring-green-300'
+                        : 'border-gray-200 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Calendar size={28} className="text-[#1E5E3A]" />
+                      <div>
+                        <p className="font-extrabold text-gray-900 text-lg">
+                          {t('createPost.q4Tomorrow', 'రేపు')}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {t('createPost.q4TomorrowDesc', 'మరుసటి రోజు సిద్ధంగా ఉంటుంది')}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  {form.delivery_choice === 'tomorrow' && <Check size={18} className="text-[#1E5E3A]" />}
-                </button>
+                    {form.delivery_choice === 'tomorrow' && <Check size={18} className="text-[#1E5E3A]" />}
+                  </button>
 
-                {/* Option 3: Custom Date */}
-                <button
-                  type="button"
-                  onClick={() => handleDeliveryChoice('custom')}
-                  className={`w-full p-4 rounded-2xl border-2 text-left flex items-center justify-between active:scale-98 min-h-[64px] ${
-                    form.delivery_choice === 'custom'
-                      ? 'border-[#1E5E3A] bg-green-50 shadow-md ring-2 ring-green-300'
-                      : 'border-gray-200 bg-white'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Calendar size={28} className="text-[#D9822B]" />
-                    <div>
-                      <p className="font-extrabold text-gray-900 text-lg">
-                        {t('createPost.q4Custom', 'వేరే తేదీని ఎంచుకోండి')}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {t('createPost.q4CustomDesc', 'నిర్దిష్ట భవిష్యత్ తేదీని పేర్కొనండి')}
-                      </p>
+                  <button
+                    type="button"
+                    onClick={() => handleFarmerDeliveryChoice('custom')}
+                    className={`w-full p-4 rounded-2xl border-2 text-left flex items-center justify-between active:scale-98 min-h-[64px] ${
+                      form.delivery_choice === 'custom'
+                        ? 'border-[#1E5E3A] bg-green-50 shadow-md ring-2 ring-green-300'
+                        : 'border-gray-200 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Calendar size={28} className="text-[#D9822B]" />
+                      <div>
+                        <p className="font-extrabold text-gray-900 text-lg">
+                          {t('createPost.q4Custom', 'వేరే తేదీని ఎంచుకోండి')}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {t('createPost.q4CustomDesc', 'నిర్దిష్ట భవిష్యత్ తేదీని పేర్కొనండి')}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  {form.delivery_choice === 'custom' && <Check size={18} className="text-[#1E5E3A]" />}
-                </button>
+                    {form.delivery_choice === 'custom' && <Check size={18} className="text-[#1E5E3A]" />}
+                  </button>
 
-                {/* Date Picker if Custom chosen */}
-                {form.delivery_choice === 'custom' && (
-                  <div className="p-3 bg-amber-50/70 rounded-2xl border border-amber-200 mt-2">
-                    <label className="text-xs font-bold text-gray-700 block mb-1">
-                      {t('createPost.q4DatePickerLabel', 'డెలివరీ తేదీని ఎంచుకోండి:')}
-                    </label>
-                    <input
-                      type="date"
-                      min={getOffsetDateString(0)}
-                      value={form.target_date}
-                      onChange={(e) => update('target_date', e.target.value)}
-                      className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-sm font-semibold text-gray-900"
-                    />
-                  </div>
-                )}
-              </div>
+                  {form.delivery_choice === 'custom' && (
+                    <div className="p-3 bg-amber-50/70 rounded-2xl border border-amber-200 mt-2">
+                      <label className="text-xs font-bold text-gray-700 block mb-1">
+                        {t('createPost.q4DatePickerLabel', 'డెలివరీ తేదీని ఎంచుకోండి:')}
+                      </label>
+                      <input
+                        type="date"
+                        min={getOffsetDateString(0)}
+                        value={form.target_date}
+                        onChange={(e) => update('target_date', e.target.value)}
+                        className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-sm font-semibold text-gray-900"
+                      />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Buyer Options: Within 7 Days, Within 15 Days, Within 30 Days, Custom Date */
+                <div className="mt-5 space-y-3">
+                  <button
+                    type="button"
+                    onClick={() => handleBuyerDeliveryChoice('7days')}
+                    className={`w-full p-4 rounded-2xl border-2 text-left flex items-center justify-between active:scale-98 min-h-[64px] ${
+                      form.delivery_choice === '7days'
+                        ? 'border-[#1E5E3A] bg-green-50 shadow-md ring-2 ring-green-300'
+                        : 'border-gray-200 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Clock size={28} className="text-[#1E5E3A]" />
+                      <div>
+                        <p className="font-extrabold text-gray-900 text-lg">
+                          {t('createPost.buyerStep4In7Days', '7 రోజుల్లోగా')}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {t('createPost.buyerStep4In7DaysDesc', 'ఒక వారంలోగా తక్షణ అవసరం')}
+                        </p>
+                      </div>
+                    </div>
+                    {form.delivery_choice === '7days' && <Check size={18} className="text-[#1E5E3A]" />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleBuyerDeliveryChoice('15days')}
+                    className={`w-full p-4 rounded-2xl border-2 text-left flex items-center justify-between active:scale-98 min-h-[64px] ${
+                      form.delivery_choice === '15days'
+                        ? 'border-[#1E5E3A] bg-green-50 shadow-md ring-2 ring-green-300'
+                        : 'border-gray-200 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Calendar size={28} className="text-[#1E5E3A]" />
+                      <div>
+                        <p className="font-extrabold text-gray-900 text-lg">
+                          {t('createPost.buyerStep4In15Days', '15 రోజుల్లోగా')}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {t('createPost.buyerStep4In15DaysDesc', 'రెండు వారాల్లోగా సేకరణ')}
+                        </p>
+                      </div>
+                    </div>
+                    {form.delivery_choice === '15days' && <Check size={18} className="text-[#1E5E3A]" />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleBuyerDeliveryChoice('30days')}
+                    className={`w-full p-4 rounded-2xl border-2 text-left flex items-center justify-between active:scale-98 min-h-[64px] ${
+                      form.delivery_choice === '30days'
+                        ? 'border-[#1E5E3A] bg-green-50 shadow-md ring-2 ring-green-300'
+                        : 'border-gray-200 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Calendar size={28} className="text-[#D9822B]" />
+                      <div>
+                        <p className="font-extrabold text-gray-900 text-lg">
+                          {t('createPost.buyerStep4In30Days', '30 రోజుల్లోగా')}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {t('createPost.buyerStep4In30DaysDesc', 'నెలాఖరులోగా సేకరణ')}
+                        </p>
+                      </div>
+                    </div>
+                    {form.delivery_choice === '30days' && <Check size={18} className="text-[#1E5E3A]" />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleBuyerDeliveryChoice('custom')}
+                    className={`w-full p-4 rounded-2xl border-2 text-left flex items-center justify-between active:scale-98 min-h-[64px] ${
+                      form.delivery_choice === 'custom'
+                        ? 'border-[#1E5E3A] bg-green-50 shadow-md ring-2 ring-green-300'
+                        : 'border-gray-200 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Calendar size={28} className="text-[#1E5E3A]" />
+                      <div>
+                        <p className="font-extrabold text-gray-900 text-lg">
+                          {t('createPost.buyerStep4CustomDate', 'నిర్దిష్ట తేదీని ఎంచుకోండి')}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {t('createPost.buyerStep4CustomDateDesc', 'క్యాలెండర్ నుండి నిర్దిష్ట తేదీని పేర్కొనండి')}
+                        </p>
+                      </div>
+                    </div>
+                    {form.delivery_choice === 'custom' && <Check size={18} className="text-[#1E5E3A]" />}
+                  </button>
+
+                  {form.delivery_choice === 'custom' && (
+                    <div className="p-3 bg-amber-50/70 rounded-2xl border border-amber-200 mt-2">
+                      <label className="text-xs font-bold text-gray-700 block mb-1">
+                        {t('createPost.q4DatePickerLabel', 'డెలివరీ తేదీని ఎంచుకోండి:')}
+                      </label>
+                      <input
+                        type="date"
+                        min={getOffsetDateString(0)}
+                        value={form.target_date}
+                        onChange={(e) => update('target_date', e.target.value)}
+                        className="w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-sm font-semibold text-gray-900"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Back & Next Navigation */}
@@ -1238,6 +1532,144 @@ export default function CreatePost() {
                 onClick={() => validateAndNext(4)}
                 className="flex-1 bg-[#1E5E3A] text-white font-extrabold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-98 shadow-md min-h-[56px] text-lg"
               >
+                <span>
+                  {isFarmer
+                    ? t('createPost.q4NextBtn', 'సమీక్షించండి →')
+                    : 'తర్వాత: సేకరణ ప్రాంతం →'}
+                </span>
+                <ChevronRight size={22} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ============================================================ */}
+        {/* STEP 5 (BUYER ONLY): PREFERRED SOURCING LOCATION             */}
+        {/* ============================================================ */}
+        {step === 5 && !isFarmer && (
+          <div className="space-y-4 animate-slide-up">
+            <div className="bg-white rounded-3xl p-5 border border-gray-200 shadow-sm">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#1E5E3A] bg-green-100 px-3 py-1 rounded-full mb-2 inline-block">
+                Step 5 / 5
+              </span>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight">
+                {t('createPost.buyerStep5Title', 'మీరు ఏ ప్రాంతం నుండి సేకరించాలనుకుంటున్నారు?')}
+              </h1>
+              <p className="text-sm text-gray-600 mt-1">
+                {t('createPost.buyerStep5Sub', 'మీ నమోదిత ప్రాంతాన్ని ఉంచండి లేదా నిర్దిష్ట జిల్లాను ఎంచుకోండి')}
+              </p>
+
+              <div className="mt-5 space-y-3">
+                {/* Choice 1: Registered Location */}
+                {user?.location && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      update('location', user.location)
+                      speak(user.location, ttsLang)
+                    }}
+                    className={`w-full p-4 rounded-2xl border-2 text-left flex items-center justify-between active:scale-98 min-h-[64px] ${
+                      form.location === user.location
+                        ? 'border-[#1E5E3A] bg-green-50 shadow-md ring-2 ring-green-300'
+                        : 'border-gray-200 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Building2 size={26} className="text-[#1E5E3A]" />
+                      <div>
+                        <span className="text-[10px] text-gray-400 font-bold uppercase block">
+                          {t('createPost.buyerStep5Registered', 'నమోదిత ప్రాంతం')}
+                        </span>
+                        <p className="font-extrabold text-gray-900 text-base">
+                          {user.location}
+                        </p>
+                      </div>
+                    </div>
+                    {form.location === user.location && <Check size={18} className="text-[#1E5E3A]" />}
+                  </button>
+                )}
+
+                {/* Choice 2: Open to All Regions */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    update('location', 'All Regions (Any Location)')
+                    speak(t('createPost.buyerStep5AllRegions'), ttsLang)
+                  }}
+                  className={`w-full p-4 rounded-2xl border-2 text-left flex items-center justify-between active:scale-98 min-h-[64px] ${
+                    form.location === 'All Regions (Any Location)'
+                      ? 'border-[#1E5E3A] bg-green-50 shadow-md ring-2 ring-green-300'
+                      : 'border-gray-200 bg-white'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Globe size={26} className="text-[#D9822B]" />
+                    <div>
+                      <p className="font-extrabold text-gray-900 text-base">
+                        {t('createPost.buyerStep5AllRegions', 'అన్ని ప్రాంతాలు (ఎక్కడి నుండైనా)')}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {t('createPost.buyerStep5AllRegionsDesc', 'అన్ని జిల్లాల రైతుల పంటలను స్వీకరించండి')}
+                      </p>
+                    </div>
+                  </div>
+                  {form.location === 'All Regions (Any Location)' && <Check size={18} className="text-[#1E5E3A]" />}
+                </button>
+
+                {/* Choice 3: One-Touch Popular Sourcing Districts */}
+                <div className="pt-2">
+                  <span className="text-xs font-bold text-gray-600 block mb-2">
+                    {t('createPost.buyerStep5DistrictPrompt', 'జిల్లా పేరును ఎంచుకోండి లేదా రాయండి:')}
+                  </span>
+                  <div className="flex flex-wrap gap-2 max-h-[160px] overflow-y-auto pb-1">
+                    {POPULAR_SOURCING_DISTRICTS.map((dist) => {
+                      const isDistSelected = form.location === dist
+                      return (
+                        <button
+                          key={dist}
+                          type="button"
+                          onClick={() => {
+                            update('location', dist)
+                            speak(dist, ttsLang)
+                          }}
+                          className={`text-xs px-3 py-2 rounded-xl font-bold border transition-all active:scale-95 ${
+                            isDistSelected
+                              ? 'bg-[#1E5E3A] text-white border-[#1E5E3A] shadow-xs'
+                              : 'bg-gray-100 hover:bg-gray-200 text-gray-800 border-gray-200'
+                          }`}
+                        >
+                          {dist}
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  <input
+                    type="text"
+                    value={form.location}
+                    onChange={(e) => update('location', e.target.value)}
+                    placeholder="e.g. Warangal, Guntur, Krishna..."
+                    className="w-full mt-3 bg-white border border-gray-300 rounded-xl px-3 py-2 text-sm font-semibold text-gray-900"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Back & Next Navigation */}
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setStep(4)}
+                className="w-1/3 bg-gray-200 text-gray-800 font-bold py-4 rounded-2xl flex items-center justify-center gap-1 active:scale-98 min-h-[56px]"
+              >
+                <ChevronLeft size={20} /> {t('createPost.backBtn', '← వెనుకకు')}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => validateAndNext(5)}
+                className="flex-1 bg-[#1E5E3A] text-white font-extrabold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-98 shadow-md min-h-[56px] text-lg"
+              >
                 <span>{t('createPost.q4NextBtn', 'సమీక్షించండి →')}</span>
                 <ChevronRight size={22} />
               </button>
@@ -1246,17 +1678,21 @@ export default function CreatePost() {
         )}
 
         {/* ============================================================ */}
-        {/* STEP 5: FINAL REVIEW & TOUCH PUBLISH (REQUIREMENT 8 & 9)    */}
+        {/* FINAL REVIEW & TOUCH PUBLISH (STEP 5 FARMER / STEP 6 BUYER)  */}
         {/* ============================================================ */}
-        {step === 5 && (
+        {step === reviewStep && (
           <div className="space-y-4 animate-slide-up">
             <div className="bg-white rounded-3xl p-5 border border-gray-200 shadow-sm flex items-center justify-between">
               <div>
                 <h1 className="text-2xl font-extrabold text-gray-900">
-                  {t('createPost.reviewTitle', 'మీ పంట వివరాల సమీక్ష')}
+                  {isFarmer
+                    ? t('createPost.reviewTitle', 'మీ పంట వివరాల సమీక్ష')
+                    : t('createPost.buyerStep6Title', 'కొనుగోలు అవసరం సమీక్ష')}
                 </h1>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  {t('createPost.reviewSub', 'వివరాలు సరిచూసుకుని పోస్ట్ చేయడానికి కింద ఉన్న ఆకుపచ్చ బటన్ తాకండి')}
+                  {isFarmer
+                    ? t('createPost.reviewSub', 'వివరాలు సరిచూసుకుని పోస్ట్ చేయడానికి కింద ఉన్న ఆకుపచ్చ బటన్ తాకండి')
+                    : t('createPost.buyerStep6Sub', 'వివరాలు సరిచూసుకుని ప్రచురించడానికి కింద ఉన్న ఆకుపచ్చ బటన్ తాకండి')}
                 </p>
               </div>
               <button
@@ -1269,7 +1705,7 @@ export default function CreatePost() {
               </button>
             </div>
 
-            {/* 4 Clean Summary Cards with Edit ("మార్చు") Buttons */}
+            {/* Clean Summary Cards with Edit ("మార్చు") Buttons */}
             <div className="bg-white rounded-3xl p-5 border border-gray-200 shadow-sm space-y-3">
               {/* Crop */}
               <div className="flex items-center justify-between p-3.5 rounded-2xl bg-gray-50">
@@ -1312,11 +1748,11 @@ export default function CreatePost() {
                 </button>
               </div>
 
-              {/* Price */}
+              {/* Price / Target Budget */}
               <div className="flex items-center justify-between p-3.5 rounded-2xl bg-gray-50">
                 <div>
                   <span className="text-xs font-bold text-gray-400 block">
-                    {t('createPost.stepPriceName', 'ధర')}
+                    {isFarmer ? t('createPost.stepPriceName', 'ధర') : t('createPost.budgetCeilingLabel', 'లక్ష్య బడ్జెట్')}
                   </span>
                   <p className="font-extrabold text-[#D9822B] text-xl">
                     ₹{form.price} / {translateUnit(t, form.price_unit)}
@@ -1338,10 +1774,18 @@ export default function CreatePost() {
                     {t('createPost.stepDeliveryName', 'డెలివరీ సమయం')}
                   </span>
                   <p className="font-extrabold text-gray-900 text-base">
-                    {form.delivery_choice === 'today'
-                      ? t('createPost.q4Today', 'ఈరోజే')
-                      : form.delivery_choice === 'tomorrow'
-                      ? t('createPost.q4Tomorrow', 'రేపు')
+                    {isFarmer
+                      ? form.delivery_choice === 'today'
+                        ? t('createPost.q4Today', 'ఈరోజే')
+                        : form.delivery_choice === 'tomorrow'
+                        ? t('createPost.q4Tomorrow', 'రేపు')
+                        : form.target_date
+                      : form.delivery_choice === '7days'
+                      ? t('createPost.buyerStep4In7Days', '7 రోజుల్లోగా')
+                      : form.delivery_choice === '15days'
+                      ? t('createPost.buyerStep4In15Days', '15 రోజుల్లోగా')
+                      : form.delivery_choice === '30days'
+                      ? t('createPost.buyerStep4In30Days', '30 రోజుల్లోగా')
                       : form.target_date}
                   </p>
                 </div>
@@ -1354,17 +1798,33 @@ export default function CreatePost() {
                 </button>
               </div>
 
-              {/* Inherited Location Banner (Auto-filled, no farmer re-typing) */}
-              <div className="p-3 bg-green-50/60 rounded-2xl border border-green-100 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2 text-gray-700">
-                  <MapPin size={16} className="text-[#1E5E3A] shrink-0" />
-                  <span>
-                    <strong>{t('postCard.location', 'Location')}:</strong> {form.location || user?.location || t('createPost.profileLocation', 'Profile Registered Location')}
-                  </span>
+              {/* Location (with Edit button for Buyer) */}
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-gray-50">
+                <div className="flex items-center gap-2 text-gray-800">
+                  <MapPin size={18} className="text-[#1E5E3A] shrink-0" />
+                  <div>
+                    <span className="text-xs font-bold text-gray-400 block">
+                      {isFarmer ? t('postCard.location', 'Location') : t('createPost.sourcingLocationLabel', 'సేకరణ ప్రాంతం')}
+                    </span>
+                    <p className="font-extrabold text-gray-900 text-base">
+                      {form.location || user?.location || (isFarmer ? t('createPost.profileLocation', 'Profile Registered Location') : 'All Regions')}
+                    </p>
+                  </div>
                 </div>
-                <span className="text-[10px] text-green-700 font-bold bg-green-100 px-2 py-0.5 rounded-full">
-                  ✓ {t('createPost.autoLocation', 'స్వయంచాలకంగా తీసుకోబడింది')}
-                </span>
+                {!isFarmer && (
+                  <button
+                    type="button"
+                    onClick={() => setStep(5)}
+                    className="text-xs font-bold text-[#1E5E3A] bg-green-100 px-3 py-1.5 rounded-xl active:scale-95"
+                  >
+                    {t('createPost.editBtn', 'మార్చు')}
+                  </button>
+                )}
+                {isFarmer && (
+                  <span className="text-[10px] text-green-700 font-bold bg-green-100 px-2 py-0.5 rounded-full">
+                    ✓ {t('createPost.autoLocation', 'స్వయంచాలకంగా తీసుకోబడింది')}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -1423,13 +1883,13 @@ export default function CreatePost() {
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
-                onClick={() => setStep(4)}
+                onClick={() => setStep(isFarmer ? 4 : 5)}
                 className="w-1/3 bg-gray-200 text-gray-800 font-bold py-4 rounded-2xl flex items-center justify-center gap-1 active:scale-98 min-h-[56px]"
               >
                 <ChevronLeft size={20} /> {t('createPost.backBtn', '← వెనుకకు')}
               </button>
 
-              {/* Requirement 9: Require the farmer to touch Publish to confirm */}
+              {/* Explicit Touch Confirmation Button to Publish */}
               <button
                 type="button"
                 disabled={submitting}
@@ -1439,7 +1899,11 @@ export default function CreatePost() {
                 {submitting ? (
                   <Loader2 size={22} className="animate-spin" />
                 ) : (
-                  <span>{t('createPost.publishBtn', '🌾 నా పంటను పోస్ట్ చేయండి')}</span>
+                  <span>
+                    {isFarmer
+                      ? t('createPost.publishBtn', '🌾 నా పంటను పోస్ట్ చేయండి')
+                      : t('createPost.buyerPublishBtn', '📢 కొనుగోలు అవసరాన్ని ప్రచురించండి')}
+                  </span>
                 )}
               </button>
             </div>

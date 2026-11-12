@@ -57,19 +57,40 @@ def compute_match_details(my_posts: List[models.Post], candidate: models.Post, c
                     elif abs(candidate.price - p.price) / p.price <= 0.15:
                         score += 20
                         reasons.append(f"Price negotiable: Buyer budget (₹{candidate.price}) close to your rate (₹{p.price})")
+                    else:
+                        diff = round(p.price - candidate.price, 2)
+                        diff_str = f"{int(diff)}" if diff.is_integer() else f"{diff:.1f}"
+                        reasons.append(f"Buyer offer is ₹{diff_str} below your asking price (₹{p.price})")
+                        score += 5
                 else:
-                    # Current user is industry buying
-                    if p.price <= candidate.price:
+                    # Current user is industry buying (p.price = buyer budget ceiling), candidate is farmer selling (candidate.price = farmer rate)
+                    if candidate.price <= p.price:
                         score += 25
-                        reasons.append(f"Within budget: Farmer rate (₹{candidate.price}) meets your requirement budget (₹{p.price})")
-                    elif abs(candidate.price - p.price) / p.price <= 0.15:
-                        score += 20
-                        reasons.append(f"Close to budget: Farmer asking ₹{candidate.price} vs your budget ₹{p.price}")
+                        reasons.append(f"Within your budget: Farmer rate (₹{candidate.price}) is within your budget (₹{p.price})")
+                    elif (candidate.price - p.price) / p.price <= 0.15:
+                        score += 15
+                        reasons.append(f"Slightly above your budget – negotiation may be possible: Farmer asking ₹{candidate.price} vs your budget ₹{p.price}")
+                    else:
+                        diff = round(candidate.price - p.price, 2)
+                        diff_str = f"{int(diff)}" if diff.is_integer() else f"{diff:.1f}"
+                        reasons.append(f"Exceeds your budget by ₹{diff_str}: Farmer asking ₹{candidate.price} vs your budget ₹{p.price}")
+                        score += 5
 
             # Quantity check
             if p.quantity and candidate.quantity:
-                reasons.append(f"Volume compatibility: Buyer needs {candidate.quantity}")
+                if current_user.role == models.RoleEnum.industry:
+                    reasons.append(f"Volume compatibility: Farmer has {candidate.quantity} available")
+                else:
+                    reasons.append(f"Volume compatibility: Buyer needs {candidate.quantity}")
                 score += 10
+
+            # Delivery timeline check
+            if candidate.target_date:
+                if current_user.role == models.RoleEnum.industry:
+                    reasons.append(f"Delivery timeline: Available {candidate.target_date}")
+                else:
+                    reasons.append(f"Delivery requirement: Needed by {candidate.target_date}")
+                score += 5
             break
 
     # If user has no posts yet or no direct crop post match, check category or crop interest
@@ -79,8 +100,19 @@ def compute_match_details(my_posts: List[models.Post], candidate: models.Post, c
         reasons.append(f"Active listing for high-demand {candidate.crop_name}")
 
     # 2. Location match
-    user_loc = (current_user.location or "").strip().lower()
-    if user_loc and cand_loc_lower:
+    buyer_sourcing_loc = None
+    if current_user.role == models.RoleEnum.industry and my_posts:
+        for p in my_posts:
+            if p.location:
+                buyer_sourcing_loc = p.location.strip().lower()
+                break
+
+    user_loc = (buyer_sourcing_loc or current_user.location or "").strip().lower()
+    if user_loc and ("all" in user_loc or "any" in user_loc or "అన్ని" in user_loc or "सभी" in user_loc):
+        score += 15
+        reasons.append("Open to all sourcing regions")
+        distance_approx = "All Regions"
+    elif user_loc and cand_loc_lower:
         # Check if districts or states match
         user_parts = [part.strip() for part in user_loc.replace(',', ' ').split() if len(part.strip()) > 3]
         matched_loc_part = None

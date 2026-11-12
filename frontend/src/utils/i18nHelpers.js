@@ -168,16 +168,36 @@ const MATCH_REASON_PATTERNS = [
     format: (t, [, offer, asking]) => t('matches.reasons.priceCloseFarmer', { offer, asking }),
   },
   {
-    regex: /^Within budget: Farmer rate \(₹([\d.,]+)\) meets your requirement budget \(₹([\d.,]+)\)$/i,
+    regex: /^Buyer offer is ₹([\d.,]+) below your asking price \(₹([\d.,]+)\)$/i,
+    format: (t, [, diff, asking]) => t('matches.reasons.priceBelowFarmer', { diff, asking }),
+  },
+  {
+    regex: /^Within (?:your )?budget: Farmer rate \(₹([\d.,]+)\) (?:is within your budget|meets your requirement budget) \(₹([\d.,]+)\)$/i,
     format: (t, [, rate, budget]) => t('matches.reasons.priceMetIndustry', { rate, budget }),
   },
   {
-    regex: /^Close to budget: Farmer asking ₹([\d.,]+) vs your budget ₹([\d.,]+)$/i,
+    regex: /^(?:Close to budget|Slightly above your budget – negotiation may be possible): Farmer asking ₹([\d.,]+) vs your budget ₹([\d.,]+)$/i,
     format: (t, [, asking, budget]) => t('matches.reasons.priceCloseIndustry', { asking, budget }),
   },
   {
-    regex: /^Volume compatibility: Buyer needs (.+)$/i,
+    regex: /^Exceeds your budget by ₹([\d.,]+): Farmer asking ₹([\d.,]+) vs your budget ₹([\d.,]+)$/i,
+    format: (t, [, diff, asking, budget]) => t('matches.reasons.priceExceedsIndustry', { diff, asking, budget }),
+  },
+  {
+    regex: /^Volume compatibility: (?:Buyer needs|Farmer has) (.+?)(?: available)?$/i,
     format: (t, [, qty]) => t('matches.reasons.volumeBuyer', { qty: translateUnit(t, qty) }),
+  },
+  {
+    regex: /^Delivery requirement: (?:Needed by )?(.+)$/i,
+    format: (t, [, del]) => t('matches.reasons.deliveryReq', { delivery: del }),
+  },
+  {
+    regex: /^Delivery timeline: Available (.+)$/i,
+    format: (t, [, del]) => t('matches.reasons.deliveryTimeline', { delivery: del }),
+  },
+  {
+    regex: /^Open to all sourcing regions$/i,
+    format: (t) => t('matches.reasons.openSourcingRegions'),
   },
   {
     regex: /^Active listing for high-demand (.+)$/i,
