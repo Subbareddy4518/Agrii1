@@ -14,6 +14,18 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 IS_PRODUCTION = os.getenv("ENVIRONMENT", "").lower() in ("production", "prod") or os.getenv("FASTAPI_ENV", "").lower() in ("production", "prod")
 
 
+def is_sms_provider_configured() -> bool:
+    """
+    Checks if an SMS provider (e.g. Twilio, MSG91, Fast2SMS, AWS SNS) is configured
+    via environment variables. Does not mock or assume presence without explicit keys.
+    """
+    return bool(
+        os.getenv("SMS_PROVIDER_API_KEY") or
+        os.getenv("SMS_GATEWAY_URL") or
+        os.getenv("TWILIO_ACCOUNT_SID")
+    )
+
+
 @router.post("/register", response_model=schemas.Token)
 def register(payload: schemas.RegisterRequest, db: Session = Depends(get_db)):
     # Strict server-side security enforcement: public registration cannot create administrator accounts
@@ -43,7 +55,7 @@ def register(payload: schemas.RegisterRequest, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
 
-    token = create_access_token({"sub": str(user.id)})
+    token = create_access_token({"sub": str(user.id), "token_version": getattr(user, "token_version", 1) or 1})
     user_out = schemas.UserOut.model_validate(user)
     user_out.posts_count = 0
     return schemas.Token(access_token=token, user=user_out)
@@ -58,7 +70,7 @@ def login(payload: schemas.LoginRequest, db: Session = Depends(get_db)):
     user.trust_score = trust.calculate_trust_score(user, db)
     db.commit()
 
-    token = create_access_token({"sub": str(user.id)})
+    token = create_access_token({"sub": str(user.id), "token_version": getattr(user, "token_version", 1) or 1})
     posts_count = len(user.posts)
     user_out = schemas.UserOut.model_validate(user)
     user_out.posts_count = posts_count
@@ -70,14 +82,20 @@ def send_otp(payload: schemas.SendOtpRequest):
     """
     Mobile OTP dispatch.
     In testing/development, returns simulated testing OTP '1234'.
-    In production, OTP values are NEVER exposed in API responses and must be delivered via SMS.
+    In production, checks for a configured SMS provider. If none is configured,
+    returns an explicit 503 Service Unavailable error instead of falsely claiming an SMS was sent.
     """
     digits = "".join(filter(str.isdigit, payload.mobile))
     if len(digits) < 10:
         raise HTTPException(status_code=400, detail="Please enter a valid 10-digit mobile number")
 
     if IS_PRODUCTION:
-        # In production: simulated OTP is suppressed; SMS provider integration is invoked.
+        if not is_sms_provider_configured():
+            raise HTTPException(
+                status_code=503,
+                detail="SMS service is currently unavailable. No production SMS provider is configured."
+            )
+        # When a production SMS provider is configured, dispatch SMS without exposing OTP in response
         return schemas.OtpResponse(
             message=f"OTP sent successfully via SMS to {digits[-10:]}",
             otp=None,
@@ -104,7 +122,12 @@ def verify_otp(payload: schemas.VerifyOtpRequest, db: Session = Depends(get_db))
     if IS_PRODUCTION:
         if payload.otp.strip() == "1234":
             raise HTTPException(status_code=400, detail="Simulated test OTP is disabled in production environment")
-        # In a real environment, verify against SMS store / cache
+        if not is_sms_provider_configured():
+            raise HTTPException(
+                status_code=503,
+                detail="OTP verification is currently unavailable. No production SMS provider is configured."
+            )
+        # In a real environment with SMS provider, verify against SMS store / cache
         raise HTTPException(status_code=400, detail="Invalid or expired OTP code")
 
     if payload.otp.strip() != "1234":

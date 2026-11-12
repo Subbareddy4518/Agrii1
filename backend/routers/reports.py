@@ -15,6 +15,7 @@ import schemas
 from database import get_db
 from auth import get_current_user, get_current_admin
 from audit import record_admin_audit
+from routers.admin import mask_phone_number
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 
@@ -44,7 +45,7 @@ def _serialize_report(report: models.Report) -> schemas.ReportOut:
         post_location=post.location if post else None,
         post_report_count=post.report_count if post else 0,
         post_owner_name=owner.name if owner else None,
-        post_owner_mobile=owner.mobile if owner else None,
+        post_owner_mobile=mask_phone_number(owner.mobile) if owner else None,
         reporter_name=reporter.name if reporter else None,
     )
 
@@ -172,16 +173,63 @@ def resolve_report(
         report.resolved_by_id = admin.id
         report.resolved_at = now
 
-        # If post was quarantined (paused) due to reports, restore to active
-        if post and post.status == "paused":
-            post.status = "active"
-            db.add(models.PostStatusHistory(
-                post_id=post.id,
-                changed_by_user_id=admin.id,
-                from_status="paused",
-                to_status="active",
-                notes=f"Listing restored by admin after dismissing report #{report.id}: {payload.notes or 'Report dismissed'}",
-            ))
+        # Check if there are other pending unresolved reports on this post
+        other_pending_reports = 0
+        if post:
+            other_pending_reports = (
+                db.query(models.Report)
+                .filter(
+                    models.Report.post_id == post.id,
+                    models.Report.id != report.id,
+                    models.Report.status == "pending"
+                )
+                .count()
+            )
+
+        restored = False
+        target_status = None
+        # Only restore previous listing status if NO other pending reports exist
+        if post and other_pending_reports == 0:
+            if post.status == "paused":
+                # Check history to find status prior to quarantine
+                last_quarantine = (
+                    db.query(models.PostStatusHistory)
+                    .filter(
+                        models.PostStatusHistory.post_id == post.id,
+                        models.PostStatusHistory.to_status == "paused"
+                    )
+                    .order_by(models.PostStatusHistory.created_at.desc())
+                    .first()
+                )
+                target_status = (
+                    last_quarantine.from_status
+                    if last_quarantine and last_quarantine.from_status in ("active", "draft")
+                    else "active"
+                )
+                post.status = target_status
+                post.report_count = max(0, (post.report_count or 1) - 1)
+                db.add(models.PostStatusHistory(
+                    post_id=post.id,
+                    changed_by_user_id=admin.id,
+                    from_status="paused",
+                    to_status=target_status,
+                    notes=f"Listing restored by admin after dismissing all pending reports (report #{report.id}): {payload.notes or 'Report dismissed'}",
+                ))
+                restored = True
+                if post.owner:
+                    import trust
+                    post.owner.trust_score = trust.calculate_trust_score(post.owner, db)
+            else:
+                post.report_count = max(0, (post.report_count or 1) - 1)
+        elif post and other_pending_reports > 0:
+            post.report_count = max(0, (post.report_count or 1) - 1)
+
+        details_msg = (
+            f"Dismissed report #{report.id} on post ID {report.post_id}. "
+            + (f"Listing restored from 'paused' to '{target_status}'." if restored else
+               (f"Listing remains quarantined ('paused') because {other_pending_reports} other pending report(s) exist." if other_pending_reports > 0 else "Listing status unchanged."))
+            + (f" Notes: {payload.notes}" if payload.notes else "")
+        )
 
         record_admin_audit(
             db,
@@ -189,7 +237,7 @@ def resolve_report(
             action="resolve_report",
             target_type="report",
             target_id=str(report.id),
-            details=f"Dismissed report on post ID {report.post_id}. Notes: {payload.notes or 'None'}",
+            details=details_msg,
         )
 
     elif action == "confirm_quarantine":

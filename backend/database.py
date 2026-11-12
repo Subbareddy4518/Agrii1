@@ -144,6 +144,15 @@ def run_migrations():
                     )
                 )
 
+            if "token_version" not in user_columns:
+                conn.execute(
+                    text(
+                        "ALTER TABLE users "
+                        "ADD COLUMN token_version INTEGER "
+                        "NOT NULL DEFAULT 1"
+                    )
+                )
+
 
     # ========================================================
     # 3. POSTS MIGRATIONS

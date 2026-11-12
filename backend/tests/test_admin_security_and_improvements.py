@@ -124,24 +124,51 @@ class TestAdminSecurityAndImprovements(unittest.TestCase):
         self.assertIn("restricted", ctx.exception.detail.lower())
 
     # --------------------------------------------------------------------------
-    # 2. OTP Production Safeguard
+    # 2. OTP Production Safeguard & Provider Configuration
     # --------------------------------------------------------------------------
     def test_03_otp_production_safeguard(self):
-        """In simulated production mode, test OTP code 1234 is rejected."""
+        """In production mode, verify provider configuration check and test OTP rejection."""
         orig_prod = auth.IS_PRODUCTION
+        orig_sms_key = os.environ.get("SMS_PROVIDER_API_KEY")
         try:
             auth.IS_PRODUCTION = True
-            # send_otp should not expose code
+            # Case A: Production without configured SMS provider -> must return 503 Service Unavailable
+            if "SMS_PROVIDER_API_KEY" in os.environ:
+                del os.environ["SMS_PROVIDER_API_KEY"]
+            if "SMS_GATEWAY_URL" in os.environ:
+                del os.environ["SMS_GATEWAY_URL"]
+            if "TWILIO_ACCOUNT_SID" in os.environ:
+                del os.environ["TWILIO_ACCOUNT_SID"]
+
+            with self.assertRaises(HTTPException) as ctx_send:
+                auth.send_otp(schemas.SendOtpRequest(mobile="9800000001"))
+            self.assertEqual(ctx_send.exception.status_code, 503)
+            self.assertIn("unavailable", ctx_send.exception.detail.lower())
+
+            # Case B: Production with configured SMS provider -> never expose OTP in response
+            os.environ["SMS_PROVIDER_API_KEY"] = "dummy_provider_key"
             res = auth.send_otp(schemas.SendOtpRequest(mobile="9800000001"))
             self.assertIsNone(res.otp)
+            self.assertIn("SMS", res.message)
 
-            # verify_otp with simulated '1234' must be rejected
+            # Case C: verify_otp with simulated '1234' in production must be rejected with 400
             with self.assertRaises(HTTPException) as ctx:
                 auth.verify_otp(schemas.VerifyOtpRequest(mobile="9800000001", otp="1234"), db=self.db)
             self.assertEqual(ctx.exception.status_code, 400)
             self.assertIn("disabled in production", ctx.exception.detail.lower())
+
+            # Case D: In development mode (IS_PRODUCTION=False), simulated OTP works
+            auth.IS_PRODUCTION = False
+            dev_res = auth.send_otp(schemas.SendOtpRequest(mobile="9800000001"))
+            self.assertEqual(dev_res.otp, "1234")
+            v_res = auth.verify_otp(schemas.VerifyOtpRequest(mobile="9800000001", otp="1234"), db=self.db)
+            self.assertTrue(v_res.is_verified)
         finally:
             auth.IS_PRODUCTION = orig_prod
+            if orig_sms_key is not None:
+                os.environ["SMS_PROVIDER_API_KEY"] = orig_sms_key
+            elif "SMS_PROVIDER_API_KEY" in os.environ:
+                del os.environ["SMS_PROVIDER_API_KEY"]
 
     # --------------------------------------------------------------------------
     # 3. RBAC Enforcement
@@ -233,15 +260,15 @@ class TestAdminSecurityAndImprovements(unittest.TestCase):
         self.assertEqual(audit.target_id, str(self.buyer_user.id))
 
     # --------------------------------------------------------------------------
-    # 6. Community Reports & Moderation Actions
+    # 6. Community Reports Moderation & Safe Resolution (Multiple Reports Handling)
     # --------------------------------------------------------------------------
     def test_08_reports_moderation_and_resolution(self):
-        """Admin can list reports and resolve them with dismiss, quarantine, or close actions."""
-        # Create a post
+        """Admin can list reports and resolve them safely without premature reactivation."""
+        # Create a post that has a history of being active before being auto-quarantined
         post = models.Post(
             user_id=self.farmer_user.id,
             role=models.RoleEnum.farmer,
-            title="Spam Listing",
+            title="Multi-Reported Listing",
             crop_name="Cotton",
             status="paused",
             report_count=3,
@@ -250,17 +277,35 @@ class TestAdminSecurityAndImprovements(unittest.TestCase):
         self.db.commit()
         self.db.refresh(post)
 
-        # Create a report
-        rep = models.Report(
+        # Record quarantine history entry: active -> paused
+        self.db.add(models.PostStatusHistory(
+            post_id=post.id,
+            changed_by_user_id=self.farmer_user.id,
+            from_status="active",
+            to_status="paused",
+            notes="Listing automatically paused pending admin review due to repeated community reports.",
+        ))
+        self.db.commit()
+
+        # Create TWO separate pending reports against the same post
+        rep1 = models.Report(
             post_id=post.id,
             reporter_id=self.buyer_user.id,
             reason="Inaccurate Price",
             details="Price is unrealistic and misleading",
             status="pending",
         )
-        self.db.add(rep)
+        rep2 = models.Report(
+            post_id=post.id,
+            reporter_id=self.farmer_user.id,
+            reason="Suspected Fraud",
+            details="Duplicate crop listing from another district",
+            status="pending",
+        )
+        self.db.add_all([rep1, rep2])
         self.db.commit()
-        self.db.refresh(rep)
+        self.db.refresh(rep1)
+        self.db.refresh(rep2)
 
         # Admin lists reports
         reports_list = reports.list_reports(
@@ -268,24 +313,49 @@ class TestAdminSecurityAndImprovements(unittest.TestCase):
             db=self.db,
             admin=self.admin_user,
         )
-        self.assertEqual(len(reports_list), 1)
-        self.assertEqual(reports_list[0].post_title, "Spam Listing")
+        self.assertEqual(len(reports_list), 2)
+        # Verify post owner mobile is masked in ReportOut
+        self.assertIn("****", reports_list[0].post_owner_mobile)
 
-        # Admin dismisses report -> restores post to active
-        resolved = reports.resolve_report(
-            report_id=rep.id,
-            payload=schemas.ReportResolutionRequest(action="dismiss", notes="Report false"),
+        # STEP A: Dismiss Report 1.
+        # Since Report 2 is STILL PENDING, the post MUST REMAIN PAUSED!
+        resolved1 = reports.resolve_report(
+            report_id=rep1.id,
+            payload=schemas.ReportResolutionRequest(action="dismiss", notes="Report 1 found false"),
             db=self.db,
             admin=self.admin_user,
         )
-        self.assertEqual(resolved.status, "dismissed")
+        self.assertEqual(resolved1.status, "dismissed")
 
         self.db.refresh(post)
-        self.assertEqual(post.status, "active")
+        self.assertEqual(
+            post.status,
+            "paused",
+            "Listing must NOT be reactivated while other unresolved reports remain against it"
+        )
 
-        # Verify audit log
-        audit = self.db.query(models.AdminAuditLog).filter_by(action="resolve_report").first()
-        self.assertIsNotNone(audit)
+        # STEP B: Dismiss Report 2.
+        # Now ALL pending reports are resolved/dismissed -> listing is safely restored to active!
+        resolved2 = reports.resolve_report(
+            report_id=rep2.id,
+            payload=schemas.ReportResolutionRequest(action="dismiss", notes="Report 2 also cleared"),
+            db=self.db,
+            admin=self.admin_user,
+        )
+        self.assertEqual(resolved2.status, "dismissed")
+
+        self.db.refresh(post)
+        self.assertEqual(
+            post.status,
+            "active",
+            "Listing must be restored to previous status ('active') once all reports are resolved"
+        )
+
+        # Verify audit logs were created for both resolutions
+        audit_records = self.db.query(models.AdminAuditLog).filter_by(action="resolve_report").all()
+        self.assertEqual(len(audit_records), 2)
+        self.assertIn("remains quarantined", audit_records[0].details)
+        self.assertIn("restored", audit_records[1].details)
 
     # --------------------------------------------------------------------------
     # 7. Safer Post Deletion (Recoverable Archival)
@@ -321,11 +391,23 @@ class TestAdminSecurityAndImprovements(unittest.TestCase):
         self.assertIsNotNone(audit)
 
     # --------------------------------------------------------------------------
-    # 8. Admin Password Change
+    # 8. Admin Password Change & Session Invalidation
     # --------------------------------------------------------------------------
-    def test_10_admin_password_change_with_verification(self):
-        """Admin can change password with current password verification."""
-        # Wrong current password fails
+    def test_10_admin_password_change_with_verification_and_session_invalidation(self):
+        """Admin password change verifies current password and invalidates prior sessions."""
+        from auth import get_current_user
+
+        # Issue active session token for admin before password change
+        old_token = create_access_token({
+            "sub": str(self.admin_user.id),
+            "token_version": self.admin_user.token_version or 1
+        })
+
+        # Old token is initially valid
+        current_u = get_current_user(token=old_token, db=self.db)
+        self.assertEqual(current_u.id, self.admin_user.id)
+
+        # Attempting change with incorrect current password fails with 400
         with self.assertRaises(HTTPException) as ctx:
             admin.change_admin_password(
                 payload=schemas.AdminPasswordChangeRequest(
@@ -338,8 +420,8 @@ class TestAdminSecurityAndImprovements(unittest.TestCase):
             )
         self.assertEqual(ctx.exception.status_code, 400)
 
-        # Successful change
-        res_ok = admin.change_admin_password(
+        # Successful password change
+        change_res = admin.change_admin_password(
             payload=schemas.AdminPasswordChangeRequest(
                 current_password="adminSecretPass123",
                 new_password="newSecurePassword123",
@@ -348,15 +430,46 @@ class TestAdminSecurityAndImprovements(unittest.TestCase):
             db=self.db,
             admin=self.admin_user,
         )
-        self.assertEqual(res_ok["detail"], "Password updated successfully")
+        self.assertEqual(change_res["detail"], "Password updated successfully")
+        self.assertIn("access_token", change_res)
+        new_token = change_res["access_token"]
 
-        # Verify password in DB was updated
-        self.db.refresh(self.admin_user)
+        # CRITICAL TEST: Old session token MUST BE REJECTED with 401 Unauthorized
+        with self.assertRaises(HTTPException) as ctx_old:
+            get_current_user(token=old_token, db=self.db)
+        self.assertEqual(ctx_old.exception.status_code, 401)
+        self.assertIn("expired", ctx_old.exception.detail.lower())
+
+        # New session token returned by password change MUST BE ACCEPTED
+        new_u = get_current_user(token=new_token, db=self.db)
+        self.assertEqual(new_u.id, self.admin_user.id)
+
+        # Verify login with new password succeeds
         login_res = auth.login(
             payload=schemas.LoginRequest(mobile="9900000000", password="newSecurePassword123"),
             db=self.db,
         )
         self.assertEqual(login_res.user.id, self.admin_user.id)
+
+        # Old password cannot be used for login
+        with self.assertRaises(HTTPException) as ctx_login_old:
+            auth.login(
+                payload=schemas.LoginRequest(mobile="9900000000", password="adminSecretPass123"),
+                db=self.db,
+            )
+        self.assertEqual(ctx_login_old.exception.status_code, 401)
+
+    # --------------------------------------------------------------------------
+    # 9. Comprehensive RBAC Denial on Admin Endpoints
+    # --------------------------------------------------------------------------
+    def test_11_farmer_and_buyer_denied_from_all_admin_endpoints(self):
+        """Farmer and Buyer roles must be rejected with 403 Forbidden on all admin endpoints."""
+        from auth import get_current_admin
+        for non_admin in [self.farmer_user, self.buyer_user]:
+            with self.assertRaises(HTTPException) as ctx:
+                get_current_admin(non_admin)
+            self.assertEqual(ctx.exception.status_code, 403)
+            self.assertIn("admin access required", ctx.exception.detail.lower())
 
 
 if __name__ == "__main__":

@@ -46,6 +46,7 @@ def get_current_user(
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")
+        token_ver = payload.get("token_version")
         if user_id is None:
             raise credentials_exception
     except JWTError:
@@ -54,6 +55,22 @@ def get_current_user(
     user = db.query(models.User).filter(models.User.id == int(user_id)).first()
     if user is None:
         raise credentials_exception
+
+    # Enforce session invalidation upon credential update
+    user_token_ver = getattr(user, "token_version", 1) or 1
+    if token_ver is not None and token_ver != user_token_ver:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session has expired due to password update. Please log in again.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    elif token_ver is None and user_token_ver > 1:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session has expired due to password update. Please log in again.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     return user
 
 

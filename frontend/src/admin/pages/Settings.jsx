@@ -55,11 +55,14 @@ export default function Settings() {
 
     setChangingPass(true)
     try {
-      await changeAdminPassword({
+      const res = await changeAdminPassword({
         current_password: currentPassword,
         new_password: newPassword,
         confirm_new_password: confirmPassword,
       })
+      if (res.data?.access_token) {
+        localStorage.setItem('agriconnect_token', res.data.access_token)
+      }
       toast.success(t('admin.settings.passSuccess', 'Password updated successfully'))
       setCurrentPassword('')
       setNewPassword('')

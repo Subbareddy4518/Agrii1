@@ -18,7 +18,7 @@ from sqlalchemy import func, or_
 import models
 import schemas
 from database import get_db
-from auth import get_current_admin, hash_password, verify_password
+from auth import get_current_admin, hash_password, verify_password, create_access_token
 from audit import record_admin_audit
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -588,11 +588,18 @@ def change_admin_password(
 ):
     """
     Admin-only: update administrator account password with verification.
+    Invalidates any previous sessions by incrementing token_version.
+    Returns a fresh session token for the current administrator.
     """
     if not verify_password(payload.current_password, admin.hashed_password):
         raise HTTPException(status_code=400, detail="Current password is incorrect")
 
+    if len(payload.new_password) < 8:
+        raise HTTPException(status_code=422, detail="Password must be at least 8 characters long")
+
     admin.hashed_password = hash_password(payload.new_password)
+    admin.token_version = (getattr(admin, "token_version", 1) or 1) + 1
+
     record_admin_audit(
         db,
         admin_id=admin.id,
@@ -602,4 +609,10 @@ def change_admin_password(
         details="Administrator updated account password successfully"
     )
     db.commit()
-    return {"detail": "Password updated successfully"}
+    db.refresh(admin)
+
+    new_token = create_access_token({"sub": str(admin.id), "token_version": admin.token_version})
+    return {
+        "detail": "Password updated successfully",
+        "access_token": new_token,
+    }

@@ -69,6 +69,7 @@ class User(Base):
     trust_score = Column(Integer, nullable=False, default=100, server_default="100")
 
     created_at = Column(DateTime, default=datetime.utcnow)
+    token_version = Column(Integer, nullable=False, default=1, server_default="1")
 
     posts = relationship("Post", back_populates="owner", cascade="all, delete-orphan")
 
