@@ -1,4 +1,5 @@
 """Pydantic request/response schemas."""
+import enum
 from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, field_validator
@@ -7,6 +8,11 @@ from models import RoleEnum
 
 
 # ---------- Auth ----------
+
+class PublicRoleEnum(str, enum.Enum):
+    farmer = "farmer"
+    industry = "industry"
+
 
 class RegisterRequest(BaseModel):
     role: RoleEnum
@@ -17,6 +23,15 @@ class RegisterRequest(BaseModel):
     confirm_password: str
     location: Optional[str] = None
     profile_image: Optional[str] = None
+
+    @field_validator("role", mode="before")
+    @classmethod
+    def validate_public_role(cls, v):
+        raw = v.value if hasattr(v, "value") else str(v)
+        clean = raw.lower().strip()
+        if clean not in ("farmer", "industry"):
+            raise ValueError("Registration is restricted to farmer and industry accounts only.")
+        return RoleEnum(clean)
 
     @field_validator("confirm_password")
     @classmethod
@@ -205,9 +220,12 @@ class AdminUserOut(BaseModel):
     name: str
     contact_person: Optional[str] = None
     mobile: str
+    mobile_masked: Optional[str] = None
     location: Optional[str] = None
     profile_image: Optional[str] = None
     status: str
+    is_verified: bool = False
+    trust_score: int = 100
     created_at: datetime
     posts_count: int = 0
 
@@ -385,9 +403,69 @@ class ReportOut(BaseModel):
     post_id: int
     reporter_id: int
     reason: str
+    details: Optional[str] = None
     status: str
+    resolution_action: Optional[str] = None
+    resolution_notes: Optional[str] = None
+    resolved_by_id: Optional[int] = None
+    resolved_at: Optional[datetime] = None
+    created_at: datetime
+
+    # Associated post metadata
+    post_title: Optional[str] = None
+    post_crop_name: Optional[str] = None
+    post_role: Optional[str] = None
+    post_status: Optional[str] = None
+    post_price: Optional[float] = None
+    post_quantity: Optional[str] = None
+    post_location: Optional[str] = None
+    post_report_count: Optional[int] = 0
+
+    # User metadata
+    post_owner_name: Optional[str] = None
+    post_owner_mobile: Optional[str] = None
+    reporter_name: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ReportResolutionRequest(BaseModel):
+    action: str  # "dismiss", "confirm_quarantine", "close_post"
+    notes: Optional[str] = None
+
+
+class AdminAuditLogOut(BaseModel):
+    id: int
+    admin_id: int
+    admin_name: Optional[str] = None
+    action: str
+    target_type: str
+    target_id: Optional[str] = None
+    details: Optional[str] = None
+    ip_address: Optional[str] = None
     created_at: datetime
 
     class Config:
         from_attributes = True
+
+
+class AdminPasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str
+    confirm_new_password: str
+
+    @field_validator("confirm_new_password")
+    @classmethod
+    def passwords_match(cls, v, info):
+        if "new_password" in info.data and v != info.data["new_password"]:
+            raise ValueError("New passwords do not match")
+        return v
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_length(cls, v):
+        if len(v) < 8:
+            raise ValueError("New password must be at least 8 characters long")
+        return v
 

@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   LayoutDashboard, Users, Sprout, Building2, FileText,
-  BarChart3, Bell, Settings, LogOut, X,
+  AlertTriangle, BarChart3, Bell, Settings, LogOut, X,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { to: '/admin/farmers', icon: Sprout, labelKey: 'admin.nav.farmers' },
   { to: '/admin/industries', icon: Building2, labelKey: 'admin.nav.industries' },
   { to: '/admin/posts', icon: FileText, labelKey: 'admin.nav.posts' },
+  { to: '/admin/reports', icon: AlertTriangle, labelKey: 'admin.nav.reports' },
   { to: '/admin/analytics', icon: BarChart3, labelKey: 'admin.nav.analytics' },
   { to: '/admin/notifications', icon: Bell, labelKey: 'admin.nav.notifications' },
   { to: '/admin/settings', icon: Settings, labelKey: 'admin.nav.settings' },

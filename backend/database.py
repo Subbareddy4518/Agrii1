@@ -241,8 +241,51 @@ def run_migrations():
                     )
                 )
 
+    # ========================================================
+    # 4. REPORTS MIGRATIONS
+    # ========================================================
+
+    if "reports" in existing_tables:
+        report_columns = {
+            column["name"]
+            for column in inspector.get_columns("reports")
+        }
+
+        with engine.begin() as conn:
+            if "resolution_action" not in report_columns:
+                conn.execute(
+                    text(
+                        "ALTER TABLE reports "
+                        "ADD COLUMN resolution_action VARCHAR"
+                    )
+                )
+
+            if "resolution_notes" not in report_columns:
+                conn.execute(
+                    text(
+                        "ALTER TABLE reports "
+                        "ADD COLUMN resolution_notes TEXT"
+                    )
+                )
+
+            if "resolved_by_id" not in report_columns:
+                conn.execute(
+                    text(
+                        "ALTER TABLE reports "
+                        "ADD COLUMN resolved_by_id INTEGER"
+                    )
+                )
+
+            if "resolved_at" not in report_columns:
+                conn.execute(
+                    text(
+                        "ALTER TABLE reports "
+                        "ADD COLUMN resolved_at TIMESTAMP"
+                    )
+                )
+
     # --------------------------------------------------------
-    # 4. CREATE NEW TABLES (e.g. post_status_history)
+    # 5. CREATE NEW TABLES (e.g. post_status_history, admin_audit_logs)
     # --------------------------------------------------------
     Base.metadata.create_all(bind=engine)
 

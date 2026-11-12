@@ -75,7 +75,8 @@ export const explainMatch = (postId) => api.get(`/matching/explain/${postId}`)
 
 // ---- Reporting ----
 export const reportPost = (postId, payload) => api.post(`/reports/post/${postId}`, payload)
-export const getAdminReports = () => api.get('/reports')
+export const getAdminReports = (params) => api.get('/reports', { params })
+export const resolveAdminReport = (id, payload) => api.post(`/reports/${id}/resolve`, payload)
 
 // ---- Admin ----
 export const getAdminStats = () => api.get('/admin/stats')
@@ -83,11 +84,15 @@ export const getAdminAnalytics = () => api.get('/admin/analytics')
 export const getAdminUsers = (params) => api.get('/admin/users', { params })
 export const getAdminUserDetail = (id) => api.get(`/admin/users/${id}`)
 export const setAdminUserStatus = (id, status) => api.post(`/admin/users/${id}/status`, { status })
+export const revealAdminUserMobile = (id) => api.post(`/admin/users/${id}/reveal-mobile`)
 export const getAdminPosts = (params) => api.get('/admin/posts', { params })
 export const getAdminPostDetail = (id) => api.get(`/admin/posts/${id}`)
 export const setAdminPostStatus = (id, status) => api.post(`/admin/posts/${id}/status`, { status })
-export const deleteAdminPost = (id) => api.delete(`/admin/posts/${id}`)
+export const deleteAdminPost = (id, hardDelete = false) =>
+  api.delete(`/admin/posts/${id}`, { params: { hard_delete: hardDelete } })
 export const getAdminRecentNotifications = (params) => api.get('/admin/notifications/recent', { params })
 export const broadcastAdminNotification = (payload) => api.post('/admin/notifications/broadcast', payload)
+export const getAdminAuditLogs = (params) => api.get('/admin/audit-logs', { params })
+export const changeAdminPassword = (payload) => api.post('/admin/change-password', payload)
 
 export default api

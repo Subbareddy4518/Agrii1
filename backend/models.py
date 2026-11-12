@@ -144,10 +144,15 @@ class Report(Base):
     reason = Column(String, nullable=False)
     details = Column(Text, nullable=True)
     status = Column(String, nullable=False, default="pending", server_default="pending")
+    resolution_action = Column(String, nullable=True)
+    resolution_notes = Column(Text, nullable=True)
+    resolved_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    resolved_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     post = relationship("Post")
-    reporter = relationship("User")
+    reporter = relationship("User", foreign_keys=[reporter_id])
+    resolved_by = relationship("User", foreign_keys=[resolved_by_id])
 
 
 class PostStatusHistory(Base):
@@ -163,4 +168,19 @@ class PostStatusHistory(Base):
 
     post = relationship("Post", back_populates="status_history")
     changed_by = relationship("User")
+
+
+class AdminAuditLog(Base):
+    __tablename__ = "admin_audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    admin_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    action = Column(String, nullable=False, index=True)
+    target_type = Column(String, nullable=False, index=True)
+    target_id = Column(String, nullable=True)
+    details = Column(Text, nullable=True)
+    ip_address = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    admin = relationship("User", foreign_keys=[admin_id])
 

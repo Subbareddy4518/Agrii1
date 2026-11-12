@@ -29,6 +29,7 @@ const AdminUsers = lazy(() => import('./admin/pages/Users.jsx'))
 const AdminFarmers = lazy(() => import('./admin/pages/Farmers.jsx'))
 const AdminIndustries = lazy(() => import('./admin/pages/Industries.jsx'))
 const AdminPosts = lazy(() => import('./admin/pages/Posts.jsx'))
+const AdminReports = lazy(() => import('./admin/pages/Reports.jsx'))
 const AdminAnalytics = lazy(() => import('./admin/pages/Analytics.jsx'))
 const AdminNotifications = lazy(() => import('./admin/pages/Notifications.jsx'))
 const AdminSettings = lazy(() => import('./admin/pages/Settings.jsx'))
@@ -95,6 +96,7 @@ export default function App() {
         <Route path="/admin/farmers" element={<Suspense fallback={<AdminSuspenseFallback />}><AdminFarmers /></Suspense>} />
         <Route path="/admin/industries" element={<Suspense fallback={<AdminSuspenseFallback />}><AdminIndustries /></Suspense>} />
         <Route path="/admin/posts" element={<Suspense fallback={<AdminSuspenseFallback />}><AdminPosts /></Suspense>} />
+        <Route path="/admin/reports" element={<Suspense fallback={<AdminSuspenseFallback />}><AdminReports /></Suspense>} />
         <Route path="/admin/analytics" element={<Suspense fallback={<AdminSuspenseFallback />}><AdminAnalytics /></Suspense>} />
         <Route path="/admin/notifications" element={<Suspense fallback={<AdminSuspenseFallback />}><AdminNotifications /></Suspense>} />
         <Route path="/admin/settings" element={<Suspense fallback={<AdminSuspenseFallback />}><AdminSettings /></Suspense>} />

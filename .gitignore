@@ -2,10 +2,14 @@
 # Backend
 backend/__pycache__/
 backend/**/__pycache__/
-backend/agriconnect.db
+*.db
+*.db.*
+*.backup*
 backend/venv/
 backend/uploads/*
 !backend/uploads/.gitkeep
+scratch/
+*.zip
 
 # Frontend
 frontend/node_modules/

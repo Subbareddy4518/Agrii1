@@ -100,14 +100,12 @@ def setup_admin_from_environment():
                 db.commit()
 
                 print(
-                    f"Admin account updated successfully. "
-                    f"Mobile: {admin_mobile}"
+                    f"Admin account updated successfully for '{admin_name}'."
                 )
 
             else:
                 print(
-                    f"ERROR: Mobile {admin_mobile} already belongs "
-                    f"to a non-admin account."
+                    "ERROR: Configured ADMIN_MOBILE already belongs to a non-admin account."
                 )
 
         # ----------------------------------------------------
@@ -132,8 +130,7 @@ def setup_admin_from_environment():
             db.commit()
 
             print(
-                f"Admin account created successfully. "
-                f"Mobile: {admin_mobile}"
+                f"Admin account created successfully for '{admin_name}'."
             )
 
     except Exception as error:
