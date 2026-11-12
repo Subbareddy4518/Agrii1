@@ -1,4 +1,8 @@
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
