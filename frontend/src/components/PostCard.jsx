@@ -141,6 +141,8 @@ export default function PostCard({ post, onChange }) {
                     ? 'bg-cloud-200 text-forest-900/70 border border-cloud-300'
                     : post.status === 'paused'
                     ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                    : post.status === 'archived'
+                    ? 'bg-stone-200 text-stone-700 border border-stone-300'
                     : 'bg-cloud-100 text-forest-800 border border-cloud-200'
                 }`}
               >
@@ -211,10 +213,10 @@ export default function PostCard({ post, onChange }) {
         </div>
 
         {/* Actions */}
-        {post.status === 'sold' ? (
+        {post.status === 'sold' || post.status === 'archived' ? (
           <div className="flex items-center justify-between px-4 pb-3.5 pt-1.5">
             <span className="text-xs font-bold text-forest-900/60 bg-cloud-100 px-3 py-2 rounded-xl flex items-center gap-1.5">
-              ✓ {t('listing.status.sold', 'Sold Out')}
+              {post.status === 'sold' ? `✓ ${t('listing.status.sold', 'Sold Out')}` : `📦 ${t('listing.status.archived', 'Archived')}`}
             </span>
             <div className="flex items-center gap-2">
               <button

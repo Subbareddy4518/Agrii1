@@ -16,6 +16,8 @@ import {
   Play,
   CheckCircle,
   RefreshCw,
+  Archive,
+  RotateCcw,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useTranslation } from 'react-i18next'
@@ -50,6 +52,7 @@ export default function Profile() {
 
   // Controlled Lifecycle State Management
   const [soldModalPost, setSoldModalPost] = useState(null)
+  const [archiveModalPost, setArchiveModalPost] = useState(null)
   const [soldForm, setSoldForm] = useState({ sold_price: '', sold_quantity: '', notes: '' })
   const [statusUpdating, setStatusUpdating] = useState(false)
 
@@ -305,6 +308,7 @@ export default function Profile() {
               const isSold = postStatus === 'sold'
               const isPaused = postStatus === 'paused'
               const isDraft = postStatus === 'draft'
+              const isArchived = postStatus === 'archived'
 
               return (
                 <div
@@ -331,6 +335,8 @@ export default function Profile() {
                               ? 'bg-amber-100 text-amber-800 border border-amber-300'
                               : isDraft
                               ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                              : isArchived
+                              ? 'bg-stone-200 text-stone-700 border border-stone-300'
                               : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                           }`}
                         >
@@ -427,6 +433,17 @@ export default function Profile() {
                         </button>
                       )}
 
+                      {/* Archived -> Restore to Active */}
+                      {isArchived && (
+                        <button
+                          type="button"
+                          onClick={() => handleStatusChange(post.id, 'active', { notes: 'Restored from archive' })}
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-forest-700 text-white font-medium hover:bg-forest-800 active:scale-95 transition-all"
+                        >
+                          <RotateCcw size={12} /> {t('listing.actions.restore', 'Restore to Active')}
+                        </button>
+                      )}
+
                       {/* Draft -> Publish */}
                       {isDraft && (
                         <button
@@ -439,13 +456,26 @@ export default function Profile() {
                       )}
                     </div>
 
-                    <button
-                      onClick={() => handleDeletePost(post.id)}
-                      className="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center shrink-0 transition-colors"
-                      aria-label={t('profile.deleteAria')}
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    {/* Safe Archive for farmers; Admin-only hard delete */}
+                    {!isArchived ? (
+                      <button
+                        type="button"
+                        onClick={() => setArchiveModalPost(post)}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200 font-medium active:scale-95 transition-all"
+                        aria-label={t('listing.actions.archive', 'Archive')}
+                      >
+                        <Archive size={13} /> {t('listing.actions.archive', 'Archive')}
+                      </button>
+                    ) : user?.role === 'admin' ? (
+                      <button
+                        onClick={() => handleDeletePost(post.id)}
+                        className="w-8 h-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center shrink-0 transition-colors"
+                        aria-label={t('profile.deleteAria')}
+                        title="Admin permanent delete"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    ) : null}
                   </div>
                 </div>
               )
@@ -453,6 +483,69 @@ export default function Profile() {
           </div>
         )}
       </main>
+
+      {/* Safe Archiving Confirmation Modal */}
+      {archiveModalPost && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-5 shadow-float border border-cloud-200 space-y-4 animate-pop-in">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-stone-100 text-stone-700 flex items-center justify-center shrink-0">
+                  <Archive size={20} />
+                </div>
+                <div>
+                  <h3 className="font-display font-bold text-forest-950 text-base">
+                    {t('listing.archiveModal.title', 'Archive Crop Listing')}
+                  </h3>
+                  <p className="text-xs text-forest-900/60 font-medium">
+                    {archiveModalPost.crop_name}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setArchiveModalPost(null)}
+                className="text-forest-900/40 hover:text-forest-900 p-1"
+                aria-label="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="bg-stone-50 rounded-2xl p-3.5 border border-stone-200 text-xs text-stone-800 space-y-2">
+              <p className="font-semibold text-forest-950">
+                {t('listing.archiveModal.subtitle', 'Safe archiving protects your records while hiding the listing from active buyers.')}
+              </p>
+              <p className="text-forest-900/70 leading-relaxed">
+                {t('listing.archiveModal.description', 'This listing will be hidden from buyer search and AI matching, but all details and transaction history remain safely saved. You can restore it to active anytime.')}
+              </p>
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setArchiveModalPost(null)}
+                className="flex-1 py-2.5 rounded-xl border border-cloud-200 text-forest-900/70 text-xs font-semibold hover:bg-cloud-100 active:scale-95 transition-all"
+              >
+                {t('listing.archiveModal.cancel', 'Keep Active')}
+              </button>
+              <button
+                type="button"
+                disabled={statusUpdating}
+                onClick={async () => {
+                  const targetId = archiveModalPost.id
+                  setArchiveModalPost(null)
+                  await handleStatusChange(targetId, 'archived', { notes: 'Archived by owner via profile' })
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-stone-800 hover:bg-stone-900 text-white text-xs font-bold shadow-sm active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+              >
+                {statusUpdating ? <Loader2 size={14} className="animate-spin" /> : <Archive size={14} />}
+                {t('listing.archiveModal.confirm', 'Archive Listing')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Mark as Sold Modal */}
       {soldModalPost && (

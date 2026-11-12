@@ -33,6 +33,8 @@ import { getSelectedLanguage, speak } from '../utils/onboarding.js'
 const CATEGORIES = ['All', 'Cereals', 'Vegetables', 'Spices', 'Cash Crops', 'Pulses', 'Fruits']
 const STANDARD_UNITS = ['Kg', 'Quintal', 'Ton', 'Bags (50kg)', 'Boxes']
 const QUALITY_GRADES = ['Grade A / Premium', 'Standard / Grade B', 'Organic']
+const DRAFT_KEY_PREFIX = 'agriconnect_draft_post_'
+const DRAFT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 
 export default function CreatePost() {
   const { user } = useAuth()
@@ -40,6 +42,11 @@ export default function CreatePost() {
   const { t } = useTranslation()
   const isFarmer = user?.role === 'farmer'
   const currentLang = getSelectedLanguage()
+
+  // Authenticated user-scoped draft key to prevent leaking across accounts
+  const draftKey = user?.id ? `${DRAFT_KEY_PREFIX}${user.id}` : null
+  const [draftRestored, setDraftRestored] = useState(false)
+  const isDraftLoadedRef = useRef(false)
 
   // Step state: 1, 2, or 3
   const [step, setStep] = useState(1)
@@ -99,6 +106,112 @@ export default function CreatePost() {
     }
     loadCatalog()
   }, [])
+
+  // Task 1: Restore saved draft on mount if available and valid
+  useEffect(() => {
+    if (!draftKey) {
+      isDraftLoadedRef.current = true
+      return
+    }
+
+    try {
+      const saved = localStorage.getItem(draftKey)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        const age = Date.now() - (parsed.timestamp || 0)
+        if (age > DRAFT_MAX_AGE_MS) {
+          localStorage.removeItem(draftKey)
+        } else if (parsed.form && typeof parsed.form === 'object') {
+          const f = parsed.form
+          const hasData = Boolean(
+            f.crop_name || f.quantity_num || f.price || f.description || f.title || f.variety
+          )
+          if (hasData) {
+            setForm((prev) => ({
+              ...prev,
+              ...f,
+              // Never restore base64 data URLs into form image to prevent quota bloat
+              image: f.image && !f.image.startsWith('data:') ? f.image : null,
+              location: f.location || prev.location,
+            }))
+            if (parsed.step && parsed.step >= 1 && parsed.step <= 3) {
+              setStep(parsed.step)
+            }
+            setDraftRestored(true)
+            toast.success(t('createPost.draftRestoredToast', 'Previous draft restored'))
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Could not restore draft:', err)
+      try {
+        localStorage.removeItem(draftKey)
+      } catch {}
+    } finally {
+      isDraftLoadedRef.current = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftKey])
+
+  // Task 1: Auto-save draft changes as farmer progresses
+  useEffect(() => {
+    if (!isDraftLoadedRef.current || !draftKey) return
+
+    // Check if form has any meaningful data to save
+    const hasData = Boolean(
+      form.crop_name?.trim() ||
+      form.quantity_num ||
+      form.price ||
+      form.variety?.trim() ||
+      form.description?.trim() ||
+      (form.title?.trim() && form.title !== `Fresh Harvest ${form.crop_name}`)
+    )
+
+    if (!hasData) return
+
+    const draftPayload = {
+      version: 1,
+      timestamp: Date.now(),
+      step,
+      form: {
+        ...form,
+        // Strip base64 data URLs to protect localStorage quota
+        image: form.image && !form.image.startsWith('data:') ? form.image : null,
+      },
+    }
+
+    try {
+      localStorage.setItem(draftKey, JSON.stringify(draftPayload))
+    } catch (err) {
+      console.warn('Could not save draft to localStorage:', err)
+    }
+  }, [form, step, draftKey])
+
+  function handleDiscardDraft() {
+    if (draftKey) {
+      try {
+        localStorage.removeItem(draftKey)
+      } catch {}
+    }
+    setForm({
+      crop_name: '',
+      category: '',
+      variety: '',
+      quality_grade: 'Grade A / Premium',
+      quantity_num: '',
+      unit: 'Quintal',
+      price: '',
+      is_negotiable: false,
+      location: user?.location || '',
+      target_date: '',
+      title: '',
+      description: '',
+      image: null,
+    })
+    setStep(1)
+    setDraftRestored(false)
+    toast.success(t('createPost.draftDiscardedToast', 'Draft discarded'))
+  }
 
   // When crop_name changes, fetch price guidance and default unit
   useEffect(() => {
@@ -324,6 +437,13 @@ export default function CreatePost() {
       })
 
       setPublishedPost(res.data)
+      // Task 1: Clear saved draft upon successful publication
+      if (draftKey) {
+        try {
+          localStorage.removeItem(draftKey)
+        } catch {}
+      }
+      setDraftRestored(false)
       toast.success(isFarmer ? t('createPost.successToastFarmer') : t('createPost.successToastIndustry'))
     } catch (err) {
       toast.error(err.response?.data?.detail || t('createPost.errors.generic', 'Failed to publish. Try again.'))
@@ -414,6 +534,12 @@ export default function CreatePost() {
 
             <button
               onClick={() => {
+                if (draftKey) {
+                  try {
+                    localStorage.removeItem(draftKey)
+                  } catch {}
+                }
+                setDraftRestored(false)
                 setPublishedPost(null)
                 setStep(1)
                 setForm({
@@ -474,6 +600,34 @@ export default function CreatePost() {
       </div>
 
       <main className="max-w-md mx-auto px-4 pt-4">
+        {/* Task 1: Restored Draft Notification Banner */}
+        {draftRestored && (
+          <div className="bg-forest-50 border border-forest-200 rounded-2xl p-3 flex items-center justify-between gap-3 text-xs text-forest-900 shadow-xs mb-4 animate-fade-in">
+            <div className="flex items-center gap-2 min-w-0">
+              <CheckCircle2 size={16} className="text-forest-700 shrink-0" />
+              <span className="font-medium truncate">
+                {t('createPost.draftRestoredNotice', 'Your previous draft has been restored.')}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={handleDiscardDraft}
+                className="text-red-700 hover:text-red-800 font-semibold underline text-[11px] px-1 py-0.5"
+              >
+                {t('createPost.discardDraftBtn', 'Discard & Start Fresh')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setDraftRestored(false)}
+                className="text-forest-900/50 hover:text-forest-900 font-bold px-1 text-sm"
+                aria-label="Dismiss banner"
+              >
+                &times;
+              </button>
+            </div>
+          </div>
+        )}
         {/* ============================================================ */}
         {/* STEP 1: WHAT ARE YOU SELLING?                               */}
         {/* ============================================================ */}

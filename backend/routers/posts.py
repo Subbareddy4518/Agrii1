@@ -584,11 +584,35 @@ def delete_post(
     post = db.query(models.Post).filter(models.Post.id == post_id).first()
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
-    if post.user_id != user.id:
+    
+    is_admin = user.role == models.RoleEnum.admin
+    is_owner = post.user_id == user.id
+
+    if not is_owner and not is_admin:
         raise HTTPException(status_code=403, detail="Not your post")
-    db.delete(post)
-    db.commit()
-    return {"detail": "Post deleted"}
+
+    # Admins retain permanent deletion privileges
+    if is_admin:
+        db.delete(post)
+        db.commit()
+        return {"detail": "Post deleted", "status": "deleted"}
+
+    # Ordinary users (farmers/buyers): soft-archive to prevent catastrophic record loss
+    current_status = post.status
+    if current_status != "archived":
+        post.status = "archived"
+        history = models.PostStatusHistory(
+            post_id=post.id,
+            changed_by_user_id=user.id,
+            from_status=current_status,
+            to_status="archived",
+            notes="Soft-archived via delete action to protect farmer listing records",
+        )
+        db.add(history)
+        user.trust_score = trust.calculate_trust_score(user, db)
+        db.commit()
+    
+    return {"detail": "Post archived safely", "status": "archived"}
 
 
 @router.post("/{post_id}/like", response_model=schemas.PostOut)
@@ -600,6 +624,9 @@ def like_post(
     ).first()
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
+
+    if post.status == "archived":
+        raise HTTPException(status_code=400, detail="Cannot like an archived listing")
 
     existing_like = (
         db.query(models.Like)

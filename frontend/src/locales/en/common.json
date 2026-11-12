@@ -327,6 +327,10 @@
     "voiceComingSoon": "Voice input is coming soon 🎙️",
     "successToastFarmer": "Crop posted! Industries will see it now.",
     "successToastIndustry": "Requirement posted! Farmers will see it now.",
+    "draftRestoredNotice": "Your previous draft has been restored.",
+    "draftRestoredToast": "Previous draft restored",
+    "discardDraftBtn": "Discard & Start Fresh",
+    "draftDiscardedToast": "Draft discarded",
     "errors": {
       "titleFarmer": "Add a short description title for your crop",
       "titleIndustry": "Add a requirement title",
@@ -379,10 +383,18 @@
       "pause": "Pause Listing",
       "resume": "Activate Listing",
       "archive": "Archive",
+      "restore": "Restore to Active",
       "relist": "Re-list Active",
       "publish": "Publish",
       "statusChangeSuccess": "Listing status updated to {{status}}",
       "statusChangeError": "Failed to update listing status."
+    },
+    "archiveModal": {
+      "title": "Archive Crop Listing",
+      "subtitle": "Safe archiving protects your records while hiding the listing from active buyers.",
+      "description": "This listing will be hidden from buyer search and AI matching, but all details and transaction history remain safely saved. You can restore it to active anytime.",
+      "confirm": "Archive Listing",
+      "cancel": "Keep Active"
     },
     "markSoldModal": {
       "title": "Mark Crop as Sold",
