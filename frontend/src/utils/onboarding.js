@@ -59,24 +59,50 @@ export function markSplashShown() {
   sessionStorage.setItem(SESSION_KEYS.SPLASH_SHOWN, 'true')
 }
 
+export function stopSpeaking() {
+  if (typeof window !== 'undefined' && window.speechSynthesis) {
+    try {
+      window.speechSynthesis.cancel()
+    } catch {}
+  }
+}
+
 /**
- * Speak a short phrase using the browser's built-in SpeechSynthesis API.
- * No external AI service or network call is involved.
- *
- * The utterance language always follows the current app language
- * (English → en-US, Telugu → te-IN, Hindi → hi-IN) so the voice/accent
- * the browser picks matches whatever script is on screen. Pass an
- * explicit `lang` (e.g. when reading a language *option* aloud before
- * it has been selected) to override that default for a single call.
+ * Speak a phrase using the browser's built-in SpeechSynthesis API.
+ * Supports both string lang and options object { lang, onEnd, onStart, rate, pitch }.
  */
-export function speak(text, lang) {
+export function speak(text, optionsOrLang) {
   if (typeof window === 'undefined' || !window.speechSynthesis) return
   try {
     window.speechSynthesis.cancel() // avoid overlapping utterances
     const utterance = new SpeechSynthesisUtterance(text)
+    
+    let lang = null
+    let onEnd = null
+    let onStart = null
+    let rate = 0.95
+    let pitch = 1
+
+    if (typeof optionsOrLang === 'string') {
+      lang = optionsOrLang
+    } else if (optionsOrLang && typeof optionsOrLang === 'object') {
+      lang = optionsOrLang.lang
+      onEnd = optionsOrLang.onEnd
+      onStart = optionsOrLang.onStart
+      if (optionsOrLang.rate) rate = optionsOrLang.rate
+      if (optionsOrLang.pitch) pitch = optionsOrLang.pitch
+    }
+
     utterance.lang = lang || SPEECH_LANG_MAP[getSelectedLanguage()] || SPEECH_LANG_MAP[DEFAULT_LANGUAGE]
-    utterance.rate = 0.95
-    utterance.pitch = 1
+    utterance.rate = rate
+    utterance.pitch = pitch
+
+    if (onStart) utterance.onstart = onStart
+    if (onEnd) {
+      utterance.onend = onEnd
+      utterance.onerror = (e) => onEnd(e)
+    }
+
     window.speechSynthesis.speak(utterance)
   } catch {
     /* speech synthesis not available - fail silently */

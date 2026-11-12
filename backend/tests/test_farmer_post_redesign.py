@@ -159,5 +159,36 @@ class TestFarmerPostRedesign(unittest.TestCase):
         feed = posts.get_feed(page=1, page_size=10, sort="latest", db=self.db, user=self.buyer)
         self.assertEqual(len(feed.items), 0)
 
+    def test_voice_mode_conversational_payload(self):
+        """Conversational voice mode captures Telugu parsed fields and publishes successfully."""
+        # Simulated parsed fields from Voice Assistant: Paddy, 50 Quintal, 2350, Today
+        payload = schemas.PostCreate(
+            title="Fresh Harvest Paddy - 50 Quintal",
+            crop_name="Paddy",
+            quantity="50 Quintal",
+            price=2350.0,
+            target_date="Today (2026-11-12)",
+        )
+        created = posts.create_post(payload=payload, db=self.db, user=self.farmer)
+        self.assertEqual(created.crop_name, "Paddy")
+        self.assertEqual(created.price, 2350.0)
+        self.assertEqual(created.quantity, "50 Quintal")
+
+    def test_visual_mode_stepped_payload(self):
+        """Visual mode using + / - touch buttons publishes with exact stepped values."""
+        # Simulated stepped fields from Visual mode: Cotton, 25 Quintal, 7200, Tomorrow
+        payload = schemas.PostCreate(
+            title="Fresh Harvest Cotton - 25 Quintal",
+            crop_name="Cotton",
+            quantity="25 Quintal",
+            price=7200.0,
+            target_date="Tomorrow (2026-11-13)",
+        )
+        created = posts.create_post(payload=payload, db=self.db, user=self.farmer)
+        self.assertEqual(created.crop_name, "Cotton")
+        self.assertEqual(created.quantity, "25 Quintal")
+        self.assertEqual(created.price, 7200.0)
+        self.assertEqual(created.target_date, "Tomorrow (2026-11-13)")
+
 if __name__ == "__main__":
     unittest.main()
