@@ -5,6 +5,7 @@ load_dotenv()
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 from sqlalchemy import create_engine
+from sqlalchemy.exc import OperationalError, DBAPIError
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 
@@ -12,24 +13,63 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 # DATABASE CONFIGURATION
 # ============================================================
 
-DATABASE_URL = os.getenv(
+def normalize_database_url(url: str) -> str:
+    """
+    Ensure the database URL uses the standard dialect prefix required by modern SQLAlchemy.
+    Normalizes legacy 'postgres://' (common on Render and Heroku) to 'postgresql://'.
+    """
+    if url and url.startswith("postgres://"):
+        return url.replace("postgres://", "postgresql://", 1)
+    return url
+
+
+def get_engine_kwargs(url: str) -> dict:
+    """
+    Build connection pool resilience and timeout settings appropriate for the database provider.
+
+    - pool_pre_ping=True: Emits a ping (SELECT 1) upon checkout, detecting dropped/stale
+      SSL connections and transparently reconnecting before application queries execute.
+    - pool_recycle: Proactively recycles connections (default 300s / 5 min) before cloud
+      proxies or PostgreSQL server idle timeouts terminate idle sockets.
+    - connect_timeout: Fails fast rather than blocking indefinitely if the host is unreachable.
+    - keepalives: Keeps idle TCP connections alive across cloud NATs and load balancers.
+    """
+    kwargs = {
+        "pool_pre_ping": True,
+        "pool_recycle": int(os.getenv("DB_POOL_RECYCLE", "300")),
+    }
+
+    if url.startswith("sqlite"):
+        kwargs["connect_args"] = {
+            "check_same_thread": False
+        }
+    else:
+        # PostgreSQL / remote provider settings
+        kwargs.update({
+            "pool_size": int(os.getenv("DB_POOL_SIZE", "5")),
+            "max_overflow": int(os.getenv("DB_MAX_OVERFLOW", "10")),
+            "pool_timeout": int(os.getenv("DB_POOL_TIMEOUT", "30")),
+            "connect_args": {
+                "connect_timeout": int(os.getenv("DB_CONNECT_TIMEOUT", "10")),
+                "keepalives": 1,
+                "keepalives_idle": 30,
+                "keepalives_interval": 10,
+                "keepalives_count": 5,
+            }
+        })
+
+    return kwargs
+
+
+RAW_DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "sqlite:///./agriconnect.db"
 )
-
-
-# SQLite needs this option for FastAPI's request handling.
-connect_args = {}
-
-if DATABASE_URL.startswith("sqlite"):
-    connect_args = {
-        "check_same_thread": False
-    }
-
+DATABASE_URL = normalize_database_url(RAW_DATABASE_URL)
 
 engine = create_engine(
     DATABASE_URL,
-    connect_args=connect_args
+    **get_engine_kwargs(DATABASE_URL)
 )
 
 
@@ -309,13 +349,38 @@ def run_migrations():
 
 def get_db():
     """
-    Provide a database session for FastAPI routes.
+    Provide a resilient database session for FastAPI routes.
+    Ensures automatic rollback on errors, connection invalidation on disconnects,
+    and reliable session cleanup.
     """
-
     db = SessionLocal()
-
     try:
         yield db
-
+    except (OperationalError, DBAPIError):
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        # Invalidate session to ensure a disconnected/broken connection is
+        # safely evicted from the connection pool.
+        try:
+            db.invalidate()
+        except Exception:
+            pass
+        raise
+    except Exception:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        raise
     finally:
         db.close()
+
+
+def reset_db_connections():
+    """
+    Safely dispose of all pooled connections in the engine.
+    Fresh connections will be established on demand.
+    """
+    engine.dispose()

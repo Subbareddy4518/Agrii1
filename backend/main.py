@@ -21,7 +21,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
-from database import engine, Base, run_migrations, SessionLocal
+from database import engine, Base, run_migrations, SessionLocal, reset_db_connections
 import models
 from auth import hash_password
 from routers import auth, posts, notifications, users, admin, ai_services, matching, reports
@@ -162,6 +162,9 @@ def setup_admin_from_environment():
 
 # Run admin setup only when the application starts.
 setup_admin_from_environment()
+
+# Dispose of startup connections so worker pool starts fresh for incoming requests.
+reset_db_connections()
 
 
 # ============================================================
