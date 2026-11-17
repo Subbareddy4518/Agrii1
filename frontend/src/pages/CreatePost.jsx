@@ -39,7 +39,7 @@ import { getSelectedLanguage, speak, stopSpeaking } from '../utils/onboarding.js
 import { DEFAULT_CROPS_CATALOG, filterCropsCatalog } from '../utils/cropsData.js'
 
 const CATEGORIES = ['All', 'Cereals', 'Vegetables', 'Spices', 'Cash Crops', 'Pulses', 'Fruits']
-const STANDARD_UNITS = ['Kg', 'Quintal', 'Ton']
+const STANDARD_UNITS = ['Kg', 'Quintal', 'Ton', 'Tonne', 'Bag']
 const DRAFT_KEY_PREFIX = 'agriconnect_draft_post_'
 const DRAFT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 
@@ -92,6 +92,7 @@ export default function CreatePost() {
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [cropSearch, setCropSearch] = useState('')
   const [loadingCatalog, setLoadingCatalog] = useState(false)
+  const [isCustomCropMode, setIsCustomCropMode] = useState(false)
 
   // Posting Information State + Profile Fallbacks
   const [form, setForm] = useState({
@@ -105,6 +106,7 @@ export default function CreatePost() {
     price: isFarmer ? '2350' : '2400',
     price_unit: 'Quintal',
     is_negotiable: false,
+    is_price_optional: false,
     // Step 4: Delivery
     delivery_choice: isFarmer ? 'today' : '15days',
     target_date: isFarmer ? getOffsetDateString(0) : getOffsetDateString(15),
@@ -113,8 +115,10 @@ export default function CreatePost() {
     location: user?.location || '',
     // Optional / Profile defaults
     variety: '',
+    quality_grade: 'Grade A / Premium',
     title: '',
     description: '',
+    delivery_preferences: '',
     image: null,
   })
 
@@ -184,7 +188,11 @@ export default function CreatePost() {
               image: f.image && !f.image.startsWith('data:') ? f.image : null,
               location: f.location || prev.location,
               price_unit: f.price_unit || f.unit || prev.price_unit,
+              is_price_optional: Boolean(f.is_price_optional),
             }))
+            if (!isFarmer && f.crop_name && !catalog.some((c) => (c?.name || '').toLowerCase() === f.crop_name.trim().toLowerCase())) {
+              setIsCustomCropMode(true)
+            }
             const maxStepAllowed = isFarmer ? 5 : 6
             if (parsed.step && parsed.step >= 1 && parsed.step <= maxStepAllowed) {
               setStep(parsed.step)
@@ -250,15 +258,19 @@ export default function CreatePost() {
       price: isFarmer ? '2350' : '2400',
       price_unit: 'Quintal',
       is_negotiable: false,
+      is_price_optional: false,
       delivery_choice: isFarmer ? 'today' : '15days',
       target_date: isFarmer ? getOffsetDateString(0) : getOffsetDateString(15),
       time_of_day: 'anytime',
       location: user?.location || '',
       variety: '',
+      quality_grade: 'Grade A / Premium',
       title: '',
       description: '',
+      delivery_preferences: '',
       image: null,
     })
+    setIsCustomCropMode(false)
     setStep(1)
     setDraftRestored(false)
     setErrors({})
@@ -410,12 +422,16 @@ export default function CreatePost() {
           : form.target_date
 
       const locationText = form.location || user?.location || t('createPost.buyerStep5AllRegions')
+      const priceText =
+        form.is_price_optional || !form.price
+          ? t('createPost.priceNegotiableToggle', 'Open to negotiation / Market rate')
+          : `${form.price}`
 
       const summaryText = t('createPost.buyerAudioSummary', {
         crop: cropText,
         qty: form.quantity_num,
         unit: unitText,
-        price: form.price,
+        price: priceText,
         priceUnit: priceUnitText,
         delivery: deliveryText,
         location: locationText,
@@ -440,6 +456,7 @@ export default function CreatePost() {
       price_unit: crop.default_unit || prev.price_unit,
     }))
     setErrors((prev) => ({ ...prev, crop_name: null }))
+    setIsCustomCropMode(false)
 
     // Pronounce crop name aloud in selected language
     const voiceText =
@@ -456,10 +473,26 @@ export default function CreatePost() {
     speak(voiceText, ttsLang)
   }
 
+  // Handle custom crop name typed manually
+  function handleCustomCropChange(val) {
+    update('crop_name', val)
+    setErrors((prev) => ({ ...prev, crop_name: null }))
+    const match = catalog.find(
+      (c) => (c?.name || '').toLowerCase() === val.trim().toLowerCase()
+    )
+    if (match) {
+      if (match.category && !form.category) update('category', match.category)
+      if (match.default_unit) {
+        update('unit', match.default_unit)
+        update('price_unit', match.default_unit)
+      }
+    }
+  }
+
   // Plus / Minus adjustments for Quantity
   function adjustQuantity(delta) {
     const current = parseFloat(form.quantity_num) || 0
-    const nextVal = Math.max(1, current + delta)
+    const nextVal = Math.max(0.1, Math.round((current + delta) * 100) / 100)
     update('quantity_num', String(nextVal))
     const unitName = translateUnit(t, form.unit)
     speak(`${nextVal} ${unitName}`, ttsLang)
@@ -467,8 +500,13 @@ export default function CreatePost() {
 
   // Plus / Minus adjustments for Price
   function adjustPrice(delta) {
+    if (form.is_price_optional) {
+      setForm((prev) => ({ ...prev, is_price_optional: false, price: '100' }))
+      speak(t('createPost.spokenPrice', { price: 100 }), ttsLang)
+      return
+    }
     const current = parseFloat(form.price) || 0
-    const nextVal = Math.max(10, current + delta)
+    const nextVal = Math.max(1, Math.round((current + delta) * 100) / 100)
     update('price', String(nextVal))
     speak(t('createPost.spokenPrice', { price: nextVal }), ttsLang)
   }
@@ -479,6 +517,10 @@ export default function CreatePost() {
       const next = form.quantity_num === '0' ? String(digit) : `${form.quantity_num}${digit}`
       update('quantity_num', next)
     } else if (step === 3) {
+      if (form.is_price_optional) {
+        setForm((prev) => ({ ...prev, is_price_optional: false, price: String(digit) }))
+        return
+      }
       const next = form.price === '0' ? String(digit) : `${form.price}${digit}`
       update('price', next)
     }
@@ -489,6 +531,7 @@ export default function CreatePost() {
       const next = form.quantity_num.slice(0, -1) || '0'
       update('quantity_num', next)
     } else if (step === 3) {
+      if (form.is_price_optional) return
       const next = form.price.slice(0, -1) || '0'
       update('price', next)
     }
@@ -530,8 +573,8 @@ export default function CreatePost() {
     stopSpeaking()
 
     if (currentStep === 1) {
-      if (!form.crop_name.trim()) {
-        const errMsg = t('createPost.q1Error', 'Please select a crop to continue')
+      if (!form.crop_name?.trim()) {
+        const errMsg = t('createPost.q1Error', 'Please select a crop or enter a custom crop name')
         setErrors((prev) => ({ ...prev, crop_name: errMsg }))
         toast.error(errMsg)
         speak(errMsg, ttsLang)
@@ -551,9 +594,23 @@ export default function CreatePost() {
       setErrors({})
       setStep(3)
     } else if (currentStep === 3) {
+      // For buyers: price is optional if marked negotiable or left empty
+      if (!isFarmer && (form.is_price_optional || !form.price?.trim())) {
+        setErrors({})
+        setStep(4)
+        return
+      }
+
       const p = parseFloat(form.price)
-      if (isNaN(p) || p <= 0) {
-        const errMsg = t('createPost.q3Error', 'Please enter a price greater than 0')
+      if (isNaN(p) || p < 0) {
+        const errMsg = t('createPost.q3Error', 'Please enter a valid price or mark as open to negotiation')
+        setErrors((prev) => ({ ...prev, price: errMsg }))
+        toast.error(errMsg)
+        speak(errMsg, ttsLang)
+        return
+      }
+      if (isFarmer && p === 0) {
+        const errMsg = t('createPost.q3ErrorFarmer', 'Farmer price must be greater than 0')
         setErrors((prev) => ({ ...prev, price: errMsg }))
         toast.error(errMsg)
         speak(errMsg, ttsLang)
@@ -615,8 +672,8 @@ export default function CreatePost() {
     const titleToUse =
       form.title.trim() ||
       `${isFarmer ? 'Fresh Harvest:' : 'Purchase Requirement:'} ${form.crop_name} ${
-        form.quantity_num ? `- ${form.quantity_num} ${form.unit}` : ''
-      }`.trim()
+        form.variety?.trim() ? `(${form.variety.trim()}) ` : ''
+      }${form.quantity_num ? `- ${form.quantity_num} ${form.unit}` : ''}`.trim()
 
     const quantityFormatted = form.quantity_num ? `${form.quantity_num} ${form.unit}` : null
 
@@ -642,6 +699,18 @@ export default function CreatePost() {
 
     const locationToUse = form.location.trim() || user?.location || (isFarmer ? 'Local Region' : 'All Regions')
 
+    const priceToSubmit =
+      form.price && !form.is_price_optional ? parseFloat(form.price) : null
+    const isNegotiableToSubmit = Boolean(form.is_negotiable || form.is_price_optional)
+
+    const descParts = [
+      form.description?.trim(),
+      form.delivery_preferences?.trim()
+        ? `Delivery Preferences: ${form.delivery_preferences.trim()}`
+        : null,
+    ].filter(Boolean)
+    const combinedDesc = descParts.join('\n\n') || null
+
     isPublishingRef.current = true
     setSubmitting(true)
     try {
@@ -649,14 +718,14 @@ export default function CreatePost() {
         title: titleToUse,
         crop_name: form.crop_name.trim(),
         category: form.category || null,
-        variety: form.variety.trim() || null,
-        quality_grade: 'Grade A / Premium',
+        variety: form.variety?.trim() || null,
+        quality_grade: form.quality_grade || 'Grade A / Premium',
         quantity: quantityFormatted,
-        price: form.price ? parseFloat(form.price) : null,
-        is_negotiable: form.is_negotiable,
+        price: priceToSubmit,
+        is_negotiable: isNegotiableToSubmit,
         location: locationToUse,
         target_date: deliveryFormatted,
-        description: form.description.trim() || null,
+        description: combinedDesc,
         image: form.image,
       })
 
@@ -952,121 +1021,248 @@ export default function CreatePost() {
               </p>
             </div>
 
+            {/* Toggle / Manual Entry Banner (Buyers only) */}
+            {!isFarmer && (
+              <div className="flex items-center justify-between bg-white rounded-2xl p-3 border border-gray-200 shadow-xs">
+                <div className="flex items-center gap-2">
+                  <span className="text-base">{isCustomCropMode ? '✍️' : '🔍'}</span>
+                  <span className="text-xs font-bold text-gray-700">
+                    {isCustomCropMode
+                      ? t('createPost.customCropActiveLabel', 'Entering custom crop manually')
+                      : t('createPost.cantFindCrop', "Can't find your crop in the pictures?")}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCustomCropMode(!isCustomCropMode)
+                    stopSpeaking()
+                  }}
+                  className="text-xs font-extrabold text-[#1E5E3A] hover:text-[#16482c] bg-green-50 px-3 py-1.5 rounded-xl border border-green-200 active:scale-95 cursor-pointer"
+                >
+                  {isCustomCropMode
+                    ? t('createPost.browseCatalog', '← Choose from picture catalog')
+                    : t('createPost.enterManuallyBtn', 'Enter crop manually →')}
+                </button>
+              </div>
+            )}
+
             {/* Selected Crop Banner */}
             {form.crop_name && (
               <div className="bg-green-100/90 border-2 border-[#1E5E3A] rounded-2xl p-4 flex items-center justify-between shadow-sm">
                 <div className="flex items-center gap-3">
-                  <span className="text-3xl">{activeCropObj?.icon || '🌾'}</span>
+                  <span className="text-3xl">{activeCropObj?.icon || '🌿'}</span>
                   <div>
                     <span className="text-[10px] text-[#1E5E3A] font-extrabold uppercase tracking-wide block">
                       {t('createPost.selectedCrop', 'ఎంచుకున్న పంట')}
                     </span>
-                    <p className="font-extrabold text-gray-900 text-lg">
+                    <p className="font-extrabold text-gray-900 text-lg leading-tight">
                       {translateCropName(t, form.crop_name)}
                     </p>
+                    {form.category && (
+                      <span className="text-xs text-gray-600 font-semibold block mt-0.5">
+                        {translateAgriCategory(t, form.category)}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => update('crop_name', '')}
-                  className="text-xs font-bold text-red-700 bg-white px-3 py-1.5 rounded-xl border border-red-200 active:scale-95"
+                  className="text-xs font-bold text-red-700 bg-white px-3 py-1.5 rounded-xl border border-red-200 active:scale-95 cursor-pointer"
                 >
                   {t('createPost.editBtn', 'మార్చు')}
                 </button>
               </div>
             )}
 
-            {/* Category Filter Chips */}
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none" role="tablist" aria-label="Crop Categories">
-              {CATEGORIES.map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  role="tab"
-                  aria-selected={selectedCategory === cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`text-xs px-3.5 py-2 rounded-full font-bold shrink-0 transition-all active:scale-95 min-h-[36px] cursor-pointer ${
-                    selectedCategory === cat
-                      ? 'bg-[#1E5E3A] text-white shadow-sm'
-                      : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  {translateAgriCategory(t, cat)}
-                </button>
-              ))}
-            </div>
-
-            {/* Crop Grid with Large Pictures */}
-            <div
-              className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[380px] overflow-y-auto pr-1"
-              role="group"
-              aria-label="Crops"
-            >
-              {filteredCatalog.map((crop) => {
-                const isSelected =
-                  (form.crop_name || '').trim().toLowerCase() === (crop.name || '').trim().toLowerCase()
-                const primaryName = translateCropName(t, crop.name)
-                const secondaryName =
-                  currentLang === 'te'
-                    ? crop.name
-                    : currentLang === 'hi'
-                    ? crop.name
-                    : (crop.telugu ? crop.telugu.split('(')[0].trim() : crop.name)
-
-                return (
-                  <button
-                    key={crop.name}
-                    type="button"
-                    onClick={() => handleSelectCrop(crop)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault()
-                        handleSelectCrop(crop)
-                      }
-                    }}
-                    role="button"
-                    aria-pressed={isSelected}
-                    aria-selected={isSelected}
-                    aria-label={`${primaryName}${isSelected ? ' - selected' : ''}`}
-                    tabIndex={0}
-                    className={`p-4 rounded-2xl text-left border-2 transition-all flex flex-col justify-between min-h-[110px] active:scale-95 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#1E5E3A] ${
-                      isSelected
-                        ? 'border-[#1E5E3A] bg-green-50 shadow-md ring-2 ring-green-300'
-                        : 'border-gray-200 bg-white hover:border-[#1E5E3A]/60 shadow-xs'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between w-full">
-                      <span className="text-4xl select-none" role="img" aria-hidden="true">{crop.icon}</span>
-                      {isSelected && (
-                        <div className="w-6 h-6 rounded-full bg-[#1E5E3A] text-white flex items-center justify-center shadow-xs">
-                          <Check size={14} strokeWidth={3} />
-                        </div>
-                      )}
-                    </div>
-                    <div className="mt-2">
-                      <p className="font-extrabold text-gray-900 text-base leading-tight">
-                        {primaryName}
-                      </p>
-                      {secondaryName && secondaryName !== primaryName && (
-                        <p className="text-xs text-gray-500 truncate mt-0.5">{secondaryName}</p>
-                      )}
-                    </div>
-                  </button>
-                )
-              })}
-              {filteredCatalog.length === 0 && (
-                <div className="col-span-2 sm:col-span-3 py-8 text-center text-gray-500">
-                  <p className="font-medium text-sm">{t('createPost.noCropsFound', 'No crops found matching your selection.')}</p>
-                  <button
-                    type="button"
-                    onClick={() => { setSelectedCategory('All'); setCropSearch(''); }}
-                    className="mt-2 text-xs font-bold text-[#1E5E3A] underline cursor-pointer"
-                  >
-                    {t('createPost.showAllCrops', 'Show All Crops')}
-                  </button>
+            {/* Manual Crop Entry Card (Buyers only) */}
+            {!isFarmer && isCustomCropMode && (
+              <div className="bg-white rounded-3xl p-5 border-2 border-[#1E5E3A] shadow-sm space-y-4">
+                <div>
+                  <label className="text-sm font-extrabold text-gray-900 block mb-1.5 flex items-center justify-between">
+                    <span>{t('createPost.customCropInputTitle', 'Enter Crop Name:')}</span>
+                    <span className="text-xs text-gray-500 font-normal">
+                      {t('createPost.customCropHelp', 'Any crop, fruit, vegetable, pulse, or grain')}
+                    </span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={form.crop_name}
+                      onChange={(e) => handleCustomCropChange(e.target.value)}
+                      placeholder={t('createPost.customCropPlaceholder', 'e.g. Dragon Fruit, Pearl Millet (Bajra), Quinoa...')}
+                      className="w-full bg-gray-50 border border-gray-300 focus:border-[#1E5E3A] focus:bg-white rounded-2xl px-4 py-3.5 text-base font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1E5E3A]"
+                      autoFocus
+                    />
+                    {form.crop_name && (
+                      <button
+                        type="button"
+                        onClick={() => update('crop_name', '')}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 font-bold p-1 cursor-pointer"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                  {errors.crop_name && (
+                    <p className="text-xs text-red-600 font-semibold mt-1">{errors.crop_name}</p>
+                  )}
                 </div>
-              )}
-            </div>
+
+                {/* Optional Category Selector for Custom Crop */}
+                <div>
+                  <span className="text-xs font-bold text-gray-700 block mb-1.5">
+                    {t('createPost.customCropCategoryPrompt', 'Select Category (Optional):')}
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {CATEGORIES.filter((c) => c !== 'All').map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => update('category', cat)}
+                        className={`text-xs px-3 py-1.5 rounded-full font-bold border transition-all cursor-pointer ${
+                          form.category === cat
+                            ? 'bg-[#1E5E3A] text-white border-[#1E5E3A] shadow-xs'
+                            : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'
+                        }`}
+                      >
+                        {translateAgriCategory(t, cat)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Catalog Mode: Category Filter Chips + Picture Grid (Always for Farmers, or when not in manual mode for Buyers) */}
+            {(isFarmer || !isCustomCropMode) && (
+              <>
+                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none" role="tablist" aria-label="Crop Categories">
+                  {CATEGORIES.map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      role="tab"
+                      aria-selected={selectedCategory === cat}
+                      onClick={() => setSelectedCategory(cat)}
+                      className={`text-xs px-3.5 py-2 rounded-full font-bold shrink-0 transition-all active:scale-95 min-h-[36px] cursor-pointer ${
+                        selectedCategory === cat
+                          ? 'bg-[#1E5E3A] text-white shadow-sm'
+                          : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      {translateAgriCategory(t, cat)}
+                    </button>
+                  ))}
+                </div>
+
+                <div
+                  className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[380px] overflow-y-auto pr-1"
+                  role="group"
+                  aria-label="Crops"
+                >
+                  {filteredCatalog.map((crop) => {
+                    const isSelected =
+                      (form.crop_name || '').trim().toLowerCase() === (crop.name || '').trim().toLowerCase()
+                    const primaryName = translateCropName(t, crop.name)
+                    const secondaryName =
+                      currentLang === 'te'
+                        ? crop.name
+                        : currentLang === 'hi'
+                        ? crop.name
+                        : (crop.telugu ? crop.telugu.split('(')[0].trim() : crop.name)
+
+                    return (
+                      <button
+                        key={crop.name}
+                        type="button"
+                        onClick={() => handleSelectCrop(crop)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            handleSelectCrop(crop)
+                          }
+                        }}
+                        role="button"
+                        aria-pressed={isSelected}
+                        aria-selected={isSelected}
+                        aria-label={`${primaryName}${isSelected ? ' - selected' : ''}`}
+                        tabIndex={0}
+                        className={`p-4 rounded-2xl text-left border-2 transition-all flex flex-col justify-between min-h-[110px] active:scale-95 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#1E5E3A] ${
+                          isSelected
+                            ? 'border-[#1E5E3A] bg-green-50 shadow-md ring-2 ring-green-300'
+                            : 'border-gray-200 bg-white hover:border-[#1E5E3A]/60 shadow-xs'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between w-full">
+                          <span className="text-4xl select-none" role="img" aria-hidden="true">{crop.icon}</span>
+                          {isSelected && (
+                            <div className="w-6 h-6 rounded-full bg-[#1E5E3A] text-white flex items-center justify-center shadow-xs">
+                              <Check size={14} strokeWidth={3} />
+                            </div>
+                          )}
+                        </div>
+                        <div className="mt-2">
+                          <p className="font-extrabold text-gray-900 text-base leading-tight">
+                            {primaryName}
+                          </p>
+                          {secondaryName && secondaryName !== primaryName && (
+                            <p className="text-xs text-gray-500 truncate mt-0.5">{secondaryName}</p>
+                          )}
+                        </div>
+                      </button>
+                    )
+                  })}
+                  {filteredCatalog.length === 0 && (
+                    <div className="col-span-2 sm:col-span-3 py-8 text-center text-gray-500">
+                      <p className="font-medium text-sm">{t('createPost.noCropsFound', 'No crops found matching your selection.')}</p>
+                      <button
+                        type="button"
+                        onClick={() => { setSelectedCategory('All'); setCropSearch(''); }}
+                        className="mt-2 text-xs font-bold text-[#1E5E3A] underline cursor-pointer"
+                      >
+                        {t('createPost.showAllCrops', 'Show All Crops')}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Crop Variety Selection / Manual Entry in Step 1 */}
+            {form.crop_name && (
+              <div className="bg-white rounded-2xl p-4 border border-gray-200 shadow-xs space-y-2">
+                <label className="text-xs font-bold text-gray-700 block">
+                  {t('createPost.varietyPrompt', 'Crop Variety (Optional):')}
+                </label>
+                {activeCropObj?.varieties?.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {activeCropObj.varieties.map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => update('variety', form.variety === v ? '' : v)}
+                        className={`text-xs px-2.5 py-1 rounded-xl font-bold border transition-all cursor-pointer ${
+                          form.variety === v
+                            ? 'bg-[#1E5E3A] text-white border-[#1E5E3A]'
+                            : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'
+                        }`}
+                      >
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <input
+                  type="text"
+                  value={form.variety}
+                  onChange={(e) => update('variety', e.target.value)}
+                  placeholder={t('createPost.customVarietyPlaceholder', 'Enter custom variety (e.g. Red Flesh, Local Desi)...')}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-semibold text-gray-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#1E5E3A]"
+                />
+              </div>
+            )}
 
             {/* Next Button */}
             <div className="pt-2">
@@ -1115,21 +1311,30 @@ export default function CreatePost() {
                   : t('createPost.buyerStep2Sub', '+ మరియు - బటన్లతో అవసరమైన పరిమాణాన్ని మార్చండి (టైపింగ్ అవసరం లేదు)')}
               </p>
 
-              {/* Large Numeric Display with Plus and Minus Buttons */}
-              <div className="my-6 flex items-center justify-center gap-4">
+              {/* Large Numeric Display with Editable Input and Plus / Minus Buttons */}
+              <div className="my-6 flex items-center justify-center gap-3 sm:gap-4">
                 <button
                   type="button"
                   onClick={() => adjustQuantity(-5)}
-                  className="w-16 h-16 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-900 flex items-center justify-center font-black text-3xl shadow-sm border border-gray-300 active:scale-95"
+                  className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-900 flex items-center justify-center font-black text-2xl sm:text-3xl shadow-sm border border-gray-300 active:scale-95 cursor-pointer"
                   title="తగ్గించు"
+                  aria-label="Decrease quantity"
                 >
-                  <Minus size={28} strokeWidth={3} />
+                  <Minus size={26} strokeWidth={3} />
                 </button>
 
-                <div className="min-w-[140px] px-4 py-3 rounded-3xl bg-green-50 border-2 border-[#1E5E3A]">
-                  <span className="text-4xl sm:text-5xl font-black text-gray-900 block">
-                    {form.quantity_num || '0'}
-                  </span>
+                <div className="min-w-[150px] max-w-[220px] px-4 py-2.5 rounded-3xl bg-green-50 border-2 border-[#1E5E3A] flex flex-col items-center">
+                  <input
+                    type="number"
+                    step="any"
+                    min="0.01"
+                    inputMode="decimal"
+                    value={form.quantity_num}
+                    onChange={(e) => update('quantity_num', e.target.value)}
+                    aria-label="Quantity"
+                    placeholder="0"
+                    className="w-full text-center text-3xl sm:text-5xl font-black text-gray-900 bg-transparent border-0 focus:ring-0 focus:outline-none"
+                  />
                   <span className="text-xs font-extrabold text-[#1E5E3A] uppercase tracking-wider block mt-1">
                     {translateUnit(t, form.unit)}
                   </span>
@@ -1138,15 +1343,20 @@ export default function CreatePost() {
                 <button
                   type="button"
                   onClick={() => adjustQuantity(5)}
-                  className="w-16 h-16 rounded-2xl bg-[#1E5E3A] hover:bg-[#16482c] text-white flex items-center justify-center font-black text-3xl shadow-md active:scale-95"
+                  className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#1E5E3A] hover:bg-[#16482c] text-white flex items-center justify-center font-black text-2xl sm:text-3xl shadow-md active:scale-95 cursor-pointer"
                   title="పెంచు"
+                  aria-label="Increase quantity"
                 >
-                  <Plus size={28} strokeWidth={3} />
+                  <Plus size={26} strokeWidth={3} />
                 </button>
               </div>
 
-              {/* Unit Selection Pills: Kg, Quintal, Ton */}
-              <div className="grid grid-cols-3 gap-2.5 mt-4">
+              {errors.quantity_num && (
+                <p className="text-xs text-red-600 font-semibold mb-3">{errors.quantity_num}</p>
+              )}
+
+              {/* Unit Selection Pills: Kg, Quintal, Ton, Tonne, Bag */}
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-4">
                 {STANDARD_UNITS.map((u) => {
                   const isSelected = form.unit === u
                   return (
@@ -1155,16 +1365,18 @@ export default function CreatePost() {
                       type="button"
                       onClick={() => {
                         update('unit', u)
-                        update('price_unit', u)
+                        if (!form.price_unit || form.price_unit === form.unit) {
+                          update('price_unit', u)
+                        }
                         speak(`${translateUnit(t, u)} ${t('createPost.unitSelected')}`, ttsLang)
                       }}
-                      className={`py-3.5 px-2 rounded-2xl font-bold text-sm sm:text-base border-2 transition-all min-h-[50px] flex items-center justify-center gap-1.5 active:scale-95 ${
+                      className={`py-3 px-1.5 rounded-2xl font-bold text-xs sm:text-sm border-2 transition-all min-h-[46px] flex items-center justify-center gap-1 active:scale-95 cursor-pointer ${
                         isSelected
                           ? 'bg-[#1E5E3A] text-white border-[#1E5E3A] shadow-md'
                           : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
                       }`}
                     >
-                      {isSelected && <Check size={16} strokeWidth={3} />}
+                      {isSelected && <Check size={14} strokeWidth={3} />}
                       <span>{translateUnit(t, u)}</span>
                     </button>
                   )
@@ -1236,21 +1448,37 @@ export default function CreatePost() {
                   : t('createPost.buyerStep3Sub', 'ఎంచుకున్న యూనిట్‌కు లక్ష్య కొనుగోలు ధర (గరిష్ట బడ్జెట్ పరిమితి)')}
               </p>
 
-              {/* Large Rupee Display */}
+              {/* Large Rupee Display with Manual Editable Input */}
               <div className="my-5 flex items-center justify-center gap-3">
                 <button
                   type="button"
                   onClick={() => adjustPrice(-100)}
-                  className="w-14 h-14 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-900 flex items-center justify-center font-black text-2xl shadow-sm border border-gray-300 active:scale-95"
+                  disabled={form.is_price_optional}
+                  aria-label="Decrease price by 100"
+                  className="w-12 h-12 rounded-2xl bg-gray-100 hover:bg-gray-200 disabled:opacity-40 text-gray-900 flex items-center justify-center font-black text-xl shadow-sm border border-gray-300 active:scale-95 cursor-pointer"
                 >
                   -100
                 </button>
 
-                <div className="min-w-[150px] px-4 py-3 rounded-3xl bg-amber-50 border-2 border-[#D9822B]">
-                  <span className="text-4xl sm:text-5xl font-black text-[#D9822B] block">
-                    ₹{form.price || '0'}
-                  </span>
-                  <span className="text-xs font-bold text-gray-600 block mt-1">
+                <div className={`min-w-[170px] max-w-[240px] px-4 py-2 rounded-3xl border-2 flex flex-col items-center transition-all ${
+                  form.is_price_optional ? 'bg-gray-100 border-gray-300 opacity-70' : 'bg-amber-50 border-[#D9822B]'
+                }`}>
+                  <div className="flex items-center justify-center w-full">
+                    <span className="text-2xl font-bold text-[#D9822B] mr-1">₹</span>
+                    <input
+                      type="number"
+                      step="any"
+                      min="0"
+                      inputMode="decimal"
+                      disabled={form.is_price_optional}
+                      value={form.is_price_optional ? '' : form.price}
+                      onChange={(e) => update('price', e.target.value)}
+                      aria-label="Target price"
+                      placeholder={form.is_price_optional ? 'Negotiable' : '0'}
+                      className="w-full text-center text-3xl sm:text-4xl font-black text-[#D9822B] bg-transparent border-0 focus:ring-0 focus:outline-none disabled:text-gray-500"
+                    />
+                  </div>
+                  <span className="text-xs font-bold text-gray-600 block">
                     / {translateUnit(t, form.price_unit)}
                   </span>
                 </div>
@@ -1258,10 +1486,64 @@ export default function CreatePost() {
                 <button
                   type="button"
                   onClick={() => adjustPrice(100)}
-                  className="w-14 h-14 rounded-2xl bg-[#D9822B] hover:bg-amber-600 text-white flex items-center justify-center font-black text-2xl shadow-md active:scale-95"
+                  disabled={form.is_price_optional}
+                  aria-label="Increase price by 100"
+                  className="w-12 h-12 rounded-2xl bg-[#D9822B] hover:bg-amber-600 disabled:opacity-40 text-white flex items-center justify-center font-black text-xl shadow-md active:scale-95 cursor-pointer"
                 >
                   +100
                 </button>
+              </div>
+
+              {errors.price && (
+                <p className="text-xs text-red-600 font-semibold mb-3">{errors.price}</p>
+              )}
+
+              {/* Optional Pricing Checkbox for Buyer */}
+              {!isFarmer && (
+                <label className="flex items-center justify-center gap-2.5 p-3 rounded-2xl bg-amber-50/70 border border-amber-200 cursor-pointer my-3 max-w-sm mx-auto hover:bg-amber-100/60 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(form.is_price_optional)}
+                    onChange={(e) => {
+                      const checked = e.target.checked
+                      setForm((prev) => ({
+                        ...prev,
+                        is_price_optional: checked,
+                        is_negotiable: checked,
+                        price: checked ? '' : (prev.price || '2400'),
+                      }))
+                      setErrors((prev) => ({ ...prev, price: null }))
+                    }}
+                    className="w-4 h-4 text-[#1E5E3A] rounded border-gray-300 focus:ring-[#1E5E3A]"
+                  />
+                  <span className="text-xs font-bold text-gray-800 text-left">
+                    {t('createPost.priceNegotiableToggle', 'Open to negotiation / Market rate (No fixed ceiling)')}
+                  </span>
+                </label>
+              )}
+
+              {/* Separate Price Unit Selector */}
+              <div className="mt-3">
+                <span className="text-xs font-bold text-gray-600 block mb-1.5">
+                  {t('createPost.priceUnitPrompt', 'Price Unit:')}
+                </span>
+                <div className="flex justify-center flex-wrap gap-1.5">
+                  {STANDARD_UNITS.map((u) => (
+                    <button
+                      key={u}
+                      type="button"
+                      disabled={form.is_price_optional}
+                      onClick={() => update('price_unit', u)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                        form.price_unit === u
+                          ? 'bg-[#1E5E3A] text-white border-[#1E5E3A]'
+                          : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50 disabled:opacity-40'
+                      }`}
+                    >
+                      ₹ / {translateUnit(t, u)}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Clear Budget Ceiling Notice for Buyer */}
@@ -1692,14 +1974,26 @@ export default function CreatePost() {
                       )
                     })}
                   </div>
+                </div>
 
-                  <input
-                    type="text"
-                    value={form.location}
-                    onChange={(e) => update('location', e.target.value)}
-                    placeholder="e.g. Warangal, Guntur, Krishna..."
-                    className="w-full mt-3 bg-white border border-gray-300 rounded-xl px-3 py-2 text-sm font-semibold text-gray-900"
-                  />
+                {/* Choice 4: Free-Text Custom Location (Village, Mandal, District, State) */}
+                <div className="pt-3 border-t border-gray-100">
+                  <label className="text-xs font-bold text-gray-700 block mb-1">
+                    {t('createPost.manualLocationLabel', 'లేదా కస్టమ్ ప్రాంతాన్ని రాయండి (గ్రామం, మండలం, జిల్లా, రాష్ట్రం)')}
+                  </label>
+                  <div className="relative">
+                    <MapPin size={18} className="absolute left-3 top-3 text-gray-400" />
+                    <input
+                      type="text"
+                      value={form.location}
+                      onChange={(e) => update('location', e.target.value)}
+                      placeholder={t('createPost.manualLocationPlaceholder', 'ఉదా. తెనాలి, గుంటూరు జిల్లా, ఆంధ్రప్రదేశ్')}
+                      className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-300 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1E5E3A]"
+                    />
+                  </div>
+                  <p className="text-[11px] text-gray-500 mt-1">
+                    {t('createPost.manualLocationHint', 'నిర్దిష్ట సేకరణ కేంద్రాలు, మండలాలు, గ్రామాలు లేదా రాష్ట్రాలను నమోదు చేయండి')}
+                  </p>
                 </div>
               </div>
             </div>
@@ -1764,8 +2058,13 @@ export default function CreatePost() {
                     <span className="text-xs font-bold text-gray-400 block">
                       {t('createPost.stepCropName', 'పంట')}
                     </span>
-                    <p className="font-extrabold text-gray-900 text-lg">
-                      {translateCropName(t, form.crop_name)}
+                    <p className="font-extrabold text-gray-900 text-lg flex items-center flex-wrap gap-2">
+                      <span>{translateCropName(t, form.crop_name)}</span>
+                      {form.variety && (
+                        <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-lg">
+                          {form.variety}
+                        </span>
+                      )}
                     </p>
                   </div>
                 </div>
@@ -1804,7 +2103,13 @@ export default function CreatePost() {
                     {isFarmer ? t('createPost.stepPriceName', 'ధర') : t('createPost.budgetCeilingLabel', 'లక్ష్య బడ్జెట్')}
                   </span>
                   <p className="font-extrabold text-[#D9822B] text-xl">
-                    ₹{form.price} / {translateUnit(t, form.price_unit)}
+                    {form.is_price_optional || !form.price ? (
+                      <span className="text-emerald-700 text-base font-bold">
+                        {t('createPost.priceNegotiableToggle', 'ధర అవసరం లేదు / మార్కెట్ రేటు లేదా సంప్రదింపులకు సిద్ధం')}
+                      </span>
+                    ) : (
+                      `₹${form.price} / ${translateUnit(t, form.price_unit)}`
+                    )}
                   </p>
                 </div>
                 <button
@@ -1877,7 +2182,7 @@ export default function CreatePost() {
               </div>
             </div>
 
-            {/* Optional Details Accordion (Photos, variety, description) */}
+            {/* Optional Details Accordion (Photos, variety, grade, delivery preferences, description) */}
             <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-xs">
               <button
                 type="button"
@@ -1892,28 +2197,92 @@ export default function CreatePost() {
               </button>
 
               {showOptionalDetails && (
-                <div className="p-4 pt-1 border-t border-gray-100 space-y-3 animate-slide-up">
+                <div className="p-4 pt-1 border-t border-gray-100 space-y-4 animate-slide-up">
                   <ImagePicker
                     value={form.image}
                     onChange={(url) => update('image', url)}
                     label={t('createPost.photoOptional', 'పంట ఫోటో (ఐచ్ఛికం)')}
                   />
 
+                  {/* Variety (Optional) */}
                   <div>
-                    <label className="text-xs font-bold text-gray-600 block mb-1">
-                      {t('createPost.varietyOptional', 'రకం / వెరైటీ (ఐచ్ఛికం)')}
+                    <label className="text-xs font-bold text-gray-700 block mb-1">
+                      {t('createPost.varietyPrompt', 'రకం / వెరైటీ (ఐచ్ఛికం):')}
                     </label>
+                    {activeCropObj?.varieties?.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {activeCropObj.varieties.map((v) => (
+                          <button
+                            key={v}
+                            type="button"
+                            onClick={() => update('variety', form.variety === v ? '' : v)}
+                            className={`text-xs px-2.5 py-1 rounded-xl font-bold border transition-all cursor-pointer ${
+                              form.variety === v
+                                ? 'bg-[#1E5E3A] text-white border-[#1E5E3A]'
+                                : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'
+                            }`}
+                          >
+                            {v}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     <input
                       type="text"
                       value={form.variety}
                       onChange={(e) => update('variety', e.target.value)}
-                      placeholder={t('createPost.varietyPlaceholder', 'e.g. BPT 5204, Sona Masoori')}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
+                      placeholder={t('createPost.customVarietyPlaceholder', 'e.g. BPT 5204, Sona Masoori, Red Flesh...')}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#1E5E3A]"
                     />
                   </div>
 
+                  {/* Quality Grade / Specifications (Optional) */}
                   <div>
-                    <label className="text-xs font-bold text-gray-600 block mb-1">
+                    <label className="text-xs font-bold text-gray-700 block mb-1">
+                      {t('createPost.qualityGradePrompt', 'నాణ్యతా ప్రమాణం / గ్రేడ్ (ఐచ్ఛికం):')}
+                    </label>
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {['Grade A / Premium', 'Grade B / Good', 'Standard', 'Organic / Chemical-Free'].map((grade) => (
+                        <button
+                          key={grade}
+                          type="button"
+                          onClick={() => update('quality_grade', form.quality_grade === grade ? '' : grade)}
+                          className={`text-xs px-2.5 py-1 rounded-xl font-bold border transition-all cursor-pointer ${
+                            form.quality_grade === grade
+                              ? 'bg-[#1E5E3A] text-white border-[#1E5E3A]'
+                              : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'
+                          }`}
+                        >
+                          {grade}
+                        </button>
+                      ))}
+                    </div>
+                    <input
+                      type="text"
+                      value={form.quality_grade}
+                      onChange={(e) => update('quality_grade', e.target.value)}
+                      placeholder="e.g. Grade A, Moisture < 12%, Cleaned & Sorted..."
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#1E5E3A]"
+                    />
+                  </div>
+
+                  {/* Delivery Preferences / Packaging (Optional) */}
+                  <div>
+                    <label className="text-xs font-bold text-gray-700 block mb-1">
+                      {t('createPost.deliveryNotesPrompt', 'డెలివరీ ప్రాధాన్యతలు & ప్యాకింగ్ వివరాలు (ఐచ్ఛికం):')}
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={form.delivery_preferences}
+                      onChange={(e) => update('delivery_preferences', e.target.value)}
+                      placeholder={t('createPost.deliveryNotesPlaceholder', 'ఉదా. బస్తా ప్యాకింగ్, వ్యవసాయ క్షేత్రం వద్ద పికప్, రవాణా షరతులు మొదలైనవి')}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#1E5E3A]"
+                    />
+                  </div>
+
+                  {/* General Description / Additional Notes (Optional) */}
+                  <div>
+                    <label className="text-xs font-bold text-gray-700 block mb-1">
                       {t('createPost.descOptional', 'అదనపు వివరాలు (ఐచ్ఛికం)')}
                     </label>
                     <textarea
@@ -1921,7 +2290,7 @@ export default function CreatePost() {
                       value={form.description}
                       onChange={(e) => update('description', e.target.value)}
                       placeholder={t('createPost.descPlaceholder', 'Crop quality, grade or additional details...')}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#1E5E3A]"
                     />
                   </div>
                 </div>

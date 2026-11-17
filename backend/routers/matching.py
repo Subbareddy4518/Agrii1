@@ -10,6 +10,7 @@ transparent match criteria:
 5. Direct contact readiness (Call & WhatsApp)
 """
 
+import re
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
@@ -18,8 +19,75 @@ import models
 import schemas
 from database import get_db
 from auth import get_current_user
+from .posts import resolve_canonical_crops
 
 router = APIRouter(prefix="/api/matching", tags=["matching"])
+
+
+# Stopwords / generic agricultural descriptors that should not match across distinct crops
+GENERIC_CROP_WORDS = {"fruit", "crop", "grain", "vegetable", "pulse", "spice", "plant", "leaf", "seeds", "seed"}
+
+# Explicit distinct crop pairs known to produce false-positive sub-token or substring collisions
+FALSE_POSITIVE_PAIRS = {
+    frozenset(["apple", "pineapple"]),
+    frozenset(["apple", "pine apple"]),
+    frozenset(["apple", "custard apple"]),
+    frozenset(["pea", "peanut"]),
+    frozenset(["corn", "peppercorn"]),
+    frozenset(["corn", "popcorn"]),
+    frozenset(["melon", "watermelon"]),
+    frozenset(["melon", "water melon"]),
+    frozenset(["melon", "muskmelon"]),
+    frozenset(["melon", "musk melon"]),
+}
+
+
+def is_safe_crop_match(crop_a: Optional[str], crop_b: Optional[str]) -> bool:
+    """
+    Safely matches two crop names:
+    1. Normalizes case, internal whitespace, and surrounding punctuation.
+    2. Prioritizes exact normalized crop-name matches.
+    3. Resolves multilingual aliases & synonyms via canonical catalog resolution.
+    4. Supports whole-token phrase matching while strictly preventing false positives
+       (e.g., apple vs pineapple, pea vs peanut, corn vs peppercorn, melon vs watermelon).
+    """
+    if not crop_a or not crop_b:
+        return False
+
+    norm_a = " ".join(crop_a.strip().lower().split())
+    norm_b = " ".join(crop_b.strip().lower().split())
+    if not norm_a or not norm_b:
+        return False
+
+    # 1. Exact normalized match
+    if norm_a == norm_b:
+        return True
+
+    # 2. Block explicit false-positive collisions
+    if frozenset([norm_a, norm_b]) in FALSE_POSITIVE_PAIRS:
+        return False
+
+    norm_a_nospace = norm_a.replace(" ", "")
+    norm_b_nospace = norm_b.replace(" ", "")
+    if any(frozenset([x.replace(" ", "") for x in pair]) == frozenset([norm_a_nospace, norm_b_nospace]) for pair in FALSE_POSITIVE_PAIRS):
+        return False
+
+    # 3. Canonical catalog resolution (preserves multilingual Telugu/Hindi/regional aliases)
+    canonical_a = resolve_canonical_crops(norm_a)
+    canonical_b = resolve_canonical_crops(norm_b)
+    if canonical_a and canonical_b and (set(canonical_a) & set(canonical_b)):
+        return True
+
+    # 4. Whole-token word-boundary phrase matching
+    shorter, longer = (norm_a, norm_b) if len(norm_a) <= len(norm_b) else (norm_b, norm_a)
+    if shorter in GENERIC_CROP_WORDS or len(shorter) < 3:
+        return False
+
+    # Check whole-token boundary (prevents 'apple' matching inside 'pineapple', 'pea' inside 'peanut', etc.)
+    if bool(re.search(rf"\b{re.escape(shorter)}\b", longer)):
+        return True
+
+    return False
 
 
 def opposite_role(role: models.RoleEnum) -> models.RoleEnum:
@@ -33,15 +101,13 @@ def compute_match_details(my_posts: List[models.Post], candidate: models.Post, c
     """
     reasons = []
     score = 0
-    matched_crop = candidate.crop_name
-    cand_crop_lower = candidate.crop_name.strip().lower()
+    matched_crop = candidate.crop_name or ""
     cand_loc_lower = (candidate.location or "").strip().lower()
 
     # 1. Match against user's specific posts
     best_crop_match = False
     for p in my_posts:
-        my_crop_lower = p.crop_name.strip().lower()
-        if my_crop_lower in cand_crop_lower or cand_crop_lower in my_crop_lower:
+        if is_safe_crop_match(p.crop_name, candidate.crop_name):
             best_crop_match = True
             matched_crop = p.crop_name
             reasons.append(f"Direct crop match for {p.crop_name}")

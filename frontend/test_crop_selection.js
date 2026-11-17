@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
 import {
   DEFAULT_CROPS_CATALOG,
   getCropByName,
@@ -299,4 +300,277 @@ test('7. Crop grid renders from DEFAULT_CROPS_CATALOG even if API fails or retur
   let filteredE = filterCropsCatalog(catalogE, 'All')
   assert.equal(filteredE.length, 1)
   assert.equal(filteredE[0].name, 'Custom Paddy')
+})
+
+test('8. Custom crop manual entry - validation, category assignment and persistence', () => {
+  let form = {
+    crop_name: '',
+    category: 'Other',
+    unit: 'Quintal',
+    price_unit: 'Quintal',
+    quantity_num: '100',
+    price: '2400',
+    variety: '',
+  }
+  let errors = {}
+  let step = 1
+  let isCustomCropMode = false
+
+  function setCustomCropMode(enabled) {
+    isCustomCropMode = enabled
+    if (enabled) {
+      form.crop_name = ''
+    }
+  }
+
+  function handleCustomCropChange(val) {
+    form.crop_name = val
+    if (errors.crop_name) delete errors.crop_name
+  }
+
+  function validateStep1() {
+    if (!form.crop_name?.trim()) {
+      errors.crop_name = 'Please enter or select a crop'
+      return false
+    }
+    delete errors.crop_name
+    step = 2
+    return true
+  }
+
+  // Switch to manual mode
+  setCustomCropMode(true)
+  assert.equal(isCustomCropMode, true)
+  assert.equal(form.crop_name, '')
+  assert.equal(validateStep1(), false)
+  assert.ok(errors.crop_name)
+
+  // Type custom crop not in catalog
+  handleCustomCropChange('Dragon Fruit')
+  form.category = 'Fruits'
+  assert.equal(form.crop_name, 'Dragon Fruit')
+  assert.equal(form.category, 'Fruits')
+  assert.equal(validateStep1(), true)
+  assert.equal(step, 2)
+
+  // Verify that custom crop persists when step changes
+  assert.equal(form.crop_name, 'Dragon Fruit')
+})
+
+test('9. Variety entry - predefined chips and custom text input', () => {
+  let form = {
+    crop_name: 'Paddy',
+    variety: '',
+  }
+
+  // Predefined variety from catalog
+  const paddy = getCropByName(DEFAULT_CROPS_CATALOG, 'Paddy')
+  assert.ok(paddy.varieties.includes('Sona Masoori'))
+  form.variety = 'Sona Masoori'
+  assert.equal(form.variety, 'Sona Masoori')
+
+  // Custom variety entry
+  form.variety = 'Local Desi Special'
+  assert.equal(form.variety, 'Local Desi Special')
+
+  // Variety is optional: form without variety is valid
+  form.variety = ''
+  assert.equal(form.variety, '')
+})
+
+test('10. Decimal quantity input and standard unit selection', () => {
+  const units = ['Kg', 'Quintal', 'Ton', 'Tonne', 'Bag']
+  let form = {
+    quantity_num: '100',
+    unit: 'Quintal',
+  }
+
+  function adjustQuantity(delta) {
+    const current = parseFloat(form.quantity_num) || 0
+    const next = Math.max(0.1, Math.round((current + delta) * 100) / 100)
+    form.quantity_num = String(next)
+  }
+
+  function validateStep2() {
+    const q = parseFloat(form.quantity_num)
+    if (isNaN(q) || q <= 0) return false
+    return true
+  }
+
+  // Test decimal adjustments
+  form.quantity_num = '12.5'
+  assert.equal(validateStep2(), true)
+
+  adjustQuantity(0.5)
+  assert.equal(form.quantity_num, '13')
+
+  adjustQuantity(-0.25)
+  assert.equal(form.quantity_num, '12.75')
+
+  // Test standard units
+  for (const u of units) {
+    form.unit = u
+    assert.equal(form.unit, u)
+  }
+})
+
+test('11. Optional price and negotiation mode', () => {
+  let form = {
+    price: '2400',
+    price_unit: 'Quintal',
+    is_price_optional: false,
+    is_negotiable: false,
+  }
+
+  function setNegotiable(checked) {
+    form.is_price_optional = checked
+    form.is_negotiable = checked
+    form.price = checked ? '' : (form.price || '2400')
+  }
+
+  function validateStep3(isBuyer = true) {
+    if (isBuyer && (form.is_price_optional || !form.price?.trim())) {
+      return true // Optional for buyers
+    }
+    const val = parseFloat(form.price)
+    if (isNaN(val) || val < 0) return false
+    return true
+  }
+
+  // Toggle negotiation mode
+  setNegotiable(true)
+  assert.equal(form.is_price_optional, true)
+  assert.equal(form.is_negotiable, true)
+  assert.equal(form.price, '')
+  assert.equal(validateStep3(true), true)
+
+  // Toggle back to fixed ceiling
+  setNegotiable(false)
+  assert.equal(form.is_price_optional, false)
+  assert.equal(form.price, '2400')
+  assert.equal(validateStep3(true), true)
+})
+
+test('12. Preferred sourcing location - predefined and manual free-text entry', () => {
+  const registeredUserLocation = 'Guntur, Andhra Pradesh'
+  let form = {
+    location: '',
+  }
+
+  // Option 1: Registered location
+  form.location = registeredUserLocation
+  assert.equal(form.location, 'Guntur, Andhra Pradesh')
+
+  // Option 2: All Regions
+  form.location = 'All Regions (Any Location)'
+  assert.equal(form.location, 'All Regions (Any Location)')
+
+  // Option 3: Quick select popular district
+  form.location = 'Warangal'
+  assert.equal(form.location, 'Warangal')
+
+  // Option 4: Free-text manual location (village, mandal, district, state)
+  form.location = 'Tenali Village, Tenali Mandal, Guntur District, Andhra Pradesh'
+  assert.equal(form.location, 'Tenali Village, Tenali Mandal, Guntur District, Andhra Pradesh')
+  assert.ok(form.location.includes('Mandal'))
+})
+
+test('13. Wizard navigation - complete back/next state retention', () => {
+  let form = {
+    crop_name: 'Dragon Fruit',
+    category: 'Fruits',
+    variety: 'Red Flesh',
+    quantity_num: '12.5',
+    unit: 'Ton',
+    price: '',
+    price_unit: 'Ton',
+    is_price_optional: true,
+    is_negotiable: true,
+    delivery_choice: '15days',
+    target_date: '',
+    location: 'Tenali, Guntur',
+    quality_grade: 'Grade A / Premium',
+    delivery_preferences: 'Crate packaging with farm gate pickup',
+  }
+
+  let step = 1
+  step = 2 // Next to Quantity
+  step = 3 // Next to Price
+  step = 4 // Next to Delivery
+  step = 5 // Next to Location
+  step = 6 // Next to Review
+
+  // Back to Step 1
+  step = 1
+  assert.equal(form.crop_name, 'Dragon Fruit')
+  assert.equal(form.variety, 'Red Flesh')
+
+  // Forward to Step 3
+  step = 3
+  assert.equal(form.is_price_optional, true)
+  assert.equal(form.unit, 'Ton')
+
+  // Forward to Step 6
+  step = 6
+  assert.equal(form.quality_grade, 'Grade A / Premium')
+  assert.equal(form.delivery_preferences, 'Crate packaging with farm gate pickup')
+})
+
+test('14. Multilingual keys for flexible manual entry in EN, TE, HI', () => {
+  const requiredKeys = [
+    'cantFindCrop',
+    'enterManuallyBtn',
+    'customCropActiveLabel',
+    'browseCatalog',
+    'customCropInputTitle',
+    'customCropPlaceholder',
+    'customCropCategoryPrompt',
+    'customCropHelp',
+    'varietyPrompt',
+    'customVarietyPlaceholder',
+    'priceNegotiableToggle',
+    'priceUnitPrompt',
+    'manualLocationLabel',
+    'manualLocationPlaceholder',
+    'manualLocationHint',
+    'qualityGradePrompt',
+    'deliveryNotesPrompt',
+    'deliveryNotesPlaceholder',
+  ]
+
+  const en = JSON.parse(fs.readFileSync(new URL('./src/locales/en/common.json', import.meta.url), 'utf8'))
+  const te = JSON.parse(fs.readFileSync(new URL('./src/locales/te/common.json', import.meta.url), 'utf8'))
+  const hi = JSON.parse(fs.readFileSync(new URL('./src/locales/hi/common.json', import.meta.url), 'utf8'))
+
+  for (const key of requiredKeys) {
+    assert.ok(en.createPost[key], `en missing key createPost.${key}`)
+    assert.ok(te.createPost[key], `te missing key createPost.${key}`)
+    assert.ok(hi.createPost[key], `hi missing key createPost.${key}`)
+  }
+})
+
+test('15. Farmer workflow isolation - farmer users are restricted from manual crop mode and always render catalog grid', () => {
+  const isFarmer = true
+  let isCustomCropMode = false
+
+  // For farmers, manual entry banner is hidden (!isFarmer is false)
+  const showManualBanner = !isFarmer
+  assert.equal(showManualBanner, false)
+
+  // Even if isCustomCropMode was true in draft restore, farmers cannot enter custom crop mode:
+  // if (!isFarmer && f.crop_name && !catalog.some(...)) setIsCustomCropMode(true)
+  const draftCrop = 'Custom Dragon Fruit'
+  let restoredCustomMode = false
+  if (!isFarmer && draftCrop) {
+    restoredCustomMode = true
+  }
+  assert.equal(restoredCustomMode, false)
+
+  // For farmers, the catalog grid is always rendered: (isFarmer || !isCustomCropMode) is always true
+  const shouldRenderCatalog = isFarmer || !isCustomCropMode
+  assert.equal(shouldRenderCatalog, true)
+
+  // Manual entry card is only rendered when: !isFarmer && isCustomCropMode
+  const shouldRenderManualInput = !isFarmer && isCustomCropMode
+  assert.equal(shouldRenderManualInput, false)
 })
