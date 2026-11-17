@@ -32,6 +32,7 @@ class TestCORSPreflight(unittest.TestCase):
         cls.cors_config = cors_middlewares[0].kwargs
         cls.cors_handler = CORSMiddleware(app, **cls.cors_config)
         cls.prod_origin = "https://agrii-subbu8.vercel.app"
+        cls.preview_origin = "https://agrii-git-release-v20-subbu8.vercel.app"
         cls.existing_origins = [
             "http://localhost:5173",
             "http://127.0.0.1:5173",
@@ -46,6 +47,9 @@ class TestCORSPreflight(unittest.TestCase):
         
         # Production origin must be present
         self.assertIn(self.prod_origin, origins, f"Production origin {self.prod_origin} missing from allow_origins")
+
+        # Preview origin must be present
+        self.assertIn(self.preview_origin, origins, f"Preview origin {self.preview_origin} missing from allow_origins")
         
         # Existing origins must be preserved
         for origin in self.existing_origins:
@@ -68,6 +72,21 @@ class TestCORSPreflight(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("access-control-allow-origin"), self.prod_origin)
+        self.assertEqual(response.headers.get("access-control-allow-credentials"), "true")
+        self.assertIn("POST", response.headers.get("access-control-allow-methods", ""))
+        self.assertIn("content-type", response.headers.get("access-control-allow-headers", "").lower())
+
+    def test_02b_preview_origin_options_preflight(self):
+        """Verify OPTIONS preflight request to /api/auth/register from release/v2.0 preview origin."""
+        headers = Headers({
+            "origin": self.preview_origin,
+            "access-control-request-method": "POST",
+            "access-control-request-headers": "content-type",
+        })
+        response = self.cors_handler.preflight_response(headers)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get("access-control-allow-origin"), self.preview_origin)
         self.assertEqual(response.headers.get("access-control-allow-credentials"), "true")
         self.assertIn("POST", response.headers.get("access-control-allow-methods", ""))
         self.assertIn("content-type", response.headers.get("access-control-allow-headers", "").lower())

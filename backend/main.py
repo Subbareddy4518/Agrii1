@@ -179,6 +179,7 @@ app.add_middleware(
         "https://agrii-woad.vercel.app",
         "https://agrii-33v0ykdl0-subbu8.vercel.app",
         "https://agrii-subbu8.vercel.app",
+        "https://agrii-git-release-v20-subbu8.vercel.app",
     ],
 
     allow_credentials=True,
