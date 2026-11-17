@@ -775,7 +775,9 @@
     "sugarcane": "गन्ना",
     "redGram": "अरहर / तूर",
     "turmeric": "हल्दी",
-    "soybean": "सोयाबीन"
+    "soybean": "सोयाबीन",
+    "bengalGram": "चना",
+    "greenGram": "मूंग"
   },
   "units": {
     "kg": "किलो",

@@ -36,6 +36,7 @@ import { useAuth } from '../context/AuthContext.jsx'
 import { createPost, getCropsCatalog, getPriceGuidance } from '../services/api.js'
 import { translateCropName, translateUnit, translateAgriCategory } from '../utils/i18nHelpers.js'
 import { getSelectedLanguage, speak, stopSpeaking } from '../utils/onboarding.js'
+import { DEFAULT_CROPS_CATALOG, filterCropsCatalog } from '../utils/cropsData.js'
 
 const CATEGORIES = ['All', 'Cereals', 'Vegetables', 'Spices', 'Cash Crops', 'Pulses', 'Fruits']
 const STANDARD_UNITS = ['Kg', 'Quintal', 'Ton']
@@ -86,8 +87,8 @@ export default function CreatePost() {
   // Audio instruction indicator
   const [isSpeakingInstruction, setIsSpeakingInstruction] = useState(false)
 
-  // Master Crops Catalog
-  const [catalog, setCatalog] = useState([])
+  // Master Crops Catalog (initialized with offline-resilient default benchmark crops)
+  const [catalog, setCatalog] = useState(DEFAULT_CROPS_CATALOG)
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [cropSearch, setCropSearch] = useState('')
   const [loadingCatalog, setLoadingCatalog] = useState(false)
@@ -133,20 +134,28 @@ export default function CreatePost() {
   const [publishedPost, setPublishedPost] = useState(null)
   const [showOtpModal, setShowOtpModal] = useState(false)
 
-  // Load Crops Catalog on mount
+  // Load Crops Catalog on mount (updates static catalog with backend benchmarks if reachable)
   useEffect(() => {
+    let isMounted = true
     async function loadCatalog() {
       setLoadingCatalog(true)
       try {
         const res = await getCropsCatalog()
-        setCatalog(res.data || [])
+        if (isMounted && res && Array.isArray(res.data) && res.data.length > 0) {
+          setCatalog(res.data)
+        }
       } catch {
-        // Fallback static list handled gracefully
+        // Retain DEFAULT_CROPS_CATALOG gracefully on network failure, timeout, or 404
       } finally {
-        setLoadingCatalog(false)
+        if (isMounted) {
+          setLoadingCatalog(false)
+        }
       }
     }
     loadCatalog()
+    return () => {
+      isMounted = false
+    }
   }, [])
 
   // Restore saved draft on mount
@@ -261,7 +270,7 @@ export default function CreatePost() {
   useEffect(() => {
     if (!form.crop_name) return
     const matched = catalog.find(
-      (c) => c.name.toLowerCase() === form.crop_name.toLowerCase()
+      (c) => (c?.name || '').toLowerCase() === (form.crop_name || '').trim().toLowerCase()
     )
     if (matched && !form.category) {
       update('category', matched.category)
@@ -422,10 +431,11 @@ export default function CreatePost() {
 
   // Select crop from visual card
   function handleSelectCrop(crop) {
+    if (!crop || !crop.name) return
     setForm((prev) => ({
       ...prev,
       crop_name: crop.name,
-      category: crop.category,
+      category: crop.category || prev.category,
       unit: crop.default_unit || prev.unit,
       price_unit: crop.default_unit || prev.price_unit,
     }))
@@ -681,20 +691,11 @@ export default function CreatePost() {
   }
 
   // Filter crops in Step 1
-  const filteredCatalog = catalog.filter((crop) => {
-    const matchesCategory =
-      selectedCategory === 'All' || crop.category.toLowerCase() === selectedCategory.toLowerCase()
-    const matchesSearch =
-      !cropSearch.trim() ||
-      crop.name.toLowerCase().includes(cropSearch.toLowerCase()) ||
-      (crop.telugu && crop.telugu.toLowerCase().includes(cropSearch.toLowerCase())) ||
-      (crop.hindi && crop.hindi.toLowerCase().includes(cropSearch.toLowerCase()))
-    return matchesCategory && matchesSearch
-  })
+  const filteredCatalog = filterCropsCatalog(catalog, selectedCategory, cropSearch)
 
   // Selected crop object if any
   const activeCropObj = catalog.find(
-    (c) => c.name.toLowerCase() === form.crop_name.toLowerCase()
+    (c) => (c?.name || '').toLowerCase() === (form.crop_name || '').trim().toLowerCase()
   )
 
   // Clean audio cleanup on unmount
@@ -976,13 +977,15 @@ export default function CreatePost() {
             )}
 
             {/* Category Filter Chips */}
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none" role="tablist" aria-label="Crop Categories">
               {CATEGORIES.map((cat) => (
                 <button
                   key={cat}
                   type="button"
+                  role="tab"
+                  aria-selected={selectedCategory === cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`text-xs px-3.5 py-2 rounded-full font-bold shrink-0 transition-all active:scale-95 min-h-[36px] ${
+                  className={`text-xs px-3.5 py-2 rounded-full font-bold shrink-0 transition-all active:scale-95 min-h-[36px] cursor-pointer ${
                     selectedCategory === cat
                       ? 'bg-[#1E5E3A] text-white shadow-sm'
                       : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-100'
@@ -994,37 +997,75 @@ export default function CreatePost() {
             </div>
 
             {/* Crop Grid with Large Pictures */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[360px] overflow-y-auto pr-1">
+            <div
+              className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[380px] overflow-y-auto pr-1"
+              role="group"
+              aria-label="Crops"
+            >
               {filteredCatalog.map((crop) => {
-                const isSelected = form.crop_name.toLowerCase() === crop.name.toLowerCase()
+                const isSelected =
+                  (form.crop_name || '').trim().toLowerCase() === (crop.name || '').trim().toLowerCase()
+                const primaryName = translateCropName(t, crop.name)
+                const secondaryName =
+                  currentLang === 'te'
+                    ? crop.name
+                    : currentLang === 'hi'
+                    ? crop.name
+                    : (crop.telugu ? crop.telugu.split('(')[0].trim() : crop.name)
+
                 return (
                   <button
                     key={crop.name}
                     type="button"
                     onClick={() => handleSelectCrop(crop)}
-                    className={`p-4 rounded-2xl text-left border-2 transition-all flex flex-col justify-between min-h-[110px] active:scale-95 ${
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        handleSelectCrop(crop)
+                      }
+                    }}
+                    role="button"
+                    aria-pressed={isSelected}
+                    aria-selected={isSelected}
+                    aria-label={`${primaryName}${isSelected ? ' - selected' : ''}`}
+                    tabIndex={0}
+                    className={`p-4 rounded-2xl text-left border-2 transition-all flex flex-col justify-between min-h-[110px] active:scale-95 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#1E5E3A] ${
                       isSelected
                         ? 'border-[#1E5E3A] bg-green-50 shadow-md ring-2 ring-green-300'
                         : 'border-gray-200 bg-white hover:border-[#1E5E3A]/60 shadow-xs'
                     }`}
                   >
                     <div className="flex items-center justify-between w-full">
-                      <span className="text-4xl">{crop.icon}</span>
+                      <span className="text-4xl select-none" role="img" aria-hidden="true">{crop.icon}</span>
                       {isSelected && (
-                        <div className="w-6 h-6 rounded-full bg-[#1E5E3A] text-white flex items-center justify-center">
+                        <div className="w-6 h-6 rounded-full bg-[#1E5E3A] text-white flex items-center justify-center shadow-xs">
                           <Check size={14} strokeWidth={3} />
                         </div>
                       )}
                     </div>
                     <div className="mt-2">
                       <p className="font-extrabold text-gray-900 text-base leading-tight">
-                        {crop.telugu ? crop.telugu.split('(')[0] : crop.name}
+                        {primaryName}
                       </p>
-                      <p className="text-xs text-gray-500 truncate mt-0.5">{crop.name}</p>
+                      {secondaryName && secondaryName !== primaryName && (
+                        <p className="text-xs text-gray-500 truncate mt-0.5">{secondaryName}</p>
+                      )}
                     </div>
                   </button>
                 )
               })}
+              {filteredCatalog.length === 0 && (
+                <div className="col-span-2 sm:col-span-3 py-8 text-center text-gray-500">
+                  <p className="font-medium text-sm">{t('createPost.noCropsFound', 'No crops found matching your selection.')}</p>
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedCategory('All'); setCropSearch(''); }}
+                    className="mt-2 text-xs font-bold text-[#1E5E3A] underline cursor-pointer"
+                  >
+                    {t('createPost.showAllCrops', 'Show All Crops')}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Next Button */}
@@ -1032,9 +1073,10 @@ export default function CreatePost() {
               <button
                 type="button"
                 onClick={() => validateAndNext(1)}
+                disabled={!form.crop_name?.trim()}
                 className={`w-full font-extrabold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-98 transition-all shadow-md min-h-[56px] text-lg ${
-                  form.crop_name.trim()
-                    ? 'bg-[#1E5E3A] hover:bg-[#16482c] text-white'
+                  form.crop_name?.trim()
+                    ? 'bg-[#1E5E3A] hover:bg-[#16482c] text-white cursor-pointer'
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }`}
               >

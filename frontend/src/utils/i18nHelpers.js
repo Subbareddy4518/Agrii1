@@ -52,6 +52,10 @@ const CROP_KEYS = {
   pasupu: 'turmeric',
   haldi: 'turmeric',
   soybean: 'soybean',
+  'bengal gram': 'bengalGram',
+  chana: 'bengalGram',
+  'green gram': 'greenGram',
+  moong: 'greenGram',
 }
 
 const UNIT_KEYS = {

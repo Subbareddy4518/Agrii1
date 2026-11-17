@@ -775,7 +775,9 @@
     "sugarcane": "చెరకు",
     "redGram": "కందులు",
     "turmeric": "పసుపు",
-    "soybean": "సోయాబీన్"
+    "soybean": "సోయాబీన్",
+    "bengalGram": "శనగలు",
+    "greenGram": "పెసలు"
   },
   "units": {
     "kg": "కిలో",

@@ -775,7 +775,9 @@
     "sugarcane": "Sugarcane",
     "redGram": "Red Gram",
     "turmeric": "Turmeric",
-    "soybean": "Soybean"
+    "soybean": "Soybean",
+    "bengalGram": "Bengal Gram",
+    "greenGram": "Green Gram"
   },
   "units": {
     "kg": "Kg",
