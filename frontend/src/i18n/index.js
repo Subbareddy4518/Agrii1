@@ -22,7 +22,7 @@ const STORAGE_KEY = 'selectedLanguage'
 // utils/onboarding.js `speak()` so voice guidance is read out in the
 // correct accent/voice when available on the device.
 export const SPEECH_LANG_MAP = {
-  en: 'en-US',
+  en: 'en-IN',
   te: 'te-IN',
   hi: 'hi-IN',
 }
@@ -73,6 +73,11 @@ function syncDocumentLanguage(lng) {
 // SpeechSynthesis language in sync with whatever changed i18n.language,
 // regardless of which screen triggered the change.
 i18n.on('languageChanged', (lng) => {
+  try {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel()
+    }
+  } catch {}
   try {
     localStorage.setItem(STORAGE_KEY, lng)
   } catch {

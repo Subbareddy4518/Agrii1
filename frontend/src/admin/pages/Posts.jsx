@@ -53,8 +53,8 @@ export default function Posts() {
     setBusy(true)
     try {
       if (confirmAction.action === 'delete') {
-        await deleteAdminPost(confirmAction.post.id)
-        toast.success(t('admin.posts.deleteSuccess'))
+        await deleteAdminPost(confirmAction.post.id, false)
+        toast.success(t('admin.posts.archiveSuccess', 'Listing safely archived (recoverable)'))
       } else if (confirmAction.action === 'close') {
         await setAdminPostStatus(confirmAction.post.id, 'closed')
         toast.success(t('admin.posts.closeSuccess'))
@@ -100,8 +100,11 @@ export default function Posts() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="px-3 py-2.5 rounded-xl border border-cloud-200 bg-cloud-50 text-sm outline-none"
             >
-              <option value="">{t('admin.users.allStatuses')}</option>
+              <option value="">{t('admin.posts.allStatuses', 'All Statuses')}</option>
               <option value="active">{t('admin.status.active')}</option>
+              <option value="paused">{t('admin.status.paused', 'Paused (Quarantined)')}</option>
+              <option value="sold">{t('admin.status.sold', 'Sold')}</option>
+              <option value="archived">{t('admin.status.archived', 'Archived')}</option>
               <option value="closed">{t('admin.status.closed')}</option>
             </select>
           </div>
@@ -220,21 +223,21 @@ export default function Posts() {
         open={!!confirmAction}
         title={
           confirmAction?.action === 'delete'
-            ? t('admin.posts.deleteTitle')
+            ? t('admin.posts.archiveTitle', 'Safely Archive Listing')
             : confirmAction?.action === 'close'
               ? t('admin.posts.closeTitle')
               : t('admin.posts.reopenTitle')
         }
         message={
           confirmAction?.action === 'delete'
-            ? t('admin.posts.deleteConfirm', { title: confirmAction?.post.title })
+            ? t('admin.posts.archiveConfirm', 'Are you sure you want to archive this listing? It will be safely preserved and can be restored anytime by reopening.', { title: confirmAction?.post.title })
             : confirmAction?.action === 'close'
               ? t('admin.posts.closeConfirm', { title: confirmAction?.post.title })
               : t('admin.posts.reopenConfirm', { title: confirmAction?.post.title })
         }
         confirmLabel={
           confirmAction?.action === 'delete'
-            ? t('common.delete')
+            ? t('admin.posts.archiveButton', 'Archive Listing')
             : confirmAction?.action === 'close'
               ? t('admin.posts.close')
               : t('admin.posts.reopen')

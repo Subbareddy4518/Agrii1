@@ -1,4 +1,5 @@
 """Pydantic request/response schemas."""
+import enum
 from datetime import datetime
 from typing import Optional, List
 from pydantic import BaseModel, field_validator
@@ -7,6 +8,11 @@ from models import RoleEnum
 
 
 # ---------- Auth ----------
+
+class PublicRoleEnum(str, enum.Enum):
+    farmer = "farmer"
+    industry = "industry"
+
 
 class RegisterRequest(BaseModel):
     role: RoleEnum
@@ -17,6 +23,15 @@ class RegisterRequest(BaseModel):
     confirm_password: str
     location: Optional[str] = None
     profile_image: Optional[str] = None
+
+    @field_validator("role", mode="before")
+    @classmethod
+    def validate_public_role(cls, v):
+        raw = v.value if hasattr(v, "value") else str(v)
+        clean = raw.lower().strip()
+        if clean not in ("farmer", "industry"):
+            raise ValueError("Registration is restricted to farmer and industry accounts only.")
+        return RoleEnum(clean)
 
     @field_validator("confirm_password")
     @classmethod
@@ -29,6 +44,22 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     mobile: str
     password: str
+
+
+class SendOtpRequest(BaseModel):
+    mobile: str
+
+
+class VerifyOtpRequest(BaseModel):
+    mobile: str
+    otp: str
+
+
+class OtpResponse(BaseModel):
+    message: str
+    otp: Optional[str] = None
+    is_verified: bool = False
+    user: Optional["UserOut"] = None
 
 
 class Token(BaseModel):
@@ -48,6 +79,8 @@ class UserOut(BaseModel):
     location: Optional[str] = None
     profile_image: Optional[str] = None
     status: str = "active"
+    is_verified: bool = False
+    trust_score: int = 100
     created_at: datetime
     posts_count: int = 0
 
@@ -68,8 +101,12 @@ class PostCreate(BaseModel):
     title: str
     description: Optional[str] = None
     crop_name: str
+    category: Optional[str] = None
+    variety: Optional[str] = None
+    quality_grade: Optional[str] = None
     quantity: Optional[str] = None
     price: Optional[float] = None
+    is_negotiable: bool = False
     location: Optional[str] = None
     image: Optional[str] = None
     target_date: Optional[str] = None
@@ -79,11 +116,36 @@ class PostUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     crop_name: Optional[str] = None
+    category: Optional[str] = None
+    variety: Optional[str] = None
+    quality_grade: Optional[str] = None
     quantity: Optional[str] = None
     price: Optional[float] = None
+    is_negotiable: Optional[bool] = None
     location: Optional[str] = None
     image: Optional[str] = None
     target_date: Optional[str] = None
+
+
+class PostStatusHistoryOut(BaseModel):
+    id: int
+    post_id: int
+    changed_by_user_id: int
+    from_status: Optional[str] = None
+    to_status: str
+    notes: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PostStatusUpdate(BaseModel):
+    status: Optional[str] = None  # draft, active, paused, sold, archived, closed
+    negotiation_status: Optional[str] = None  # none, in_negotiation, offer_pending, deal_agreed
+    sold_price: Optional[float] = None
+    sold_quantity: Optional[str] = None
+    notes: Optional[str] = None
 
 
 class AuthorOut(BaseModel):
@@ -92,6 +154,8 @@ class AuthorOut(BaseModel):
     mobile: str
     location: Optional[str] = None
     profile_image: Optional[str] = None
+    is_verified: bool = False
+    trust_score: int = 100
 
     class Config:
         from_attributes = True
@@ -103,15 +167,26 @@ class PostOut(BaseModel):
     title: str
     description: Optional[str] = None
     crop_name: str
+    category: Optional[str] = None
+    variety: Optional[str] = None
+    quality_grade: Optional[str] = None
     quantity: Optional[str] = None
     price: Optional[float] = None
+    is_negotiable: bool = False
     location: Optional[str] = None
     image: Optional[str] = None
     target_date: Optional[str] = None
     likes_count: int
+    report_count: int = 0
     liked_by_me: bool = False
+    status: str = "active"
+    negotiation_status: str = "none"
+    sold_price: Optional[float] = None
+    sold_quantity: Optional[str] = None
+    sold_at: Optional[datetime] = None
     created_at: datetime
     owner: AuthorOut
+    status_history: List[PostStatusHistoryOut] = []
 
     class Config:
         from_attributes = True
@@ -145,9 +220,12 @@ class AdminUserOut(BaseModel):
     name: str
     contact_person: Optional[str] = None
     mobile: str
+    mobile_masked: Optional[str] = None
     location: Optional[str] = None
     profile_image: Optional[str] = None
     status: str
+    is_verified: bool = False
+    trust_score: int = 100
     created_at: datetime
     posts_count: int = 0
 
@@ -176,6 +254,10 @@ class AdminPostOut(BaseModel):
     target_date: Optional[str] = None
     likes_count: int
     status: str
+    negotiation_status: str = "none"
+    sold_price: Optional[float] = None
+    sold_quantity: Optional[str] = None
+    sold_at: Optional[datetime] = None
     created_at: datetime
     owner: AuthorOut
 
@@ -232,3 +314,158 @@ class BroadcastRequest(BaseModel):
 
 class BroadcastResult(BaseModel):
     sent_count: int
+
+
+# ---------- AI, Market Guidance & Matching ----------
+
+class PriceGuidanceOut(BaseModel):
+    crop_name: str
+    min_price: float
+    max_price: float
+    modal_price: float
+    unit: str
+    trend: str = "stable"
+    market_name: str = "Regional APMC Mandi"
+    confidence: str = "verified_mandi"
+
+
+class CropItemOut(BaseModel):
+    name: str
+    category: str
+    telugu: str
+    hindi: str
+    icon: str
+    default_unit: str
+    min_price: float
+    max_price: float
+    varieties: List[str] = []
+
+
+class CropAssistRequest(BaseModel):
+    text: str
+    language: Optional[str] = "en"
+    role: Optional[str] = "farmer"
+
+
+class CropAssistResponse(BaseModel):
+    detected_crop: Optional[str] = None
+    category: Optional[str] = None
+    variety: Optional[str] = None
+    quantity_amount: Optional[str] = None
+    unit: Optional[str] = None
+    price: Optional[float] = None
+    is_negotiable: bool = False
+    location: Optional[str] = None
+    quality_grade: Optional[str] = None
+    suggested_title: Optional[str] = None
+    suggested_description: Optional[str] = None
+    price_guidance: Optional[PriceGuidanceOut] = None
+    confidence_score: float = 0.95
+    is_ai_generated: bool = True
+    missing_fields: List[str] = []
+
+
+class SmartMatchItemOut(BaseModel):
+    post: PostOut
+    match_score: int
+    reasons: List[str]
+    matched_crop: str
+    distance_approx: Optional[str] = None
+
+
+class SmartMatchesResponse(BaseModel):
+    total_matches: int
+    matches: List[SmartMatchItemOut]
+
+
+class AiAdvisorRequest(BaseModel):
+    message: str
+    language: Optional[str] = "en"
+    role: Optional[str] = "farmer"
+    crop_context: Optional[str] = None
+
+
+class AiAdvisorResponse(BaseModel):
+    reply: str
+    suggested_topics: List[str] = []
+    action_prompt: Optional[str] = None
+
+
+# ---------- Reports ----------
+
+class ReportCreate(BaseModel):
+    reason: str
+    details: Optional[str] = None
+
+
+class ReportOut(BaseModel):
+    id: int
+    post_id: int
+    reporter_id: int
+    reason: str
+    details: Optional[str] = None
+    status: str
+    resolution_action: Optional[str] = None
+    resolution_notes: Optional[str] = None
+    resolved_by_id: Optional[int] = None
+    resolved_at: Optional[datetime] = None
+    created_at: datetime
+
+    # Associated post metadata
+    post_title: Optional[str] = None
+    post_crop_name: Optional[str] = None
+    post_role: Optional[str] = None
+    post_status: Optional[str] = None
+    post_price: Optional[float] = None
+    post_quantity: Optional[str] = None
+    post_location: Optional[str] = None
+    post_report_count: Optional[int] = 0
+
+    # User metadata
+    post_owner_name: Optional[str] = None
+    post_owner_mobile: Optional[str] = None
+    reporter_name: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ReportResolutionRequest(BaseModel):
+    action: str  # "dismiss", "confirm_quarantine", "close_post"
+    notes: Optional[str] = None
+
+
+class AdminAuditLogOut(BaseModel):
+    id: int
+    admin_id: int
+    admin_name: Optional[str] = None
+    action: str
+    target_type: str
+    target_id: Optional[str] = None
+    details: Optional[str] = None
+    ip_address: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class AdminPasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str
+    confirm_new_password: str
+
+    @field_validator("confirm_new_password")
+    @classmethod
+    def passwords_match(cls, v, info):
+        if "new_password" in info.data and v != info.data["new_password"]:
+            raise ValueError("New passwords do not match")
+        return v
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_length(cls, v):
+        if len(v) < 8:
+            raise ValueError("New password must be at least 8 characters long")
+        return v
+

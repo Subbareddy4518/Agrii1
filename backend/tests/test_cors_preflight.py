@@ -1,5 +1,5 @@
 """
-CORS Preflight and Configuration Tests for AgriConnect API.
+CORS Preflight and Configuration Tests for AgriConnect 2.0 Backend.
 
 Verifies:
 1. Allowed origins include the production origin (https://agrii-subbu8.vercel.app).

@@ -1,5 +1,6 @@
-import { useEffect } from 'react'
+import { useEffect, lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Loader2 } from 'lucide-react'
 import Login from './pages/Login.jsx'
 import Register from './pages/Register.jsx'
 import Home from './pages/Home.jsx'
@@ -8,34 +9,45 @@ import Notifications from './pages/Notifications.jsx'
 import Profile from './pages/Profile.jsx'
 import SearchPage from './pages/SearchPage.jsx'
 import Settings from './pages/Settings.jsx'
+import MatchesPage from './pages/MatchesPage.jsx'
 import Splash from './pages/Splash.jsx'
 import Welcome from './pages/Welcome.jsx'
 import LanguageSelect from './pages/LanguageSelect.jsx'
+import RoleSelect from './pages/RoleSelect.jsx'
 import VoiceAssist from './pages/VoiceAssist.jsx'
 import Layout from './components/Layout.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import AdminRoute from './components/AdminRoute.jsx'
-import AdminLayout from './admin/AdminLayout.jsx'
-import AdminDashboard from './admin/pages/Dashboard.jsx'
-import AdminUsers from './admin/pages/Users.jsx'
-import AdminFarmers from './admin/pages/Farmers.jsx'
-import AdminIndustries from './admin/pages/Industries.jsx'
-import AdminPosts from './admin/pages/Posts.jsx'
-import AdminAnalytics from './admin/pages/Analytics.jsx'
-import AdminNotifications from './admin/pages/Notifications.jsx'
-import AdminSettings from './admin/pages/Settings.jsx'
 import Unauthorized from './pages/Unauthorized.jsx'
+import OfflineBanner from './components/OfflineBanner.jsx'
 import { hasSplashShownThisSession, isWelcomeSeen } from './utils/onboarding.js'
+
+// Safe code-splitting: Lazy load admin suite and heavy analytics/recharts to reduce bundle size for farmers
+const AdminLayout = lazy(() => import('./admin/AdminLayout.jsx'))
+const AdminDashboard = lazy(() => import('./admin/pages/Dashboard.jsx'))
+const AdminUsers = lazy(() => import('./admin/pages/Users.jsx'))
+const AdminFarmers = lazy(() => import('./admin/pages/Farmers.jsx'))
+const AdminIndustries = lazy(() => import('./admin/pages/Industries.jsx'))
+const AdminPosts = lazy(() => import('./admin/pages/Posts.jsx'))
+const AdminReports = lazy(() => import('./admin/pages/Reports.jsx'))
+const AdminAnalytics = lazy(() => import('./admin/pages/Analytics.jsx'))
+const AdminNotifications = lazy(() => import('./admin/pages/Notifications.jsx'))
+const AdminSettings = lazy(() => import('./admin/pages/Settings.jsx'))
+
+function AdminSuspenseFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-cloud-50 text-forest-700">
+      <Loader2 className="animate-spin" size={28} />
+    </div>
+  )
+}
 
 /**
  * Onboarding gate: on the very first load of the app (path "/"), a
- * first-time visitor is sent through Splash → Welcome → Language →
- * Voice before ever reaching Login/Home. Returning visitors who have
- * already completed onboarding (welcomeSeen === true) are left alone
- * and fall straight through to the existing protected routes below —
- * this effect only ever *adds* a redirect, it never runs again after
- * the initial mount, so it cannot interfere with normal in-app
- * navigation, deep links, or the existing Login/Register/Home flow.
+ * first-time visitor is sent through Splash → Language → Welcome →
+ * Voice → Registration. Returning visitors who have already completed
+ * onboarding (welcomeSeen === true) are left alone and fall straight
+ * through to the existing protected routes below.
  */
 function useOnboardingGate() {
   const location = useLocation()
@@ -57,10 +69,13 @@ export default function App() {
   useOnboardingGate()
 
   return (
-    <Routes>
+    <>
+      <OfflineBanner />
+      <Routes>
       <Route path="/splash" element={<Splash />} />
       <Route path="/welcome" element={<Welcome />} />
       <Route path="/language" element={<LanguageSelect />} />
+      <Route path="/role" element={<RoleSelect />} />
       <Route path="/voice" element={<VoiceAssist />} />
 
       <Route path="/login" element={<Login />} />
@@ -70,18 +85,21 @@ export default function App() {
       <Route
         element={
           <AdminRoute>
-            <AdminLayout />
+            <Suspense fallback={<AdminSuspenseFallback />}>
+              <AdminLayout />
+            </Suspense>
           </AdminRoute>
         }
       >
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/admin/users" element={<AdminUsers />} />
-        <Route path="/admin/farmers" element={<AdminFarmers />} />
-        <Route path="/admin/industries" element={<AdminIndustries />} />
-        <Route path="/admin/posts" element={<AdminPosts />} />
-        <Route path="/admin/analytics" element={<AdminAnalytics />} />
-        <Route path="/admin/notifications" element={<AdminNotifications />} />
-        <Route path="/admin/settings" element={<AdminSettings />} />
+        <Route path="/admin" element={<Suspense fallback={<AdminSuspenseFallback />}><AdminDashboard /></Suspense>} />
+        <Route path="/admin/users" element={<Suspense fallback={<AdminSuspenseFallback />}><AdminUsers /></Suspense>} />
+        <Route path="/admin/farmers" element={<Suspense fallback={<AdminSuspenseFallback />}><AdminFarmers /></Suspense>} />
+        <Route path="/admin/industries" element={<Suspense fallback={<AdminSuspenseFallback />}><AdminIndustries /></Suspense>} />
+        <Route path="/admin/posts" element={<Suspense fallback={<AdminSuspenseFallback />}><AdminPosts /></Suspense>} />
+        <Route path="/admin/reports" element={<Suspense fallback={<AdminSuspenseFallback />}><AdminReports /></Suspense>} />
+        <Route path="/admin/analytics" element={<Suspense fallback={<AdminSuspenseFallback />}><AdminAnalytics /></Suspense>} />
+        <Route path="/admin/notifications" element={<Suspense fallback={<AdminSuspenseFallback />}><AdminNotifications /></Suspense>} />
+        <Route path="/admin/settings" element={<Suspense fallback={<AdminSuspenseFallback />}><AdminSettings /></Suspense>} />
       </Route>
 
       <Route
@@ -92,6 +110,7 @@ export default function App() {
         }
       >
         <Route path="/" element={<Home />} />
+        <Route path="/matches" element={<MatchesPage />} />
         <Route path="/post" element={<CreatePost />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/profile" element={<Profile />} />
@@ -101,5 +120,6 @@ export default function App() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+  </>
   )
 }

@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 import models
 import schemas
+import trust
 from database import get_db
 from auth import get_current_user
 
@@ -12,6 +13,8 @@ router = APIRouter(prefix="/api/users", tags=["users"])
 
 @router.get("/me", response_model=schemas.UserOut)
 def get_me(db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+    user.trust_score = trust.calculate_trust_score(user, db)
+    db.commit()
     out = schemas.UserOut.model_validate(user)
     out.posts_count = len(user.posts)
     return out
@@ -25,6 +28,7 @@ def update_me(
 ):
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(user, field, value)
+    user.trust_score = trust.calculate_trust_score(user, db)
     db.commit()
     db.refresh(user)
     out = schemas.UserOut.model_validate(user)

@@ -44,6 +44,14 @@ const CROP_KEYS = {
   mangos: 'mango',
   sugarcane: 'sugarcane',
   'sugar cane': 'sugarcane',
+  'red gram': 'redGram',
+  toor: 'redGram',
+  tur: 'redGram',
+  kandulu: 'redGram',
+  turmeric: 'turmeric',
+  pasupu: 'turmeric',
+  haldi: 'turmeric',
+  soybean: 'soybean',
 }
 
 const UNIT_KEYS = {
@@ -63,11 +71,26 @@ const UNIT_KEYS = {
   bundles: 'bundle',
 }
 
-const CATEGORY_KEYS = {
-  crop: 'crop',
-  crops: 'crop',
-  requirement: 'requirement',
-  requirements: 'requirement',
+const AGRI_CATEGORY_KEYS = {
+  all: 'all',
+  cereals: 'cereals',
+  cereal: 'cereals',
+  vegetables: 'vegetables',
+  vegetable: 'vegetables',
+  spices: 'spices',
+  spice: 'spices',
+  'cash crops': 'cashCrops',
+  'cash crop': 'cashCrops',
+  pulses: 'pulses',
+  pulse: 'pulses',
+  fruits: 'fruits',
+  fruit: 'fruits',
+}
+
+export function translateAgriCategory(t, category) {
+  if (!category) return category
+  const key = AGRI_CATEGORY_KEYS[normalize(category)]
+  return key ? t(`agriCategories.${key}`) : category
 }
 
 const ROLE_KEYS = {
@@ -129,4 +152,95 @@ export function translateRole(t, role) {
 export function translatePostStatus(t, status) {
   const key = STATUS_KEYS[normalize(status)]
   return key ? t(`postStatus.${key}`) : status
+}
+
+const MATCH_REASON_PATTERNS = [
+  {
+    regex: /^Direct crop match for (.+)$/i,
+    format: (t, [, crop]) => t('matches.reasons.directCrop', { crop: translateCropName(t, crop) }),
+  },
+  {
+    regex: /^Price matched: Buyer offer \(₹([\d.,]+)\) meets your asking price \(₹([\d.,]+)\)$/i,
+    format: (t, [, offer, asking]) => t('matches.reasons.priceMetFarmer', { offer, asking }),
+  },
+  {
+    regex: /^Price negotiable: Buyer budget \(₹([\d.,]+)\) close to your rate \(₹([\d.,]+)\)$/i,
+    format: (t, [, offer, asking]) => t('matches.reasons.priceCloseFarmer', { offer, asking }),
+  },
+  {
+    regex: /^Buyer offer is ₹([\d.,]+) below your asking price \(₹([\d.,]+)\)$/i,
+    format: (t, [, diff, asking]) => t('matches.reasons.priceBelowFarmer', { diff, asking }),
+  },
+  {
+    regex: /^Within (?:your )?budget: Farmer rate \(₹([\d.,]+)\) (?:is within your budget|meets your requirement budget) \(₹([\d.,]+)\)$/i,
+    format: (t, [, rate, budget]) => t('matches.reasons.priceMetIndustry', { rate, budget }),
+  },
+  {
+    regex: /^(?:Close to budget|Slightly above your budget – negotiation may be possible): Farmer asking ₹([\d.,]+) vs your budget ₹([\d.,]+)$/i,
+    format: (t, [, asking, budget]) => t('matches.reasons.priceCloseIndustry', { asking, budget }),
+  },
+  {
+    regex: /^Exceeds your budget by ₹([\d.,]+): Farmer asking ₹([\d.,]+) vs your budget ₹([\d.,]+)$/i,
+    format: (t, [, diff, asking, budget]) => t('matches.reasons.priceExceedsIndustry', { diff, asking, budget }),
+  },
+  {
+    regex: /^Volume compatibility: (?:Buyer needs|Farmer has) (.+?)(?: available)?$/i,
+    format: (t, [, qty]) => t('matches.reasons.volumeBuyer', { qty: translateUnit(t, qty) }),
+  },
+  {
+    regex: /^Delivery requirement: (?:Needed by )?(.+)$/i,
+    format: (t, [, del]) => t('matches.reasons.deliveryReq', { delivery: del }),
+  },
+  {
+    regex: /^Delivery timeline: Available (.+)$/i,
+    format: (t, [, del]) => t('matches.reasons.deliveryTimeline', { delivery: del }),
+  },
+  {
+    regex: /^Open to all sourcing regions$/i,
+    format: (t) => t('matches.reasons.openSourcingRegions'),
+  },
+  {
+    regex: /^Active listing for high-demand (.+)$/i,
+    format: (t, [, crop]) => t('matches.reasons.activeDemand', { crop: translateCropName(t, crop) }),
+  },
+  {
+    regex: /^Same district\/region: (.+)$/i,
+    format: (t, [, loc]) => t('matches.reasons.sameDistrict', { location: loc }),
+  },
+  {
+    regex: /^Located in: (.+)$/i,
+    format: (t, [, loc]) => t('matches.reasons.locatedIn', { location: loc }),
+  },
+  {
+    regex: /^Direct Call and WhatsApp verified$/i,
+    format: (t) => t('matches.reasons.directContact'),
+  },
+]
+
+/** Translates an explainable SmartMatch reason string into user's selected language. */
+export function translateMatchReason(t, reason) {
+  if (!reason || typeof reason !== 'string') return reason
+  for (const { regex, format } of MATCH_REASON_PATTERNS) {
+    const match = reason.match(regex)
+    if (match) {
+      return format(t, match)
+    }
+  }
+  return reason
+}
+
+/** Translates an approximate distance badge string (Nearby / Regional / Open). */
+export function translateDistance(t, dist) {
+  if (!dist || typeof dist !== 'string') return dist
+  const cleaned = dist.toLowerCase().trim()
+  if (cleaned.includes('nearby') || cleaned.includes('< 50')) {
+    return t('matches.distance.nearby', 'Nearby (< 50 km)')
+  }
+  if (cleaned.includes('regional')) {
+    return t('matches.distance.regional', 'Regional')
+  }
+  if (cleaned.includes('open') || cleaned.includes('any')) {
+    return t('matches.distance.open', 'Any Region')
+  }
+  return dist
 }

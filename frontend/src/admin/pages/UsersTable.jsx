@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Search, Eye, Ban, CheckCircle, Users as UsersIcon } from 'lucide-react'
+import { Search, Eye, Ban, CheckCircle, ShieldCheck, Users as UsersIcon } from 'lucide-react'
 import toast from 'react-hot-toast'
 import AdminTopBar from '../AdminTopBar.jsx'
 import StatusBadge from '../components/StatusBadge.jsx'
@@ -9,7 +9,7 @@ import Pagination from '../components/Pagination.jsx'
 import ConfirmDialog from '../components/ConfirmDialog.jsx'
 import Drawer from '../components/Drawer.jsx'
 import EmptyState from '../../components/EmptyState.jsx'
-import { getAdminUsers, setAdminUserStatus } from '../../services/api.js'
+import { getAdminUsers, setAdminUserStatus, revealAdminUserMobile } from '../../services/api.js'
 
 const PAGE_SIZE = 10
 
@@ -72,6 +72,22 @@ export default function UsersTable({ fixedRole, titleKey }) {
     }
   }
 
+  async function handleRevealMobile(userId) {
+    try {
+      const res = await revealAdminUserMobile(userId)
+      const fullMobile = res.data.mobile
+      setItems((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, mobile: fullMobile, isUnmasked: true } : u))
+      )
+      if (selected && selected.id === userId) {
+        setSelected((prev) => ({ ...prev, mobile: fullMobile, isUnmasked: true }))
+      }
+      toast.success(t('admin.users.mobileRevealed', 'Mobile number revealed and logged to audit trail'))
+    } catch {
+      toast.error(t('admin.users.revealError', 'Failed to reveal mobile number'))
+    }
+  }
+
   return (
     <div>
       <AdminTopBar title={t(titleKey)} onMenuClick={openSidebar} />
@@ -125,6 +141,7 @@ export default function UsersTable({ fixedRole, titleKey }) {
                     <th className="px-4 sm:px-5 py-3 font-medium">{t('admin.users.colName')}</th>
                     {!fixedRole && <th className="px-4 py-3 font-medium">{t('admin.users.colRole')}</th>}
                     <th className="px-4 py-3 font-medium">{t('admin.users.colMobile')}</th>
+                    <th className="px-4 py-3 font-medium">{t('admin.users.colTrust', 'Trust & Verification')}</th>
                     <th className="px-4 py-3 font-medium">{t('admin.users.colLocation')}</th>
                     <th className="px-4 py-3 font-medium">{t('admin.users.colRegistered')}</th>
                     <th className="px-4 py-3 font-medium">{t('admin.users.colStatus')}</th>
@@ -138,9 +155,39 @@ export default function UsersTable({ fixedRole, titleKey }) {
                       {!fixedRole && (
                         <td className="px-4 py-3 capitalize text-forest-900/70">{u.role}</td>
                       )}
-                      <td className="px-4 py-3 text-forest-900/70">{u.mobile}</td>
+                      <td className="px-4 py-3 text-forest-900/70 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5 font-mono text-xs">
+                          <span>{u.mobile}</span>
+                          {!u.isUnmasked && (
+                            <button
+                              onClick={() => handleRevealMobile(u.id)}
+                              title={t('admin.users.revealPhone', 'Reveal full mobile number (logged to audit)')}
+                              className="p-1 rounded text-forest-600 hover:bg-forest-50 hover:text-forest-800 transition-colors"
+                            >
+                              <Eye size={13} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {u.is_verified ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <CheckCircle size={11} />
+                              {t('admin.users.phoneVerified', 'Phone Verified')}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-cloud-100 text-forest-900/60">
+                              {t('admin.users.phoneUnverified', 'Unverified Phone')}
+                            </span>
+                          )}
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                            ★ {u.trust_score || 100}
+                          </span>
+                        </div>
+                      </td>
                       <td className="px-4 py-3 text-forest-900/70">{u.location || t('common.notSet')}</td>
-                      <td className="px-4 py-3 text-forest-900/70">
+                      <td className="px-4 py-3 text-forest-900/70 whitespace-nowrap">
                         {new Date(u.created_at).toLocaleDateString()}
                       </td>
                       <td className="px-4 py-3"><StatusBadge status={u.status} /></td>
@@ -199,7 +246,43 @@ export default function UsersTable({ fixedRole, titleKey }) {
               {selected.contact_person && (
                 <Row label={t('admin.industries.colContact')} value={selected.contact_person} />
               )}
-              <Row label={t('admin.users.colMobile')} value={selected.mobile} />
+              <Row
+                label={t('admin.users.colMobile')}
+                value={
+                  <div className="flex items-center gap-1.5 font-mono">
+                    <span>{selected.mobile}</span>
+                    {!selected.isUnmasked && (
+                      <button
+                        onClick={() => handleRevealMobile(selected.id)}
+                        title={t('admin.users.revealPhone', 'Reveal full mobile number')}
+                        className="p-1 rounded text-forest-600 hover:bg-forest-50"
+                      >
+                        <Eye size={13} />
+                      </button>
+                    )}
+                  </div>
+                }
+              />
+              <Row
+                label={t('admin.users.colTrust', 'Trust & Verification')}
+                value={
+                  <div className="flex items-center gap-1.5 justify-end">
+                    {selected.is_verified ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <CheckCircle size={12} />
+                        {t('admin.users.phoneVerified', 'Phone Verified')}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-cloud-100 text-forest-900/60">
+                        {t('admin.users.phoneUnverified', 'Unverified Phone')}
+                      </span>
+                    )}
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                      ★ {selected.trust_score || 100}
+                    </span>
+                  </div>
+                }
+              />
               <Row label={t('admin.users.colLocation')} value={selected.location || t('common.notSet')} />
               <Row label={t('admin.users.colRegistered')} value={new Date(selected.created_at).toLocaleString()} />
               <Row label={t('admin.posts.colOwnerPosts')} value={selected.posts_count} />

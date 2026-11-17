@@ -32,8 +32,19 @@ class StatusEnum(str, enum.Enum):
 
 
 class PostStatusEnum(str, enum.Enum):
+    draft = "draft"
     active = "active"
+    paused = "paused"
+    sold = "sold"
+    archived = "archived"
     closed = "closed"
+
+
+class NegotiationStatusEnum(str, enum.Enum):
+    none = "none"
+    in_negotiation = "in_negotiation"
+    offer_pending = "offer_pending"
+    deal_agreed = "deal_agreed"
 
 
 class User(Base):
@@ -54,8 +65,11 @@ class User(Base):
     # Stored as a plain string (not Enum) so it can be added to the existing
     # sqlite database with a simple ALTER TABLE (see database.py run_migrations).
     status = Column(String, nullable=False, default=StatusEnum.active.value, server_default=StatusEnum.active.value)
+    is_verified = Column(Boolean, nullable=False, default=False, server_default="0")
+    trust_score = Column(Integer, nullable=False, default=100, server_default="100")
 
     created_at = Column(DateTime, default=datetime.utcnow)
+    token_version = Column(Integer, nullable=False, default=1, server_default="1")
 
     posts = relationship("Post", back_populates="owner", cascade="all, delete-orphan")
 
@@ -71,8 +85,12 @@ class Post(Base):
     title = Column(String, nullable=False)
     description = Column(Text, nullable=True)
     crop_name = Column(String, nullable=False, index=True)
+    category = Column(String, nullable=True, index=True)        # Cereals, Vegetables, Spices, Cash Crops, Pulses, Fruits
+    variety = Column(String, nullable=True)                     # e.g. Sona Masoori, Teja, BT Cotton
+    quality_grade = Column(String, nullable=True)               # Grade A, Grade B, Organic
     quantity = Column(String, nullable=True)
     price = Column(Float, nullable=True)
+    is_negotiable = Column(Boolean, nullable=False, default=False, server_default="0")
     location = Column(String, nullable=True, index=True)
     image = Column(String, nullable=True)
 
@@ -80,18 +98,20 @@ class Post(Base):
     target_date = Column(String, nullable=True)
 
     likes_count = Column(Integer, default=0)
+    report_count = Column(Integer, default=0, server_default="0")
 
-    # "active" | "closed" — set by the post owner is not currently supported
-    # anywhere in the app, but the admin dashboard can close a post (e.g. to
-    # hide inappropriate or stale content) without deleting it. Existing rows
-    # get this column added via a migration (see database.py) and default to
-    # "active" so current behavior is unchanged.
-    status = Column(String, nullable=False, default=PostStatusEnum.active.value, server_default=PostStatusEnum.active.value)
+    # Controlled Listing Lifecycle & Negotiation State
+    status = Column(String, nullable=False, default=PostStatusEnum.active.value, server_default=PostStatusEnum.active.value, index=True)
+    negotiation_status = Column(String, nullable=False, default=NegotiationStatusEnum.none.value, server_default=NegotiationStatusEnum.none.value, index=True)
+    sold_price = Column(Float, nullable=True)
+    sold_quantity = Column(String, nullable=True)
+    sold_at = Column(DateTime, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
     owner = relationship("User", back_populates="posts")
     likes = relationship("Like", back_populates="post", cascade="all, delete-orphan")
+    status_history = relationship("PostStatusHistory", back_populates="post", cascade="all, delete-orphan", order_by="PostStatusHistory.created_at.desc()")
 
 
 class Like(Base):
@@ -114,3 +134,54 @@ class Notification(Base):
     message = Column(String, nullable=False)
     is_read = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class Report(Base):
+    __tablename__ = "reports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    post_id = Column(Integer, ForeignKey("posts.id"), nullable=False, index=True)
+    reporter_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    reason = Column(String, nullable=False)
+    details = Column(Text, nullable=True)
+    status = Column(String, nullable=False, default="pending", server_default="pending")
+    resolution_action = Column(String, nullable=True)
+    resolution_notes = Column(Text, nullable=True)
+    resolved_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    resolved_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    post = relationship("Post")
+    reporter = relationship("User", foreign_keys=[reporter_id])
+    resolved_by = relationship("User", foreign_keys=[resolved_by_id])
+
+
+class PostStatusHistory(Base):
+    __tablename__ = "post_status_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    post_id = Column(Integer, ForeignKey("posts.id", ondelete="CASCADE"), nullable=False, index=True)
+    changed_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    from_status = Column(String, nullable=True)
+    to_status = Column(String, nullable=False)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    post = relationship("Post", back_populates="status_history")
+    changed_by = relationship("User")
+
+
+class AdminAuditLog(Base):
+    __tablename__ = "admin_audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    admin_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    action = Column(String, nullable=False, index=True)
+    target_type = Column(String, nullable=False, index=True)
+    target_id = Column(String, nullable=True)
+    details = Column(Text, nullable=True)
+    ip_address = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    admin = relationship("User", foreign_keys=[admin_id])
+

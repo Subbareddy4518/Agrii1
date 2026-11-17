@@ -1,12 +1,13 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { Sprout, Building2, Loader2, ArrowLeft } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Sprout, Building2, Loader2, ArrowLeft, Eye, EyeOff } from 'lucide-react'
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { useTranslation } from 'react-i18next'
 import { registerUser } from '../services/api.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import ImagePicker from '../components/ImagePicker.jsx'
+import { markWelcomeSeen } from '../utils/onboarding.js'
 
 const inputCls =
   'w-full px-4 py-3.5 rounded-2xl border border-cloud-200 bg-cloud-50 focus:bg-white focus:border-forest-400 focus:ring-4 focus:ring-forest-100 outline-none transition-all text-[15px]'
@@ -14,12 +15,26 @@ const labelCls = 'text-sm font-medium text-forest-950 mb-1.5 block'
 
 export default function Register() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { login } = useAuth()
   const { t } = useTranslation()
-  const [step, setStep] = useState(1) // 1 = choose role, 2 = fill form
-  const [role, setRole] = useState(null)
+
+  const roleParam = searchParams.get('role')
+  const initialRole = roleParam === 'industry' ? 'industry' : (roleParam === 'farmer' ? 'farmer' : null)
+
+  const [step, setStep] = useState(initialRole ? 2 : 1) // 1 = choose role, 2 = fill form
+  const [role, setRole] = useState(initialRole || 'farmer')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+
+  useEffect(() => {
+    if (roleParam === 'industry' || roleParam === 'farmer') {
+      setRole(roleParam)
+      setStep(2)
+    }
+  }, [roleParam])
 
   const [form, setForm] = useState({
     name: '',
@@ -62,6 +77,7 @@ export default function Register() {
         location: form.location.trim() || null,
         profile_image: form.profile_image,
       })
+      markWelcomeSeen()
       login(res.data.access_token, res.data.user)
       toast.success(t('auth.register.successToast'))
       navigate('/', { replace: true })
@@ -98,7 +114,7 @@ export default function Register() {
             <button
               onClick={() => chooseRole('farmer')}
               aria-label={t('auth.register.farmerAria')}
-              className="w-full bg-white rounded-3xl p-5 flex items-center gap-4 shadow-float active:scale-[0.98] transition-transform text-left focus:outline-none focus:ring-4 focus:ring-forest-600/30"
+              className="w-full bg-white rounded-3xl p-5 min-h-[72px] flex items-center gap-4 shadow-float active:scale-[0.98] transition-transform text-left border-2 border-transparent hover:border-forest-300 focus:outline-none focus:ring-4 focus:ring-forest-600/30"
             >
               <div className="w-14 h-14 rounded-2xl bg-forest-100 flex items-center justify-center shrink-0">
                 <Sprout size={26} className="text-forest-700" />
@@ -112,7 +128,7 @@ export default function Register() {
             <button
               onClick={() => chooseRole('industry')}
               aria-label={t('auth.register.industryAria')}
-              className="w-full bg-white rounded-3xl p-5 flex items-center gap-4 shadow-float active:scale-[0.98] transition-transform text-left focus:outline-none focus:ring-4 focus:ring-forest-600/30"
+              className="w-full bg-white rounded-3xl p-5 min-h-[72px] flex items-center gap-4 shadow-float active:scale-[0.98] transition-transform text-left border-2 border-transparent hover:border-harvest-300 focus:outline-none focus:ring-4 focus:ring-forest-600/30"
             >
               <div className="w-14 h-14 rounded-2xl bg-harvest-400/20 flex items-center justify-center shrink-0">
                 <Building2 size={26} className="text-harvest-600" />
@@ -143,13 +159,32 @@ export default function Register() {
   return (
     <div className="min-h-screen bg-cloud-50 px-6 py-8">
       <div className="max-w-sm mx-auto w-full">
-        <button
-          onClick={() => setStep(1)}
-          aria-label={t('auth.register.backAria')}
-          className="flex items-center gap-1.5 text-forest-700 font-medium mb-6 focus:outline-none focus:ring-2 focus:ring-forest-200 rounded-lg"
-        >
-          <ArrowLeft size={18} /> {t('auth.register.back')}
-        </button>
+        <div className="flex items-center justify-between mb-4">
+          <button
+            onClick={() => navigate('/role')}
+            aria-label={t('auth.register.backAria')}
+            className="min-h-[44px] inline-flex items-center gap-1.5 text-forest-700 font-semibold px-2 -ml-2 rounded-xl hover:bg-forest-100/50 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-forest-200"
+          >
+            <ArrowLeft size={18} /> {t('auth.register.back')}
+          </button>
+          <Link
+            to="/role"
+            className="text-xs font-semibold px-3 py-1.5 rounded-full bg-forest-100 text-forest-800 hover:bg-forest-200 flex items-center gap-1.5 transition-all"
+          >
+            {role === 'farmer' ? (
+              <>
+                <Sprout size={13} className="text-forest-700" />
+                <span>{t('auth.register.farmerLabel')}</span>
+              </>
+            ) : (
+              <>
+                <Building2 size={13} className="text-amber-700" />
+                <span>{t('auth.register.industryLabel')}</span>
+              </>
+            )}
+            <span className="text-forest-600 underline ml-0.5">{t('common.edit', 'Change')}</span>
+          </Link>
+        </div>
 
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -234,30 +269,50 @@ export default function Register() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label htmlFor="reg-password" className={labelCls}>{t('auth.register.passwordLabel')}</label>
-              <input
-                id="reg-password"
-                type="password"
-                className={inputCls}
-                value={form.password}
-                onChange={(e) => update('password', e.target.value)}
-                placeholder={t('auth.register.passwordPlaceholder')}
-                aria-label={t('auth.register.passwordLabel')}
-              />
+              <div className="relative">
+                <input
+                  id="reg-password"
+                  type={showPassword ? 'text' : 'password'}
+                  className={`${inputCls} pr-11`}
+                  value={form.password}
+                  onChange={(e) => update('password', e.target.value)}
+                  placeholder={t('auth.register.passwordPlaceholder')}
+                  aria-label={t('auth.register.passwordLabel')}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((s) => !s)}
+                  aria-label={showPassword ? t('auth.login.hidePassword', 'Hide password') : t('auth.login.showPassword', 'Show password')}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-forest-400 hover:text-forest-700 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-forest-200 rounded-xl"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
             <div>
               <label htmlFor="reg-confirm" className={labelCls}>{t('auth.register.confirmLabel')}</label>
-              <input
-                id="reg-confirm"
-                type="password"
-                className={inputCls}
-                value={form.confirm_password}
-                onChange={(e) => update('confirm_password', e.target.value)}
-                placeholder={t('auth.register.confirmPlaceholder')}
-                aria-label={t('auth.register.confirmLabel')}
-              />
+              <div className="relative">
+                <input
+                  id="reg-confirm"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  className={`${inputCls} pr-11`}
+                  value={form.confirm_password}
+                  onChange={(e) => update('confirm_password', e.target.value)}
+                  placeholder={t('auth.register.confirmPlaceholder')}
+                  aria-label={t('auth.register.confirmLabel')}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((s) => !s)}
+                  aria-label={showConfirmPassword ? t('auth.login.hidePassword', 'Hide password') : t('auth.login.showPassword', 'Show password')}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-forest-400 hover:text-forest-700 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-forest-200 rounded-xl"
+                >
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -267,10 +322,17 @@ export default function Register() {
             type="submit"
             disabled={loading}
             aria-label={t('auth.register.createAccountAria')}
-            className="w-full bg-forest-700 hover:bg-forest-800 text-white font-semibold py-3.5 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-70 mt-2 focus:outline-none focus:ring-4 focus:ring-forest-600/40"
+            className="w-full bg-forest-700 hover:bg-forest-800 text-white font-semibold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-70 mt-3 min-h-[48px] focus:outline-none focus:ring-4 focus:ring-forest-600/40"
           >
             {loading ? <Loader2 className="animate-spin" size={20} /> : t('auth.register.createAccount')}
           </button>
+
+          <p className="text-center text-forest-900/60 text-sm mt-4">
+            {t('auth.register.alreadyHave')}{' '}
+            <Link to="/login" className="text-forest-700 font-semibold underline underline-offset-2 hover:text-forest-900 focus:outline-none focus:ring-2 focus:ring-forest-300 rounded">
+              {t('auth.register.signIn')}
+            </Link>
+          </p>
         </motion.form>
       </div>
     </div>

@@ -10,16 +10,21 @@ Render:
 """
 
 import os
+from dotenv import load_dotenv
+
+# Load local environment configuration from .env (gitignored)
+load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
-from database import engine, Base, run_migrations, SessionLocal
+from database import engine, Base, run_migrations, SessionLocal, reset_db_connections
 import models
 from auth import hash_password
-from routers import auth, posts, notifications, users, admin
+from routers import auth, posts, notifications, users, admin, ai_services, matching, reports
 
 
 # ============================================================
@@ -89,25 +94,33 @@ def setup_admin_from_environment():
 
             if existing_user.role == models.RoleEnum.admin:
 
-                existing_user.name = admin_name
-                existing_user.hashed_password = hash_password(
-                    admin_password
-                )
+                if admin_name and existing_user.name != admin_name:
+                    existing_user.name = admin_name
+
+                # Check if an explicit emergency reset is requested via environment variable
+                force_reset = os.getenv("FORCE_ADMIN_PASSWORD_RESET", "").lower() in ("true", "1", "yes")
+                if force_reset or not existing_user.hashed_password:
+                    existing_user.hashed_password = hash_password(
+                        admin_password
+                    )
+                    print(
+                        f"Admin password reset from environment for '{admin_name}'."
+                    )
+                else:
+                    # Preserve password updated via Admin Settings across restarts
+                    print(
+                        f"Admin account already exists for '{admin_name}'. Preserving existing password across restart."
+                    )
+
                 existing_user.status = (
                     models.StatusEnum.active.value
                 )
 
                 db.commit()
 
-                print(
-                    f"Admin account updated successfully. "
-                    f"Mobile: {admin_mobile}"
-                )
-
             else:
                 print(
-                    f"ERROR: Mobile {admin_mobile} already belongs "
-                    f"to a non-admin account."
+                    "ERROR: Configured ADMIN_MOBILE already belongs to a non-admin account."
                 )
 
         # ----------------------------------------------------
@@ -132,8 +145,7 @@ def setup_admin_from_environment():
             db.commit()
 
             print(
-                f"Admin account created successfully. "
-                f"Mobile: {admin_mobile}"
+                f"Admin account created successfully for '{admin_name}'."
             )
 
     except Exception as error:
@@ -150,6 +162,9 @@ def setup_admin_from_environment():
 
 # Run admin setup only when the application starts.
 setup_admin_from_environment()
+
+# Dispose of startup connections so worker pool starts fresh for incoming requests.
+reset_db_connections()
 
 
 # ============================================================
@@ -217,6 +232,9 @@ app.include_router(posts.router)
 app.include_router(notifications.router)
 app.include_router(users.router)
 app.include_router(admin.router)
+app.include_router(ai_services.router)
+app.include_router(matching.router)
+app.include_router(reports.router)
 
 
 # ============================================================

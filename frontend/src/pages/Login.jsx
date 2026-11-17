@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 import { useTranslation } from 'react-i18next'
 import { loginUser } from '../services/api.js'
 import { useAuth } from '../context/AuthContext.jsx'
+import { markWelcomeSeen } from '../utils/onboarding.js'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -31,6 +32,7 @@ export default function Login() {
     setLoading(true)
     try {
       const res = await loginUser({ mobile, password })
+      markWelcomeSeen()
       login(res.data.access_token, res.data.user)
       toast.success(t('auth.login.welcomeToast', { name: res.data.user.name.split(' ')[0] }))
       navigate(res.data.user.role === 'admin' ? '/admin' : '/', { replace: true })
@@ -100,7 +102,7 @@ export default function Login() {
                 type="button"
                 onClick={() => setShowPassword((s) => !s)}
                 aria-label={showPassword ? t('auth.login.hidePassword') : t('auth.login.showPassword')}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-forest-400 focus:outline-none focus:ring-2 focus:ring-forest-200 rounded-lg"
+                className="absolute right-1 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-forest-400 hover:text-forest-700 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-forest-200 rounded-xl"
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -115,7 +117,7 @@ export default function Login() {
             type="submit"
             disabled={loading}
             aria-label={t('auth.login.signInAria')}
-            className="w-full bg-forest-700 hover:bg-forest-800 text-white font-semibold py-3.5 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-70 focus:outline-none focus:ring-4 focus:ring-forest-600/40"
+            className="w-full bg-forest-700 hover:bg-forest-800 text-white font-semibold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-70 min-h-[48px] focus:outline-none focus:ring-4 focus:ring-forest-600/40"
           >
             {loading ? <Loader2 className="animate-spin" size={20} /> : t('auth.login.signIn')}
           </button>
@@ -128,7 +130,7 @@ export default function Login() {
           className="text-center text-forest-200/80 text-sm mt-6"
         >
           {t('auth.login.newHere')}{' '}
-          <Link to="/register" className="text-white font-semibold underline underline-offset-2 focus:outline-none focus:ring-2 focus:ring-white/40 rounded">
+          <Link to="/role" className="text-white font-semibold underline underline-offset-2 focus:outline-none focus:ring-2 focus:ring-white/40 rounded">
             {t('auth.login.createAccount')}
           </Link>
         </motion.p>
