@@ -13,7 +13,7 @@ import enum
 from datetime import datetime
 
 from sqlalchemy import (
-    Column, Integer, String, Text, Float, DateTime, ForeignKey, Boolean, Enum
+    Column, Integer, String, Text, Float, DateTime, ForeignKey, Boolean, Enum, text
 )
 from sqlalchemy.orm import relationship
 
@@ -65,7 +65,7 @@ class User(Base):
     # Stored as a plain string (not Enum) so it can be added to the existing
     # sqlite database with a simple ALTER TABLE (see database.py run_migrations).
     status = Column(String, nullable=False, default=StatusEnum.active.value, server_default=StatusEnum.active.value)
-    is_verified = Column(Boolean, nullable=False, default=False, server_default="0")
+    is_verified = Column(Boolean, nullable=False, default=False, server_default=text("false"))
     trust_score = Column(Integer, nullable=False, default=100, server_default="100")
 
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -90,7 +90,7 @@ class Post(Base):
     quality_grade = Column(String, nullable=True)               # Grade A, Grade B, Organic
     quantity = Column(String, nullable=True)
     price = Column(Float, nullable=True)
-    is_negotiable = Column(Boolean, nullable=False, default=False, server_default="0")
+    is_negotiable = Column(Boolean, nullable=False, default=False, server_default=text("false"))
     location = Column(String, nullable=True, index=True)
     image = Column(String, nullable=True)
 

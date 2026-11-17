@@ -195,6 +195,7 @@ app.add_middleware(
         "https://agrii-33v0ykdl0-subbu8.vercel.app",
         "https://agrii-subbu8.vercel.app",
         "https://agrii-git-release-v20-subbu8.vercel.app",
+        "https://agrii-gyrfoniqz-subbu8.vercel.app",
     ],
 
     allow_credentials=True,

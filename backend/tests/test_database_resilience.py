@@ -267,6 +267,75 @@ class TestDatabaseConnectionResilience(unittest.TestCase):
                 except Exception:
                     pass
 
+    def test_11_postgresql_boolean_default_ddl_compilation(self):
+        """Verify PostgreSQL DDL compiles boolean columns with DEFAULT false, not integer 0."""
+        from sqlalchemy.dialects import postgresql
+        from sqlalchemy.schema import CreateTable
+        import models
+
+        user_ddl = str(CreateTable(models.User.__table__).compile(dialect=postgresql.dialect()))
+        post_ddl = str(CreateTable(models.Post.__table__).compile(dialect=postgresql.dialect()))
+
+        # users.is_verified must have boolean default (DEFAULT false), never integer (DEFAULT '0' or DEFAULT 0)
+        self.assertIn("is_verified BOOLEAN DEFAULT false", user_ddl)
+        self.assertNotIn("is_verified BOOLEAN DEFAULT '0'", user_ddl)
+        self.assertNotIn("is_verified BOOLEAN DEFAULT 0", user_ddl)
+
+        # posts.is_negotiable must have boolean default (DEFAULT false), never integer (DEFAULT '0' or DEFAULT 0)
+        self.assertIn("is_negotiable BOOLEAN DEFAULT false", post_ddl)
+        self.assertNotIn("is_negotiable BOOLEAN DEFAULT '0'", post_ddl)
+        self.assertNotIn("is_negotiable BOOLEAN DEFAULT 0", post_ddl)
+
+    def test_12_boolean_migration_additive_compatibility(self):
+        """Verify additive migration adds is_verified and is_negotiable with boolean default."""
+        import tempfile
+        import sqlite3
+        from sqlalchemy import inspect
+        from database import run_migrations
+
+        tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+        tmp_path = tmp.name
+        tmp.close()
+
+        try:
+            # Create a legacy database where users table exists but is missing is_verified
+            con = sqlite3.connect(tmp_path)
+            con.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, status VARCHAR NOT NULL DEFAULT 'active')")
+            con.execute("CREATE TABLE posts (id INTEGER PRIMARY KEY, status VARCHAR NOT NULL DEFAULT 'active')")
+            con.commit()
+            con.close()
+
+            migration_engine = create_engine(f"sqlite:///{tmp_path}")
+            with patch("database.engine", migration_engine):
+                run_migrations()
+
+            # Verify columns were added
+            insp = inspect(migration_engine)
+            user_cols = {col["name"] for col in insp.get_columns("users")}
+            post_cols = {col["name"] for col in insp.get_columns("posts")}
+
+            self.assertIn("is_verified", user_cols)
+            self.assertIn("is_negotiable", post_cols)
+
+            # Verify inserting without is_verified / is_negotiable defaults to 0/False
+            with migration_engine.begin() as conn:
+                conn.execute(text("INSERT INTO users (id) VALUES (1)"))
+                conn.execute(text("INSERT INTO posts (id) VALUES (1)"))
+
+                user_val = conn.execute(text("SELECT is_verified FROM users WHERE id = 1")).scalar()
+                post_val = conn.execute(text("SELECT is_negotiable FROM posts WHERE id = 1")).scalar()
+
+                self.assertFalse(bool(user_val))
+                self.assertFalse(bool(post_val))
+
+            migration_engine.dispose()
+        finally:
+            if os.path.exists(tmp_path):
+                try:
+                    os.remove(tmp_path)
+                except Exception:
+                    pass
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -175,7 +175,14 @@ def run_migrations():
                     text(
                         "ALTER TABLE users "
                         "ADD COLUMN is_verified BOOLEAN "
-                        "NOT NULL DEFAULT 0"
+                        "NOT NULL DEFAULT false"
+                    )
+                )
+            elif engine.dialect.name == "postgresql":
+                conn.execute(
+                    text(
+                        "ALTER TABLE users "
+                        "ALTER COLUMN is_verified SET DEFAULT false"
                     )
                 )
 
@@ -248,7 +255,14 @@ def run_migrations():
                     text(
                         "ALTER TABLE posts "
                         "ADD COLUMN is_negotiable BOOLEAN "
-                        "NOT NULL DEFAULT 0"
+                        "NOT NULL DEFAULT false"
+                    )
+                )
+            elif engine.dialect.name == "postgresql":
+                conn.execute(
+                    text(
+                        "ALTER TABLE posts "
+                        "ALTER COLUMN is_negotiable SET DEFAULT false"
                     )
                 )
 
