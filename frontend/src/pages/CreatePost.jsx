@@ -190,7 +190,7 @@ export default function CreatePost() {
               price_unit: f.price_unit || f.unit || prev.price_unit,
               is_price_optional: Boolean(f.is_price_optional),
             }))
-            if (!isFarmer && f.crop_name && !catalog.some((c) => (c?.name || '').toLowerCase() === f.crop_name.trim().toLowerCase())) {
+            if (f.crop_name && !catalog.some((c) => (c?.name || '').toLowerCase() === f.crop_name.trim().toLowerCase())) {
               setIsCustomCropMode(true)
             }
             const maxStepAllowed = isFarmer ? 5 : 6
@@ -893,9 +893,7 @@ export default function CreatePost() {
         title={isFarmer ? t('createPost.titleFarmer', 'Post Your Crop') : t('createPost.titleIndustryPost', 'Post Purchase Requirement')}
         subtitle={
           step <= totalQuestions
-            ? isFarmer
-              ? t('createPost.guidedStepCounter', { current: step, defaultValue: `Step ${step} of 4` })
-              : `Step ${step} of 5`
+            ? t('createPost.guidedStepCounter', { current: step, total: totalQuestions })
             : t('createPost.guidedFinalReview', 'Final Review')
         }
         showSearch={false}
@@ -1000,9 +998,7 @@ export default function CreatePost() {
             <div className="bg-white rounded-3xl p-5 border border-gray-200 shadow-sm">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[#1E5E3A] bg-green-100 px-3 py-1 rounded-full">
-                  {isFarmer
-                    ? t('createPost.guidedStepCounter', { current: 1, defaultValue: 'దశ 1 / 4' })
-                    : `Step 1 / 5`}
+                  {t('createPost.guidedStepCounter', { current: 1, total: totalQuestions })}
                 </span>
                 <span className="text-xs text-gray-500 font-bold flex items-center gap-1">
                   <Volume2 size={14} className="text-[#1E5E3A]" /> {t('createPost.touchSpeaks', 'తాకినప్పుడు వినిపిస్తుంది')}
@@ -1016,36 +1012,43 @@ export default function CreatePost() {
               </h1>
               <p className="text-sm text-gray-600 mt-1">
                 {isFarmer
-                  ? t('createPost.touchToSelectCropSub', 'మీ వద్ద ఉన్న పంటను కింద ఉన్న బొమ్మలలో చూసి ఎంచుకోండి')
-                  : t('createPost.buyerStep1Sub', 'మీరు కొనాలనుకుంటున్న పంట బొమ్మను తాకి ఎంచుకోండి')}
+                  ? t('createPost.touchToSelectCropSub', 'మీ వద్ద ఉన్న పంటను కింద ఉన్న బొమ్మలలో చూసి ఎంచుకోండి లేదా పేరును నేరుగా రాయండి')
+                  : t('createPost.buyerStep1Sub', 'మీరు కొనాలనుకుంటున్న పంట బొమ్మను తాకి ఎంచుకోండి లేదా పేరు రాయండి')}
               </p>
             </div>
 
-            {/* Toggle / Manual Entry Banner (Buyers only) */}
-            {!isFarmer && (
-              <div className="flex items-center justify-between bg-white rounded-2xl p-3 border border-gray-200 shadow-xs">
-                <div className="flex items-center gap-2">
-                  <span className="text-base">{isCustomCropMode ? '✍️' : '🔍'}</span>
-                  <span className="text-xs font-bold text-gray-700">
-                    {isCustomCropMode
-                      ? t('createPost.customCropActiveLabel', 'Entering custom crop manually')
-                      : t('createPost.cantFindCrop', "Can't find your crop in the pictures?")}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsCustomCropMode(!isCustomCropMode)
-                    stopSpeaking()
-                  }}
-                  className="text-xs font-extrabold text-[#1E5E3A] hover:text-[#16482c] bg-green-50 px-3 py-1.5 rounded-xl border border-green-200 active:scale-95 cursor-pointer"
-                >
-                  {isCustomCropMode
-                    ? t('createPost.browseCatalog', '← Choose from picture catalog')
-                    : t('createPost.enterManuallyBtn', 'Enter crop manually →')}
-                </button>
-              </div>
-            )}
+            {/* Mode Selector Toggle: Picture Selection vs Manual Crop Name Entry */}
+            <div className="bg-white rounded-2xl p-1.5 border border-[#C8D9CE] shadow-xs flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCustomCropMode(false)
+                  stopSpeaking()
+                }}
+                className={`flex-1 py-2.5 px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all min-h-[44px] cursor-pointer ${
+                  !isCustomCropMode
+                    ? 'bg-[#1E5E3A] text-white shadow-xs'
+                    : 'bg-transparent text-gray-700 hover:bg-[#E8EFE8]'
+                }`}
+              >
+                <span>{t('createPost.selectFromPictures', '🖼️ Select from Pictures')}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCustomCropMode(true)
+                  stopSpeaking()
+                }}
+                className={`flex-1 py-2.5 px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all min-h-[44px] cursor-pointer ${
+                  isCustomCropMode
+                    ? 'bg-[#1E5E3A] text-white shadow-xs'
+                    : 'bg-transparent text-gray-700 hover:bg-[#E8EFE8]'
+                }`}
+              >
+                <span>{t('createPost.enterCropManually', '✍️ Type Crop Name')}</span>
+              </button>
+            </div>
 
             {/* Selected Crop Banner */}
             {form.crop_name && (
@@ -1071,28 +1074,28 @@ export default function CreatePost() {
                   onClick={() => update('crop_name', '')}
                   className="text-xs font-bold text-red-700 bg-white px-3 py-1.5 rounded-xl border border-red-200 active:scale-95 cursor-pointer"
                 >
-                  {t('createPost.editBtn', 'మార్చు')}
+                  {t('createPost.changeCropBtn', 'మార్చు')}
                 </button>
               </div>
             )}
 
-            {/* Manual Crop Entry Card (Buyers only) */}
-            {!isFarmer && isCustomCropMode && (
+            {/* Manual Crop Entry Card (Visible whenever manual mode is chosen) */}
+            {isCustomCropMode && (
               <div className="bg-white rounded-3xl p-5 border-2 border-[#1E5E3A] shadow-sm space-y-4">
                 <div>
-                  <label className="text-sm font-extrabold text-gray-900 block mb-1.5 flex items-center justify-between">
-                    <span>{t('createPost.customCropInputTitle', 'Enter Crop Name:')}</span>
-                    <span className="text-xs text-gray-500 font-normal">
-                      {t('createPost.customCropHelp', 'Any crop, fruit, vegetable, pulse, or grain')}
-                    </span>
+                  <label className="text-sm font-extrabold text-[#16472C] block mb-1.5 flex items-center justify-between">
+                    <span>{t('createPost.manualCropNameLabel', 'Enter Crop Name:')}</span>
                   </label>
+                  <p className="text-xs text-gray-500 font-normal mb-2">
+                    {t('createPost.manualCropHelp', 'Any crop, grain, pulse, fruit or vegetable (e.g. Dragon Fruit, Millets, Drumstick...)')}
+                  </p>
                   <div className="relative">
                     <input
                       type="text"
                       value={form.crop_name}
                       onChange={(e) => handleCustomCropChange(e.target.value)}
-                      placeholder={t('createPost.customCropPlaceholder', 'e.g. Dragon Fruit, Pearl Millet (Bajra), Quinoa...')}
-                      className="w-full bg-gray-50 border border-gray-300 focus:border-[#1E5E3A] focus:bg-white rounded-2xl px-4 py-3.5 text-base font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1E5E3A]"
+                      placeholder={t('createPost.manualCropPlaceholder', 'e.g. Dragon Fruit, Millets, Drumstick, Papaya...')}
+                      className="w-full bg-[#F9FAF7] border border-[#C8D9CE] focus:border-[#1E5E3A] focus:bg-white rounded-2xl px-4 py-3.5 text-base font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1E5E3A]"
                       autoFocus
                     />
                     {form.crop_name && (
@@ -1100,19 +1103,22 @@ export default function CreatePost() {
                         type="button"
                         onClick={() => update('crop_name', '')}
                         className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 font-bold p-1 cursor-pointer"
+                        aria-label="Clear crop name"
                       >
                         ✕
                       </button>
                     )}
                   </div>
                   {errors.crop_name && (
-                    <p className="text-xs text-red-600 font-semibold mt-1">{errors.crop_name}</p>
+                    <p className="text-xs text-red-600 font-semibold mt-1.5 bg-red-50 p-2 rounded-xl border border-red-200">
+                      {errors.crop_name}
+                    </p>
                   )}
                 </div>
 
                 {/* Optional Category Selector for Custom Crop */}
                 <div>
-                  <span className="text-xs font-bold text-gray-700 block mb-1.5">
+                  <span className="text-xs font-bold text-[#16472C] block mb-1.5">
                     {t('createPost.customCropCategoryPrompt', 'Select Category (Optional):')}
                   </span>
                   <div className="flex flex-wrap gap-2">
@@ -1132,12 +1138,32 @@ export default function CreatePost() {
                     ))}
                   </div>
                 </div>
+
+                <div className="bg-[#E8EFE8] rounded-xl p-3 text-xs text-[#16472C] font-semibold border border-[#C8D9CE]">
+                  {t('createPost.customCropWarning', 'Note: Custom crop names will be listed directly and matched with buyers seeking this crop.')}
+                </div>
               </div>
             )}
 
-            {/* Catalog Mode: Category Filter Chips + Picture Grid (Always for Farmers, or when not in manual mode for Buyers) */}
-            {(isFarmer || !isCustomCropMode) && (
+            {/* Catalog Mode: Category Filter Chips + Picture Grid (When picture selection mode is active) */}
+            {!isCustomCropMode && (
               <>
+                <div className="flex items-center justify-between bg-white rounded-2xl p-2.5 px-3 border border-gray-200 shadow-xs">
+                  <span className="text-xs font-bold text-gray-700">
+                    {t('createPost.cantFindCrop', "Can't find your crop in the pictures?")}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCustomCropMode(true)
+                      stopSpeaking()
+                    }}
+                    className="text-xs font-extrabold text-[#1E5E3A] hover:text-[#16482c] bg-green-50 px-3 py-1 rounded-xl border border-green-200 active:scale-95 cursor-pointer"
+                  >
+                    {t('createPost.enterManuallyBtn', 'Enter crop manually →')}
+                  </button>
+                </div>
+
                 <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none" role="tablist" aria-label="Crop Categories">
                   {CATEGORIES.map((cat) => (
                     <button
@@ -1291,12 +1317,10 @@ export default function CreatePost() {
             <div className="bg-white rounded-3xl p-5 sm:p-6 border border-gray-200 shadow-sm text-center">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[#1E5E3A] bg-green-100 px-3 py-1 rounded-full">
-                  {isFarmer
-                    ? t('createPost.guidedStepCounter', { current: 2, defaultValue: 'దశ 2 / 4' })
-                    : `Step 2 / 5`}
+                  {t('createPost.guidedStepCounter', { current: 2, total: totalQuestions })}
                 </span>
                 <span className="text-xs font-bold text-gray-600 flex items-center gap-1">
-                  {activeCropObj?.icon} {translateCropName(t, form.crop_name)}
+                  {activeCropObj?.icon || '🌿'} {translateCropName(t, form.crop_name)}
                 </span>
               </div>
 
@@ -1311,27 +1335,42 @@ export default function CreatePost() {
                   : t('createPost.buyerStep2Sub', '+ మరియు - బటన్లతో అవసరమైన పరిమాణాన్ని మార్చండి (టైపింగ్ అవసరం లేదు)')}
               </p>
 
+              {/* Selected Quantity Display Badge */}
+              <div className="mt-4 bg-[#E8EFE8] border border-[#C8D9CE] rounded-2xl py-2 px-4 inline-flex items-center gap-2">
+                <span className="text-xs font-extrabold text-[#16472C]">
+                  {t('createPost.selectedQuantityDisplay', {
+                    qty: form.quantity_num || '0',
+                    unit: translateUnit(t, form.unit),
+                  })}
+                </span>
+              </div>
+
               {/* Large Numeric Display with Editable Input and Plus / Minus Buttons */}
-              <div className="my-6 flex items-center justify-center gap-3 sm:gap-4">
+              <div className="my-5 flex items-center justify-center gap-3 sm:gap-4">
                 <button
                   type="button"
                   onClick={() => adjustQuantity(-5)}
                   className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-900 flex items-center justify-center font-black text-2xl sm:text-3xl shadow-sm border border-gray-300 active:scale-95 cursor-pointer"
-                  title="తగ్గించు"
-                  aria-label="Decrease quantity"
+                  title={t('createPost.decrease', 'Decrease')}
+                  aria-label={t('createPost.decrease', 'Decrease')}
                 >
                   <Minus size={26} strokeWidth={3} />
                 </button>
 
                 <div className="min-w-[150px] max-w-[220px] px-4 py-2.5 rounded-3xl bg-green-50 border-2 border-[#1E5E3A] flex flex-col items-center">
                   <input
-                    type="number"
-                    step="any"
-                    min="0.01"
+                    type="text"
                     inputMode="decimal"
+                    pattern="[0-9]*[.]?[0-9]*"
                     value={form.quantity_num}
-                    onChange={(e) => update('quantity_num', e.target.value)}
-                    aria-label="Quantity"
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9.]/g, '')
+                      const parts = val.split('.')
+                      const sanitized = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : val
+                      update('quantity_num', sanitized)
+                      setErrors((prev) => ({ ...prev, quantity_num: null }))
+                    }}
+                    aria-label={t('createPost.quantityLabel', 'Available Quantity')}
                     placeholder="0"
                     className="w-full text-center text-3xl sm:text-5xl font-black text-gray-900 bg-transparent border-0 focus:ring-0 focus:outline-none"
                   />
@@ -1344,19 +1383,68 @@ export default function CreatePost() {
                   type="button"
                   onClick={() => adjustQuantity(5)}
                   className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#1E5E3A] hover:bg-[#16482c] text-white flex items-center justify-center font-black text-2xl sm:text-3xl shadow-md active:scale-95 cursor-pointer"
-                  title="పెంచు"
-                  aria-label="Increase quantity"
+                  title={t('createPost.increase', 'Increase')}
+                  aria-label={t('createPost.increase', 'Increase')}
                 >
                   <Plus size={26} strokeWidth={3} />
                 </button>
               </div>
 
               {errors.quantity_num && (
-                <p className="text-xs text-red-600 font-semibold mb-3">{errors.quantity_num}</p>
+                <p className="text-xs text-red-600 font-semibold mb-3 bg-red-50 p-2 rounded-xl border border-red-200">
+                  {errors.quantity_num}
+                </p>
               )}
 
+              {/* Clear Predefined Quantity Options for Quick Direct Selection */}
+              <div className="mt-4 pt-3 border-t border-gray-100">
+                <span className="text-xs font-extrabold text-[#16472C] block mb-2 text-left sm:text-center">
+                  {t('createPost.quickAmountsLabel', 'Quick amounts:')}
+                </span>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {(isFarmer ? ['5', '10', '25', '50', '100', '200'] : ['50', '100', '250', '500', '1000']).map((preset) => {
+                    const isMatch = String(parseFloat(form.quantity_num)) === preset
+                    return (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => {
+                          update('quantity_num', preset)
+                          setErrors((prev) => ({ ...prev, quantity_num: null }))
+                          speak(`${preset} ${translateUnit(t, form.unit)}`, ttsLang)
+                        }}
+                        className={`min-h-[44px] min-w-[50px] px-3.5 py-2 rounded-xl font-extrabold text-xs sm:text-sm transition-all active:scale-95 border cursor-pointer ${
+                          isMatch
+                            ? 'bg-[#1E5E3A] text-white border-[#1E5E3A] shadow-sm'
+                            : 'bg-white text-gray-800 border-[#C8D9CE] hover:bg-[#E8EFE8]'
+                        }`}
+                      >
+                        {preset} {translateUnit(t, form.unit)}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Quick Preset Increments (Fine-tune) */}
+              <div className="mt-3 flex flex-wrap justify-center gap-1.5 items-center">
+                <span className="text-[11px] font-bold text-gray-500 mr-1">
+                  {t('createPost.quickAdjustLabel', 'Fine-tune:')}
+                </span>
+                {(isFarmer ? ['-5', '+1', '+5', '+10', '+50'] : ['-10', '+10', '+50', '+100', '+500']).map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => adjustQuantity(parseInt(preset))}
+                    className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-gray-100 hover:bg-green-100 text-gray-700 active:scale-95 min-h-[36px] cursor-pointer"
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+
               {/* Unit Selection Pills: Kg, Quintal, Ton, Tonne, Bag */}
-              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-4">
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-4 pt-3 border-t border-gray-100">
                 {STANDARD_UNITS.map((u) => {
                   const isSelected = form.unit === u
                   return (
@@ -1381,20 +1469,6 @@ export default function CreatePost() {
                     </button>
                   )
                 })}
-              </div>
-
-              {/* Quick Preset Increments */}
-              <div className="mt-5 pt-4 border-t border-gray-100 flex flex-wrap justify-center gap-2">
-                {(isFarmer ? ['+1', '+5', '+10', '+50', '+100'] : ['+10', '+50', '+100', '+500', '+1000']).map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => adjustQuantity(parseInt(preset))}
-                    className="text-xs sm:text-sm font-extrabold px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-green-100 text-gray-800 active:scale-95 min-h-[40px]"
-                  >
-                    {preset}
-                  </button>
-                ))}
               </div>
             </div>
 
@@ -1428,9 +1502,7 @@ export default function CreatePost() {
             <div className="bg-white rounded-3xl p-5 sm:p-6 border border-gray-200 shadow-sm text-center">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[#1E5E3A] bg-green-100 px-3 py-1 rounded-full">
-                  {isFarmer
-                    ? t('createPost.guidedStepCounter', { current: 3, defaultValue: 'దశ 3 / 4' })
-                    : `Step 3 / 5`}
+                  {t('createPost.guidedStepCounter', { current: 3, total: totalQuestions })}
                 </span>
                 <span className="text-xs font-bold text-gray-600">
                   {form.quantity_num} {translateUnit(t, form.unit)}
@@ -1633,9 +1705,7 @@ export default function CreatePost() {
           <div className="space-y-4 animate-slide-up">
             <div className="bg-white rounded-3xl p-5 border border-gray-200 shadow-sm">
               <span className="text-[11px] font-bold uppercase tracking-wider text-[#1E5E3A] bg-green-100 px-3 py-1 rounded-full mb-2 inline-block">
-                {isFarmer
-                  ? t('createPost.guidedStepCounter', { current: 4, defaultValue: 'దశ 4 / 4' })
-                  : `Step 4 / 5`}
+                {t('createPost.guidedStepCounter', { current: 4, total: totalQuestions })}
               </span>
               <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight">
                 {isFarmer
@@ -1881,7 +1951,7 @@ export default function CreatePost() {
           <div className="space-y-4 animate-slide-up">
             <div className="bg-white rounded-3xl p-5 border border-gray-200 shadow-sm">
               <span className="text-[11px] font-bold uppercase tracking-wider text-[#1E5E3A] bg-green-100 px-3 py-1 rounded-full mb-2 inline-block">
-                Step 5 / 5
+                {t('createPost.guidedStepCounter', { current: 5, total: totalQuestions })}
               </span>
               <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight">
                 {t('createPost.buyerStep5Title', 'మీరు ఏ ప్రాంతం నుండి సేకరించాలనుకుంటున్నారు?')}
