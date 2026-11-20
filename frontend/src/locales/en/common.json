@@ -473,6 +473,7 @@
     "q3MandiTitle": "Mandi Market Guidance",
     "q3MandiRange": "Typical market range in {{market}}: ₹{{min}} – ₹{{max}} per {{unit}}",
     "q3UseMandi": "💡 Use Recommended Price: ₹{{price}}",
+    "marketPriceUnavailable": "Latest market price is unavailable for this crop.",
     "q3Negotiable": "Price is negotiable upon discussion",
     "q3SpeakBtn": "🎙️ Speak Price",
     "q3NextBtn": "Next: Delivery Time →",

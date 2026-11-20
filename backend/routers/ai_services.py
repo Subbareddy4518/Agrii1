@@ -247,43 +247,43 @@ def get_crops_catalog(category: Optional[str] = Query(None)):
 
 
 # ============================================================
-# 2. PRICE GUIDANCE ENDPOINT
+# 2. PRICE GUIDANCE ENDPOINT (HONEST UNAVAILABLE MODE)
 # ============================================================
+
+UNAVAILABLE_PRICE_MESSAGES = {
+    "te": "ఈ పంటకు తాజా మార్కెట్ ధర అందుబాటులో లేదు.",
+    "en": "Latest market price is unavailable for this crop.",
+    "hi": "इस फसल के लिए नवीनतम बाज़ार मूल्य उपलब्ध नहीं है।",
+}
 
 @router.get("/price-guidance", response_model=schemas.PriceGuidanceOut)
 def get_price_guidance(
     crop: str = Query(..., description="Crop name to look up"),
     location: Optional[str] = Query(None, description="Optional district/market location"),
+    language: Optional[str] = Query("en", description="Language code: en, te, hi"),
 ):
     """
     Return authentic mandi benchmark price guidance for a crop.
-    Protects against fabricated prices by using verified regional agricultural benchmarks.
+    Protects farmers from misleading static or fabricated prices.
+    When verified, traceable market data is unavailable, returns explicit
+    unavailable status and localized message rather than arbitrary recommendations.
     """
-    matched = find_crop_by_name_or_keyword(crop)
-    market_name = f"{location.strip()} Mandi" if location and location.strip() else "Regional APMC Mandi"
+    lang = (language or "en").lower().strip()
+    msg = UNAVAILABLE_PRICE_MESSAGES.get(lang, UNAVAILABLE_PRICE_MESSAGES["en"])
 
-    if matched:
-        return schemas.PriceGuidanceOut(
-            crop_name=matched["name"],
-            min_price=matched["min_price"],
-            max_price=matched["max_price"],
-            modal_price=matched["modal_price"],
-            unit=matched["default_unit"],
-            trend="stable",
-            market_name=market_name,
-            confidence="verified_mandi",
-        )
-
-    # Fallback safe guidance
+    # Do not fabricate static prices or synthesize fake market names
     return schemas.PriceGuidanceOut(
         crop_name=crop,
-        min_price=20.0,
-        max_price=40.0,
-        modal_price=30.0,
-        unit="Kg",
-        trend="stable",
-        market_name=market_name,
-        confidence="regional_estimate",
+        is_available=False,
+        min_price=None,
+        max_price=None,
+        modal_price=None,
+        unit=None,
+        trend=None,
+        market_name=None,
+        confidence="unavailable",
+        data_source="unavailable",
+        message=msg,
     )
 
 
@@ -449,18 +449,23 @@ def crop_assist(
     if not price and not is_negotiable:
         missing.append("price")
 
-    # 9. Mandi Guidance
+    # 9. Mandi Guidance (Honest status - do not fabricate static prices)
     guidance = None
-    if matched_crop_entry:
+    lang = (payload.language or "en").lower().strip()
+    msg = UNAVAILABLE_PRICE_MESSAGES.get(lang, UNAVAILABLE_PRICE_MESSAGES["en"])
+    if detected_crop:
         guidance = schemas.PriceGuidanceOut(
-            crop_name=matched_crop_entry["name"],
-            min_price=matched_crop_entry["min_price"],
-            max_price=matched_crop_entry["max_price"],
-            modal_price=matched_crop_entry["modal_price"],
-            unit=matched_crop_entry["default_unit"],
-            trend="stable",
-            market_name="APMC Mandi Benchmark",
-            confidence="verified_mandi",
+            crop_name=detected_crop,
+            is_available=False,
+            min_price=None,
+            max_price=None,
+            modal_price=None,
+            unit=None,
+            trend=None,
+            market_name=None,
+            confidence="unavailable",
+            data_source="unavailable",
+            message=msg,
         )
 
     return schemas.CropAssistResponse(
@@ -469,7 +474,7 @@ def crop_assist(
         variety=variety,
         quantity_amount=f"{quantity_amount} {unit}" if quantity_amount else None,
         unit=unit,
-        price=price or (matched_crop_entry["modal_price"] if matched_crop_entry and not price else None),
+        price=price,
         is_negotiable=is_negotiable,
         location=location,
         quality_grade=quality_grade,

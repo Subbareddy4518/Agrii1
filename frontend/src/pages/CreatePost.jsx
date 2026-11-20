@@ -26,6 +26,7 @@ import {
   Building2,
   Globe,
   Compass,
+  Info,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useTranslation } from 'react-i18next'
@@ -112,8 +113,8 @@ export default function CreatePost() {
     // Step 2: Quantity
     quantity_num: isFarmer ? '50' : '100',
     unit: 'Quintal',
-    // Step 3: Price
-    price: isFarmer ? '2350' : '2400',
+    // Step 3: Price (Blank by default - farmer enters expected price)
+    price: '',
     price_unit: 'Quintal',
     is_negotiable: false,
     is_price_optional: false,
@@ -265,7 +266,7 @@ export default function CreatePost() {
       category: '',
       quantity_num: isFarmer ? '50' : '100',
       unit: 'Quintal',
-      price: isFarmer ? '2350' : '2400',
+      price: '',
       price_unit: 'Quintal',
       is_negotiable: false,
       is_price_optional: false,
@@ -301,7 +302,7 @@ export default function CreatePost() {
     async function fetchGuidance() {
       setLoadingGuidance(true)
       try {
-        const res = await getPriceGuidance(form.crop_name, form.location)
+        const res = await getPriceGuidance(form.crop_name, form.location, currentLang)
         setPriceGuidance(res.data)
       } catch {
         setPriceGuidance(null)
@@ -311,7 +312,7 @@ export default function CreatePost() {
     }
     fetchGuidance()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [form.crop_name, form.location])
+  }, [form.crop_name, form.location, currentLang])
 
   function update(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -912,7 +913,7 @@ export default function CreatePost() {
                   category: '',
                   quantity_num: isFarmer ? '50' : '100',
                   unit: 'Quintal',
-                  price: isFarmer ? '2350' : '2400',
+                  price: '',
                   price_unit: 'Quintal',
                   is_negotiable: false,
                   delivery_choice: isFarmer ? 'today' : '15days',
@@ -1629,8 +1630,8 @@ export default function CreatePost() {
                 </div>
               </div>
 
-              {/* Mandi Benchmark Price Card (Optional Guidance) */}
-              {priceGuidance && !form.is_price_optional && (
+              {/* Mandi Benchmark Price Card (Genuine Guidance Only) */}
+              {priceGuidance?.is_available && priceGuidance?.modal_price && !form.is_price_optional ? (
                 <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-2.5 my-2 max-w-xs mx-auto text-left">
                   <button
                     type="button"
@@ -1642,6 +1643,13 @@ export default function CreatePost() {
                   >
                     <span>💡 {t('createPost.q3UseMandi', { price: priceGuidance.modal_price, defaultValue: `సిఫార్సు ధర: ₹${priceGuidance.modal_price}` })}</span>
                   </button>
+                </div>
+              ) : !form.is_price_optional && (
+                <div className="bg-gray-50 border border-gray-200 rounded-2xl p-2.5 my-2 max-w-xs mx-auto text-left flex items-center gap-2">
+                  <Info size={16} className="text-gray-400 shrink-0" aria-hidden="true" />
+                  <span className="text-xs text-gray-500 font-medium">
+                    {priceGuidance?.message || t('createPost.marketPriceUnavailable', 'ఈ పంటకు తాజా మార్కెట్ ధర అందుబాటులో లేదు.')}
+                  </span>
                 </div>
               )}
             </div>

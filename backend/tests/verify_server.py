@@ -28,16 +28,23 @@ def run_checks():
     assert len(crops) >= 10
     print(f"  [OK] Found {len(crops)} crops")
 
-    print("[3/5] Testing Mandi Price Guidance...")
-    guidance = ai_services.get_price_guidance(crop="Paddy", location="Miryalaguda")
+    print("[3/5] Testing Mandi Price Guidance (Honest Unavailable Mode)...")
+    guidance = ai_services.get_price_guidance(crop="Paddy", location="Miryalaguda", language="te")
     assert guidance.crop_name == "Paddy"
-    assert guidance.min_price > 2000
-    print(f"  [OK] Mandi guidance: {guidance.crop_name} = Rs.{guidance.modal_price}/{guidance.unit}")
+    assert guidance.is_available is False
+    assert guidance.modal_price is None
+    assert guidance.confidence == "unavailable"
+    assert guidance.message == "ఈ పంటకు తాజా మార్కెట్ ధర అందుబాటులో లేదు."
+    print(f"  [OK] Honest unavailable status verified: {guidance.message}")
 
-    print("[4/5] Testing Cotton Guidance...")
-    cotton = ai_services.get_price_guidance(crop="Cotton", location="Warangal")
+    print("[4/5] Testing Cotton Guidance (English)...")
+    cotton = ai_services.get_price_guidance(crop="Cotton", location="Warangal", language="en")
     assert cotton.crop_name == "Cotton"
-    print(f"  [OK] Mandi guidance: {cotton.crop_name} = Rs.{cotton.modal_price}/{cotton.unit}")
+    assert cotton.is_available is False
+    assert cotton.modal_price is None
+    assert cotton.confidence == "unavailable"
+    assert cotton.message == "Latest market price is unavailable for this crop."
+    print(f"  [OK] Honest unavailable status verified: {cotton.message}")
 
     print("[5/5] Testing Database Connection...")
     db = SessionLocal()

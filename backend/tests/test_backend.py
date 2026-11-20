@@ -104,18 +104,32 @@ class TestAgriConnectBackend(unittest.TestCase):
             self.assertEqual(c.category, "Cereals")
 
     def test_06_ai_price_guidance(self):
-        # Paddy mandi price
-        guidance = ai_services.get_price_guidance(crop="Paddy", location="Miryalaguda")
+        # Telugu: honest unavailable response
+        guidance = ai_services.get_price_guidance(crop="Paddy", location="Miryalaguda", language="te")
         self.assertEqual(guidance.crop_name, "Paddy")
-        self.assertGreater(guidance.min_price, 2000.0)
-        self.assertLess(guidance.max_price, 3000.0)
-        self.assertEqual(guidance.unit, "Quintal")
-        self.assertEqual(guidance.confidence, "verified_mandi")
+        self.assertFalse(guidance.is_available)
+        self.assertIsNone(guidance.modal_price)
+        self.assertIsNone(guidance.min_price)
+        self.assertIsNone(guidance.max_price)
+        self.assertEqual(guidance.confidence, "unavailable")
+        self.assertEqual(guidance.data_source, "unavailable")
+        self.assertEqual(guidance.message, "ఈ పంటకు తాజా మార్కెట్ ధర అందుబాటులో లేదు.")
 
-        # Cotton mandi price
-        cotton_guidance = ai_services.get_price_guidance(crop="Cotton", location="Warangal")
+        # English: honest unavailable response
+        cotton_guidance = ai_services.get_price_guidance(crop="Cotton", location="Warangal", language="en")
         self.assertEqual(cotton_guidance.crop_name, "Cotton")
-        self.assertGreater(cotton_guidance.min_price, 6000.0)
+        self.assertFalse(cotton_guidance.is_available)
+        self.assertIsNone(cotton_guidance.modal_price)
+        self.assertEqual(cotton_guidance.confidence, "unavailable")
+        self.assertEqual(cotton_guidance.message, "Latest market price is unavailable for this crop.")
+
+        # Hindi: honest unavailable response
+        onion_guidance = ai_services.get_price_guidance(crop="Onion", location="Nashik", language="hi")
+        self.assertEqual(onion_guidance.crop_name, "Onion")
+        self.assertFalse(onion_guidance.is_available)
+        self.assertIsNone(onion_guidance.modal_price)
+        self.assertEqual(onion_guidance.confidence, "unavailable")
+        self.assertEqual(onion_guidance.message, "इस फसल के लिए नवीनतम बाज़ार मूल्य उपलब्ध नहीं है।")
 
     def test_07_ai_crop_assist_nlp(self):
         farmer_user = self.db.query(models.User).filter(models.User.mobile == "9876543210").first()

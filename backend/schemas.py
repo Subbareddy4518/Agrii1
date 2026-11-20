@@ -320,13 +320,16 @@ class BroadcastResult(BaseModel):
 
 class PriceGuidanceOut(BaseModel):
     crop_name: str
-    min_price: float
-    max_price: float
-    modal_price: float
-    unit: str
-    trend: str = "stable"
-    market_name: str = "Regional APMC Mandi"
-    confidence: str = "verified_mandi"
+    is_available: bool = False
+    min_price: Optional[float] = None
+    max_price: Optional[float] = None
+    modal_price: Optional[float] = None
+    unit: Optional[str] = None
+    trend: Optional[str] = None
+    market_name: Optional[str] = None
+    confidence: str = "unavailable"
+    data_source: str = "unavailable"
+    message: Optional[str] = None
 
 
 class CropItemOut(BaseModel):

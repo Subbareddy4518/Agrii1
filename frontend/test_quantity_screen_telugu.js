@@ -409,3 +409,79 @@ test('5. Unit deduplication and safe crop icon rendering (zero literal "svg")', 
   assert.equal(getSafeCropIcon(null), '🌿')
   assert.equal(getSafeCropIcon(undefined), '🌿')
 })
+
+// ---------------------------------------------------------------------------
+// TEST 6: INITIAL PRICE FIELD IS BLANK (NO FABRICATED OR FALLBACK PRE-POPULATION)
+// ---------------------------------------------------------------------------
+test('6. Form price field is initialized to blank empty string (price: "") across state init, draft discard, and reset', () => {
+  const createPostSrc = fs.readFileSync(path.join(__dirname, 'src/pages/CreatePost.jsx'), 'utf-8')
+
+  // Verify initial form state has price: ''
+  assert.ok(
+    /price:\s*'',/.test(createPostSrc),
+    'CreatePost.jsx must initialize price to blank string (price: "")'
+  )
+
+  // Verify that neither 2350 nor 2400 is hardcoded as default price anymore
+  assert.ok(
+    !createPostSrc.includes("isFarmer ? '2350' : '2400'"),
+    'CreatePost.jsx must NOT pre-populate price with fabricated default 2350 or 2400'
+  )
+})
+
+// ---------------------------------------------------------------------------
+// TEST 7: HONEST MARKET PRICE UNAVAILABLE LOCALIZATION STRINGS
+// ---------------------------------------------------------------------------
+test('7. Exact required localized unavailable messages exist in TE, EN, HI', () => {
+  assert.equal(
+    tTe('createPost.marketPriceUnavailable'),
+    'ఈ పంటకు తాజా మార్కెట్ ధర అందుబాటులో లేదు.',
+    'Telugu unavailable string must match exact requirement'
+  )
+  assert.equal(
+    tEn('createPost.marketPriceUnavailable'),
+    'Latest market price is unavailable for this crop.',
+    'English unavailable string must match exact requirement'
+  )
+  assert.equal(
+    tHi('createPost.marketPriceUnavailable'),
+    'इस फसल के लिए नवीनतम बाज़ार मूल्य उपलब्ध नहीं है।',
+    'Hindi unavailable string must match exact requirement'
+  )
+})
+
+// ---------------------------------------------------------------------------
+// TEST 8: STEP 3 HONEST NOTICE & KEYPAD MANUAL FLOW (ONION, PADDY, DRAGON FRUIT)
+// ---------------------------------------------------------------------------
+test('8. Step 3 hides recommendation card and displays honest notice when priceGuidance is unavailable', () => {
+  const createPostSrc = fs.readFileSync(path.join(__dirname, 'src/pages/CreatePost.jsx'), 'utf-8')
+
+  // 1. Check JSX logic: recommendation card only renders when is_available && modal_price are truthy
+  assert.ok(
+    createPostSrc.includes('priceGuidance?.is_available && priceGuidance?.modal_price'),
+    'Recommendation card must be guarded by priceGuidance?.is_available && priceGuidance?.modal_price'
+  )
+
+  // 2. Check JSX logic: honest notice with Info icon renders when unavailable
+  assert.ok(
+    createPostSrc.includes('createPost.marketPriceUnavailable'),
+    'CreatePost.jsx must render marketPriceUnavailable message when genuine data is unavailable'
+  )
+
+  // 3. Simulate scenario for Onion, Paddy, Dragon Fruit, and Unknown Crop
+  const scenarios = [
+    { crop: 'Onion', guidance: { crop_name: 'Onion', is_available: false, modal_price: null, message: 'ఈ పంటకు తాజా మార్కెట్ ధర అందుబాటులో లేదు.' } },
+    { crop: 'Paddy', guidance: { crop_name: 'Paddy', is_available: false, modal_price: null, message: 'ఈ పంటకు తాజా మార్కెట్ ధర అందుబాటులో లేదు.' } },
+    { crop: 'Dragon Fruit', guidance: { crop_name: 'Dragon Fruit', is_available: false, modal_price: null, message: 'ఈ పంటకు తాజా మార్కెట్ ధర అందుబాటులో లేదు.' } },
+    { crop: 'CustomCrop', guidance: { crop_name: 'CustomCrop', is_available: false, modal_price: null, message: 'ఈ పంటకు తాజా మార్కెట్ ధర అందుబాటులో లేదు.' } },
+  ]
+
+  for (const s of scenarios) {
+    // Condition from JSX
+    const showRecommendation = s.guidance?.is_available && s.guidance?.modal_price
+    assert.equal(showRecommendation, false, `Crop ${s.crop} must not show recommendation card when is_available is false`)
+
+    const noticeText = s.guidance?.message || tTe('createPost.marketPriceUnavailable')
+    assert.equal(noticeText, 'ఈ పంటకు తాజా మార్కెట్ ధర అందుబాటులో లేదు.')
+  }
+})

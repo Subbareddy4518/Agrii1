@@ -66,7 +66,7 @@ export const markAllNotificationsRead = () => api.post('/notifications/read-all'
 
 // ---- AI & Matching Services ----
 export const getCropsCatalog = (category) => api.get('/ai/crops', { params: { category } })
-export const getPriceGuidance = (crop, location) => api.get('/ai/price-guidance', { params: { crop, location } })
+export const getPriceGuidance = (crop, location, language = 'en') => api.get('/ai/price-guidance', { params: { crop, location, language } })
 export const cropAssist = (payload) => api.post('/ai/crop-assist', payload)
 export const aiAdvisor = (payload) => api.post('/ai/advisor', payload)
 
