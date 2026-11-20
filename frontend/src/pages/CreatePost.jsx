@@ -39,9 +39,19 @@ import { getSelectedLanguage, speak, stopSpeaking } from '../utils/onboarding.js
 import { DEFAULT_CROPS_CATALOG, filterCropsCatalog } from '../utils/cropsData.js'
 
 const CATEGORIES = ['All', 'Cereals', 'Vegetables', 'Spices', 'Cash Crops', 'Pulses', 'Fruits']
-const STANDARD_UNITS = ['Kg', 'Quintal', 'Ton', 'Tonne', 'Bag']
+const STANDARD_UNITS = ['Kg', 'Quintal', 'Ton', 'Bag']
 const DRAFT_KEY_PREFIX = 'agriconnect_draft_post_'
 const DRAFT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
+
+// Helper to safely sanitize crop icons and prevent displaying "svg" text or placeholders
+function getSafeCropIcon(icon) {
+  if (!icon || typeof icon !== 'string') return '🌿'
+  const trimmed = icon.trim()
+  if (trimmed.toLowerCase() === 'svg' || trimmed.toLowerCase().includes('.svg') || trimmed.startsWith('<svg')) {
+    return '🌿'
+  }
+  return trimmed
+}
 
 // Common districts in Andhra Pradesh & Telangana for instant one-touch buyer selection
 const POPULAR_SOURCING_DISTRICTS = [
@@ -1054,7 +1064,7 @@ export default function CreatePost() {
             {form.crop_name && (
               <div className="bg-green-100/90 border-2 border-[#1E5E3A] rounded-2xl p-4 flex items-center justify-between shadow-sm">
                 <div className="flex items-center gap-3">
-                  <span className="text-3xl">{activeCropObj?.icon || '🌿'}</span>
+                  <span className="text-3xl">{getSafeCropIcon(activeCropObj?.icon)}</span>
                   <div>
                     <span className="text-[10px] text-[#1E5E3A] font-extrabold uppercase tracking-wide block">
                       {t('createPost.selectedCrop', 'ఎంచుకున్న పంట')}
@@ -1222,7 +1232,7 @@ export default function CreatePost() {
                         }`}
                       >
                         <div className="flex items-center justify-between w-full">
-                          <span className="text-4xl select-none" role="img" aria-hidden="true">{crop.icon}</span>
+                          <span className="text-4xl select-none" role="img" aria-hidden="true">{getSafeCropIcon(crop.icon)}</span>
                           {isSelected && (
                             <div className="w-6 h-6 rounded-full bg-[#1E5E3A] text-white flex items-center justify-center shadow-xs">
                               <Check size={14} strokeWidth={3} />
@@ -1320,7 +1330,7 @@ export default function CreatePost() {
                   {t('createPost.guidedStepCounter', { current: 2, total: totalQuestions })}
                 </span>
                 <span className="text-xs font-bold text-gray-600 flex items-center gap-1">
-                  {activeCropObj?.icon || '🌿'} {translateCropName(t, form.crop_name)}
+                  {getSafeCropIcon(activeCropObj?.icon)} {translateCropName(t, form.crop_name)}
                 </span>
               </div>
 
@@ -1331,13 +1341,14 @@ export default function CreatePost() {
               </h1>
               <p className="text-sm text-gray-600 mt-1">
                 {isFarmer
-                  ? t('createPost.qtyTouchHelp', '+ మరియు - బటన్లతో పరిమాణాన్ని మార్చండి (టైపింగ్ అవసరం లేదు)')
-                  : t('createPost.buyerStep2Sub', '+ మరియు - బటన్లతో అవసరమైన పరిమాణాన్ని మార్చండి (టైపింగ్ అవసరం లేదు)')}
+                  ? t('createPost.qtyTouchHelp', 'పరిమాణాన్ని టైప్ చేయండి లేదా క్రింది బటన్లతో ఎంచుకోండి')
+                  : t('createPost.buyerStep2Sub', 'పరిమాణాన్ని టైప్ చేయండి లేదా క్రింది బటన్లతో ఎంచుకోండి')}
               </p>
 
               {/* Selected Quantity Display Badge */}
-              <div className="mt-4 bg-[#E8EFE8] border border-[#C8D9CE] rounded-2xl py-2 px-4 inline-flex items-center gap-2">
-                <span className="text-xs font-extrabold text-[#16472C]">
+              <div className="mt-4 bg-[#E8EFE8] border border-[#C8D9CE] rounded-2xl py-2.5 px-4 inline-flex items-center gap-2 shadow-xs">
+                <CheckCircle2 size={18} className="text-[#1E5E3A] shrink-0" aria-hidden="true" />
+                <span className="text-sm font-extrabold text-[#16472C]">
                   {t('createPost.selectedQuantityDisplay', {
                     qty: form.quantity_num || '0',
                     unit: translateUnit(t, form.unit),
@@ -1354,7 +1365,7 @@ export default function CreatePost() {
                   title={t('createPost.decrease', 'Decrease')}
                   aria-label={t('createPost.decrease', 'Decrease')}
                 >
-                  <Minus size={26} strokeWidth={3} />
+                  <Minus size={26} strokeWidth={3} aria-hidden="true" />
                 </button>
 
                 <div className="min-w-[150px] max-w-[220px] px-4 py-2.5 rounded-3xl bg-green-50 border-2 border-[#1E5E3A] flex flex-col items-center">
@@ -1386,7 +1397,7 @@ export default function CreatePost() {
                   title={t('createPost.increase', 'Increase')}
                   aria-label={t('createPost.increase', 'Increase')}
                 >
-                  <Plus size={26} strokeWidth={3} />
+                  <Plus size={26} strokeWidth={3} aria-hidden="true" />
                 </button>
               </div>
 
@@ -1396,14 +1407,49 @@ export default function CreatePost() {
                 </p>
               )}
 
+              {/* Unit Selection Pills: Kg, Quintal, Ton, Bag */}
+              <div className="mt-4 pt-3 border-t border-gray-100">
+                <span className="text-xs font-extrabold text-[#16472C] block mb-2 text-left sm:text-center">
+                  {t('createPost.unitsTitle', 'యూనిట్ ఎంచుకోండి:')}
+                </span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {STANDARD_UNITS.map((u) => {
+                    const isSelected = form.unit === u || (u === 'Ton' && (form.unit === 'Tonne' || form.unit === 'Tonnes'))
+                    return (
+                      <button
+                        key={u}
+                        type="button"
+                        onClick={() => {
+                          update('unit', u)
+                          if (!form.price_unit || form.price_unit === form.unit) {
+                            update('price_unit', u)
+                          }
+                          speak(`${translateUnit(t, u)} ${t('createPost.unitSelected')}`, ttsLang)
+                        }}
+                        className={`py-3 px-3 rounded-2xl font-bold text-xs sm:text-sm border-2 transition-all min-h-[48px] flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#1E5E3A] text-white border-[#1E5E3A] shadow-md ring-2 ring-green-300'
+                            : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-[#E8EFE8]'
+                        }`}
+                        aria-pressed={isSelected}
+                      >
+                        {isSelected && <Check size={16} strokeWidth={3} className="shrink-0" aria-hidden="true" />}
+                        <span>{translateUnit(t, u)}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
               {/* Clear Predefined Quantity Options for Quick Direct Selection */}
               <div className="mt-4 pt-3 border-t border-gray-100">
                 <span className="text-xs font-extrabold text-[#16472C] block mb-2 text-left sm:text-center">
                   {t('createPost.quickAmountsLabel', 'Quick amounts:')}
                 </span>
-                <div className="flex flex-wrap justify-center gap-2">
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                   {(isFarmer ? ['5', '10', '25', '50', '100', '200'] : ['50', '100', '250', '500', '1000']).map((preset) => {
-                    const isMatch = String(parseFloat(form.quantity_num)) === preset
+                    const currentNum = parseFloat(form.quantity_num)
+                    const isMatch = !isNaN(currentNum) && currentNum === parseFloat(preset)
                     return (
                       <button
                         key={preset}
@@ -1413,11 +1459,12 @@ export default function CreatePost() {
                           setErrors((prev) => ({ ...prev, quantity_num: null }))
                           speak(`${preset} ${translateUnit(t, form.unit)}`, ttsLang)
                         }}
-                        className={`min-h-[44px] min-w-[50px] px-3.5 py-2 rounded-xl font-extrabold text-xs sm:text-sm transition-all active:scale-95 border cursor-pointer ${
+                        className={`min-h-[46px] min-w-[50px] px-2 py-2 rounded-xl font-extrabold text-xs sm:text-sm transition-all active:scale-95 border cursor-pointer ${
                           isMatch
-                            ? 'bg-[#1E5E3A] text-white border-[#1E5E3A] shadow-sm'
+                            ? 'bg-[#1E5E3A] text-white border-[#1E5E3A] shadow-sm ring-2 ring-green-300'
                             : 'bg-white text-gray-800 border-[#C8D9CE] hover:bg-[#E8EFE8]'
                         }`}
+                        aria-pressed={isMatch}
                       >
                         {preset} {translateUnit(t, form.unit)}
                       </button>
@@ -1426,69 +1473,51 @@ export default function CreatePost() {
                 </div>
               </div>
 
-              {/* Quick Preset Increments (Fine-tune) */}
-              <div className="mt-3 flex flex-wrap justify-center gap-1.5 items-center">
-                <span className="text-[11px] font-bold text-gray-500 mr-1">
+              {/* Quick Preset Increments (Fine-tune Adjustments) */}
+              <div className="mt-4 pt-3 border-t border-gray-100">
+                <span className="text-xs font-extrabold text-[#16472C] block mb-2 text-left sm:text-center">
                   {t('createPost.quickAdjustLabel', 'Fine-tune:')}
                 </span>
-                {(isFarmer ? ['-5', '+1', '+5', '+10', '+50'] : ['-10', '+10', '+50', '+100', '+500']).map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => adjustQuantity(parseInt(preset))}
-                    className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-gray-100 hover:bg-green-100 text-gray-700 active:scale-95 min-h-[36px] cursor-pointer"
-                  >
-                    {preset}
-                  </button>
-                ))}
-              </div>
-
-              {/* Unit Selection Pills: Kg, Quintal, Ton, Tonne, Bag */}
-              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-4 pt-3 border-t border-gray-100">
-                {STANDARD_UNITS.map((u) => {
-                  const isSelected = form.unit === u
-                  return (
+                <div className="flex flex-wrap justify-center gap-2 items-center">
+                  {(isFarmer ? ['-5', '-1', '+1', '+5', '+10', '+50'] : ['-50', '-10', '+10', '+50', '+100', '+500']).map((preset) => (
                     <button
-                      key={u}
+                      key={preset}
                       type="button"
-                      onClick={() => {
-                        update('unit', u)
-                        if (!form.price_unit || form.price_unit === form.unit) {
-                          update('price_unit', u)
-                        }
-                        speak(`${translateUnit(t, u)} ${t('createPost.unitSelected')}`, ttsLang)
-                      }}
-                      className={`py-3 px-1.5 rounded-2xl font-bold text-xs sm:text-sm border-2 transition-all min-h-[46px] flex items-center justify-center gap-1 active:scale-95 cursor-pointer ${
-                        isSelected
-                          ? 'bg-[#1E5E3A] text-white border-[#1E5E3A] shadow-md'
-                          : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'
+                      onClick={() => adjustQuantity(parseFloat(preset))}
+                      className={`min-h-[46px] min-w-[46px] px-3.5 py-2 rounded-xl text-xs sm:text-sm font-extrabold border transition-all active:scale-95 cursor-pointer flex items-center justify-center ${
+                        preset.startsWith('-')
+                          ? 'bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-200'
+                          : 'bg-[#E8EFE8] hover:bg-green-100 text-[#16472C] border-[#C8D9CE]'
                       }`}
+                      aria-label={preset.startsWith('-') ? `${t('createPost.decrease', 'Decrease')} ${preset}` : `${t('createPost.increase', 'Increase')} ${preset}`}
                     >
-                      {isSelected && <Check size={14} strokeWidth={3} />}
-                      <span>{translateUnit(t, u)}</span>
+                      {preset}
                     </button>
-                  )
-                })}
+                  ))}
+                </div>
               </div>
             </div>
 
             {/* Back & Next Navigation */}
-            <div className="flex gap-3">
+            <div className="flex items-center gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="w-1/3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-4 rounded-2xl flex items-center justify-center gap-1 active:scale-98 min-h-[56px]"
+                className="w-1/3 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-4 rounded-2xl flex items-center justify-center gap-1.5 active:scale-98 min-h-[56px] border border-gray-200 cursor-pointer text-base"
+                aria-label={t('createPost.backBtn', '← వెనుకకు')}
               >
-                <ChevronLeft size={20} /> {t('createPost.backBtn', '← వెనుకకు')}
+                <ChevronLeft size={20} aria-hidden="true" />
+                <span>{t('createPost.backBtn', '← వెనుకకు')}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => validateAndNext(2)}
-                className="flex-1 bg-[#1E5E3A] hover:bg-[#16482c] text-white font-extrabold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-98 shadow-md min-h-[56px] text-lg"
+                className="flex-1 bg-[#1E5E3A] hover:bg-[#16482c] text-white font-extrabold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-98 shadow-md min-h-[56px] text-lg cursor-pointer"
+                aria-label={t('createPost.q2NextBtn', 'తర్వాత: ధర నిర్ణయించండి →')}
               >
                 <span>{t('createPost.q2NextBtn', 'తర్వాత: ధర నిర్ణయించండి →')}</span>
-                <ChevronRight size={22} />
+                <ChevronRight size={22} aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -2123,7 +2152,7 @@ export default function CreatePost() {
               {/* Crop */}
               <div className="flex items-center justify-between p-3.5 rounded-2xl bg-gray-50">
                 <div className="flex items-center gap-3">
-                  <span className="text-3xl">{activeCropObj?.icon || '🌾'}</span>
+                  <span className="text-3xl">{getSafeCropIcon(activeCropObj?.icon)}</span>
                   <div>
                     <span className="text-xs font-bold text-gray-400 block">
                       {t('createPost.stepCropName', 'పంట')}
