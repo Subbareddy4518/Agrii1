@@ -389,6 +389,13 @@ export default function CreatePost() {
     setIsSpeakingInstruction(false)
   }, [i18n.language])
 
+  // Automatically synchronize price_unit to follow quantity unit
+  useEffect(() => {
+    if (form.unit && form.price_unit !== form.unit) {
+      setForm((prev) => ({ ...prev, price_unit: prev.unit }))
+    }
+  }, [form.unit])
+
   // Read full listing/requirement summary aloud before publication
   function readSummaryAloud() {
     stopSpeaking()
@@ -635,6 +642,8 @@ export default function CreatePost() {
         return
       }
       setErrors({})
+      // Automatically synchronize price unit to follow quantity unit
+      setForm((prev) => ({ ...prev, price_unit: prev.unit || 'Quintal' }))
       setStep(3)
     } else if (currentStep === 3) {
       // For buyers: price is optional if marked negotiable or left empty
@@ -1391,10 +1400,11 @@ export default function CreatePost() {
                         key={u}
                         type="button"
                         onClick={() => {
-                          update('unit', u)
-                          if (!form.price_unit || form.price_unit === form.unit) {
-                            update('price_unit', u)
-                          }
+                          setForm((prev) => ({
+                            ...prev,
+                            unit: u,
+                            price_unit: u,
+                          }))
                           speak(`${translateUnit(t, u)} ${t('createPost.unitSelected')}`, ttsLang)
                         }}
                         className={`py-3 px-3 rounded-2xl font-bold text-xs sm:text-sm border-2 transition-all min-h-[48px] flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer ${
@@ -1519,41 +1529,17 @@ export default function CreatePost() {
                   ? t('createPost.whatExpectedPrice', 'మీరు ఆశించే ధర ఎంత?')
                   : t('createPost.buyerStep3Title', 'మీ లక్ష్య కొనుగోలు ధర ఎంత?')}
               </h1>
-              <p className="text-sm text-gray-600 mt-1">
-                {t('createPost.priceKeypadHelp', 'ధరను నమోదు చేసి, యూనిట్ ఎంచుకోండి')}
-              </p>
 
-              {/* 2. Price-Per-Unit Options (₹ / Kg, ₹ / Quintal, ₹ / Ton, ₹ / Bag) */}
-              <div className="my-4 pt-3 border-t border-gray-100">
-                <span className="text-xs font-bold text-gray-600 block mb-1.5">
-                  {t('createPost.priceUnitPrompt', 'ధర యూనిట్:')}
-                </span>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-w-sm mx-auto">
-                  {STANDARD_UNITS.map((u) => {
-                    const isSelected = form.price_unit === u || (!form.price_unit && form.unit === u)
-                    return (
-                      <button
-                        key={u}
-                        type="button"
-                        disabled={form.is_price_optional}
-                        onClick={() => {
-                          update('price_unit', u)
-                          speak(`₹ / ${translateUnit(t, u)}`, ttsLang)
-                        }}
-                        className={`py-2.5 px-2 rounded-2xl font-bold text-xs sm:text-sm border-2 transition-all min-h-[46px] flex items-center justify-center gap-1 active:scale-95 cursor-pointer ${
-                          isSelected
-                            ? 'bg-[#1E5E3A] text-white border-[#1E5E3A] shadow-md ring-2 ring-green-300'
-                            : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-[#E8EFE8] disabled:opacity-40'
-                        }`}
-                        aria-pressed={isSelected}
-                      >
-                        {isSelected && <Check size={14} strokeWidth={3} className="shrink-0" aria-hidden="true" />}
-                        <span>₹ / {translateUnit(t, u)}</span>
-                      </button>
-                    )
-                  })}
+              {/* 2. Automatically Derived Price Unit (Follows Step 2 Quantity Unit) */}
+              <div className="my-2.5 flex items-center justify-center">
+                <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-green-50 border border-green-200 text-[#1E5E3A] font-extrabold text-base sm:text-lg shadow-xs">
+                  <span>₹ / {translateUnit(t, form.unit || form.price_unit || 'Quintal')}</span>
                 </div>
               </div>
+
+              <p className="text-xs text-gray-500 mb-1">
+                {t('createPost.priceKeypadHelp', 'కీప్యాడ్‌తో మీరు ఆశించే ధరను నమోదు చేయండి')}
+              </p>
 
               {/* 3. Prominent Price Value Display */}
               <div className={`my-3 py-3.5 px-6 rounded-3xl border-2 max-w-xs mx-auto flex items-baseline justify-center gap-1.5 shadow-xs transition-all ${
@@ -1577,8 +1563,8 @@ export default function CreatePost() {
                   placeholder={form.is_price_optional ? t('createPost.negotiable', 'చర్చించదగినది') : '0'}
                   className="w-full text-center text-4xl sm:text-5xl font-black text-[#D9822B] bg-transparent border-0 focus:ring-0 focus:outline-none disabled:text-gray-500 tracking-tight"
                 />
-                <span className="text-xs sm:text-sm font-bold text-gray-600 shrink-0">
-                  / {translateUnit(t, form.price_unit)}
+                <span className="text-sm sm:text-base font-extrabold text-gray-700 shrink-0">
+                  / {translateUnit(t, form.unit || form.price_unit || 'Quintal')}
                 </span>
               </div>
 

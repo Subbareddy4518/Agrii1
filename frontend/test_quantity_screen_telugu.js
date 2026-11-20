@@ -55,9 +55,9 @@ function getSafeCropIcon(icon) {
 }
 
 // ---------------------------------------------------------------------------
-// TEST 1: COMPLETE SIMULATED WORKFLOW (Select Ton, Enter 50, Price, Go Back)
+// TEST 1: COMPLETE SIMULATED WORKFLOW WITH AUTOMATIC PRICE UNIT SYNCHRONIZATION
 // ---------------------------------------------------------------------------
-test('1. Workflow: Select Ton, enter 50 via keypad, proceed to price, verify no quantity on Step 3, enter price, go back and confirm quantity 50 & Ton preserved', () => {
+test('1. Workflow: Select Ton, enter 50 via keypad, proceed to price, verify price unit automatically Ton, no quantity on Step 3, enter price, go back, change to Quintal, confirm sync & state retention', () => {
   let step = 2
   let form = {
     crop_name: 'Paddy',
@@ -71,6 +71,12 @@ test('1. Workflow: Select Ton, enter 50 via keypad, proceed to price, verify no 
 
   function update(field, val) {
     form[field] = val
+  }
+
+  function handleSelectUnitInStep2(u) {
+    form.unit = u
+    // Automatically synchronize price unit to follow quantity unit
+    form.price_unit = u
   }
 
   function handleKeypadDigit(digit) {
@@ -117,21 +123,6 @@ test('1. Workflow: Select Ton, enter 50 via keypad, proceed to price, verify no 
     }
   }
 
-  function handleKeypadBackspace() {
-    if (step === 2) {
-      const cur = String(form.quantity_num || '')
-      const next = cur.length > 1 ? cur.slice(0, -1) : ''
-      update('quantity_num', next)
-      errors.quantity_num = null
-    } else if (step === 3) {
-      if (form.is_price_optional) return
-      const cur = String(form.price || '')
-      const next = cur.length > 1 ? cur.slice(0, -1) : ''
-      update('price', next)
-      errors.price = null
-    }
-  }
-
   function validateAndNext(currentStep) {
     if (currentStep === 2) {
       const q = parseFloat(form.quantity_num)
@@ -140,6 +131,8 @@ test('1. Workflow: Select Ton, enter 50 via keypad, proceed to price, verify no 
         return false
       }
       errors = {}
+      // Automatically synchronize price unit to follow quantity unit
+      form.price_unit = form.unit || 'Quintal'
       step = 3
       return true
     } else if (currentStep === 3) {
@@ -155,9 +148,9 @@ test('1. Workflow: Select Ton, enter 50 via keypad, proceed to price, verify no 
   }
 
   // --- Step 2: Select 'Ton' unit ---
-  update('unit', 'Ton')
-  update('price_unit', 'Ton')
+  handleSelectUnitInStep2('Ton')
   assert.equal(form.unit, 'Ton')
+  assert.equal(form.price_unit, 'Ton', 'Step 2 unit selection must immediately sync price_unit')
 
   // --- Step 2: Enter 50 using keypad digits ---
   handleKeypadDigit('5')
@@ -170,8 +163,12 @@ test('1. Workflow: Select Ton, enter 50 via keypad, proceed to price, verify no 
   assert.equal(valid2, true)
   assert.equal(step, 3)
 
-  // --- Step 3: Verify Quantity is NOT in Step 3 code / text ---
-  // Read CreatePost.jsx source code to verify Step 3 does NOT render form.quantity_num or quantity badges
+  // Verify price unit is automatically 'Ton'
+  assert.equal(form.price_unit, 'Ton')
+  const derivedPriceUnitTe = `₹ / ${translateUnit(tTe, form.price_unit)}`
+  assert.equal(derivedPriceUnitTe, '₹ / టన్ను')
+
+  // --- Step 3: Verify Quantity & Unit Repetition are completely absent from Step 3 JSX ---
   const createPostSrc = fs.readFileSync(path.join(__dirname, 'src/pages/CreatePost.jsx'), 'utf-8')
   const step3BlockMatch = createPostSrc.match(/step === 3 && \([\s\S]*?step === 4 && \(/)
   assert.ok(step3BlockMatch, 'Step 3 block must exist in CreatePost.jsx')
@@ -189,9 +186,16 @@ test('1. Workflow: Select Ton, enter 50 via keypad, proceed to price, verify no 
     !step3Block.includes('howMuchQty'),
     'Step 3 must NEVER include quantity questions'
   )
+  assert.ok(
+    !step3Block.includes('priceUnitPrompt'),
+    'Step 3 must NEVER ask the farmer to select the price unit again (priceUnitPrompt removed)'
+  )
+  assert.ok(
+    !step3Block.includes('STANDARD_UNITS.map'),
+    'Step 3 must NEVER render unit selection buttons'
+  )
 
-  // --- Step 3: Enter price and select price unit ---
-  update('price_unit', 'Ton')
+  // --- Step 3: Enter price using keypad ---
   handleKeypadDigit('2')
   handleKeypadDigit('4')
   handleKeypadDigit('0')
@@ -206,19 +210,66 @@ test('1. Workflow: Select Ton, enter 50 via keypad, proceed to price, verify no 
   assert.equal(form.quantity_num, '50', 'Quantity 50 must be preserved when going back')
   assert.equal(form.unit, 'Ton', 'Unit Ton must be preserved when going back')
 
+  // --- Step 2: Change unit from Ton to Quintal ---
+  handleSelectUnitInStep2('Quintal')
+  assert.equal(form.unit, 'Quintal')
+  assert.equal(form.price_unit, 'Quintal')
+
   // --- Step 2: Forward again to Step 3 ---
   validateAndNext(2)
   assert.equal(step, 3)
   assert.equal(form.price, '2400', 'Price 2400 must be preserved')
-  assert.equal(form.price_unit, 'Ton', 'Price unit Ton must be preserved')
+  assert.equal(form.price_unit, 'Quintal', 'Price unit must automatically sync to Quintal')
+  assert.equal(`₹ / ${translateUnit(tTe, form.price_unit)}`, '₹ / క్వింటాల్')
 })
 
 // ---------------------------------------------------------------------------
-// TEST 2: DECIMAL INPUT, BACKSPACE & VALIDATION
+// TEST 2: ALL 4 SUPPORTED UNITS SYNCHRONIZATION AND TRANSLATION
 // ---------------------------------------------------------------------------
-test('2. Decimal input, backspace, and validation logic', () => {
+test('2. Automatic price unit derivation for all 4 supported units (Kg, Quintal, Ton, Bag) across EN, TE, HI', () => {
+  const expectedTable = [
+    {
+      unit: 'Kg',
+      enPriceUnit: '₹ / Kg',
+      tePriceUnit: '₹ / కిలో',
+      hiPriceUnit: '₹ / किलो',
+    },
+    {
+      unit: 'Quintal',
+      enPriceUnit: '₹ / Quintal',
+      tePriceUnit: '₹ / క్వింటాల్',
+      hiPriceUnit: '₹ / क्विंटल',
+    },
+    {
+      unit: 'Ton',
+      enPriceUnit: '₹ / Ton',
+      tePriceUnit: '₹ / టన్ను',
+      hiPriceUnit: '₹ / टन',
+    },
+    {
+      unit: 'Bag',
+      enPriceUnit: '₹ / Bag',
+      tePriceUnit: '₹ / బస్తా',
+      hiPriceUnit: '₹ / बोरी',
+    },
+  ]
+
+  for (const item of expectedTable) {
+    const enDerived = `₹ / ${translateUnit(tEn, item.unit)}`
+    const teDerived = `₹ / ${translateUnit(tTe, item.unit)}`
+    const hiDerived = `₹ / ${translateUnit(tHi, item.unit)}`
+
+    assert.equal(enDerived, item.enPriceUnit, `English price unit mismatch for ${item.unit}`)
+    assert.equal(teDerived, item.tePriceUnit, `Telugu price unit mismatch for ${item.unit}`)
+    assert.equal(hiDerived, item.hiPriceUnit, `Hindi price unit mismatch for ${item.unit}`)
+  }
+})
+
+// ---------------------------------------------------------------------------
+// TEST 3: DECIMAL INPUT, BACKSPACE & VALIDATION
+// ---------------------------------------------------------------------------
+test('3. Decimal input, backspace, and validation logic', () => {
   let form = { quantity_num: '' }
-  let errors = {}
 
   function handleDigit(digit) {
     if (digit === '.') {
@@ -292,9 +343,9 @@ test('2. Decimal input, backspace, and validation logic', () => {
 })
 
 // ---------------------------------------------------------------------------
-// TEST 3: LOCALIZATION ACCURACY ACROSS TELUGU, ENGLISH, AND HINDI
+// TEST 4: LOCALIZATION ACCURACY ACROSS TELUGU, ENGLISH, AND HINDI
 // ---------------------------------------------------------------------------
-test('3. Translations in Telugu, English, and Hindi are accurate and complete', () => {
+test('4. Translations in Telugu, English, and Hindi are accurate and complete', () => {
   // Step 2 Heading
   assert.equal(tTe('createPost.howMuchQty'), 'ఎంత పరిమాణం ఉంది?')
   assert.equal(tEn('createPost.howMuchQty'), 'How much quantity do you have?')
@@ -335,13 +386,13 @@ test('3. Translations in Telugu, English, and Hindi are accurate and complete', 
 
   assert.ok(tTe('createPost.priceKeypadHelp').includes('ధరను'))
   assert.ok(tEn('createPost.priceKeypadHelp').toLowerCase().includes('price'))
-  assert.ok(tHi('createPost.priceKeypadHelp').includes('मूल्य'))
+  assert.ok(tHi('createPost.priceKeypadHelp').includes('कीमत'))
 })
 
 // ---------------------------------------------------------------------------
-// TEST 4: UNIT DEDUPLICATION & ZERO LITERAL 'svg'
+// TEST 5: UNIT DEDUPLICATION & ZERO LITERAL 'svg'
 // ---------------------------------------------------------------------------
-test('4. Unit deduplication and safe crop icon rendering (zero literal "svg")', () => {
+test('5. Unit deduplication and safe crop icon rendering (zero literal "svg")', () => {
   // Exactly 4 unique units
   assert.equal(STANDARD_UNITS.length, 4)
   const teSet = new Set(STANDARD_UNITS.map((u) => translateUnit(tTe, u)))
