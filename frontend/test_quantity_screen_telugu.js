@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { translateUnit } from './src/utils/i18nHelpers.js'
+import { translateUnit, translateCropName } from './src/utils/i18nHelpers.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -54,172 +54,307 @@ function getSafeCropIcon(icon) {
   return trimmed
 }
 
-test('1. Telugu instruction is exactly "పరిమాణాన్ని టైప్ చేయండి లేదా క్రింది బటన్లతో ఎంచుకోండి"', () => {
-  const expectedTe = 'పరిమాణాన్ని టైప్ చేయండి లేదా క్రింది బటన్లతో ఎంచుకోండి'
-  assert.equal(tTe('createPost.qtyTouchHelp'), expectedTe)
-  assert.equal(tTe('createPost.buyerStep2Sub'), expectedTe)
+// ---------------------------------------------------------------------------
+// TEST 1: COMPLETE SIMULATED WORKFLOW (Select Ton, Enter 50, Price, Go Back)
+// ---------------------------------------------------------------------------
+test('1. Workflow: Select Ton, enter 50 via keypad, proceed to price, verify no quantity on Step 3, enter price, go back and confirm quantity 50 & Ton preserved', () => {
+  let step = 2
+  let form = {
+    crop_name: 'Paddy',
+    quantity_num: '',
+    unit: 'Quintal',
+    price: '',
+    price_unit: 'Quintal',
+    is_price_optional: false,
+  }
+  let errors = {}
 
-  // Verify English and Hindi equivalents
-  assert.ok(tEn('createPost.qtyTouchHelp').toLowerCase().includes('type'))
-  assert.ok(tHi('createPost.qtyTouchHelp').includes('टाइप'))
-})
-
-test('2. Unit selection: each supported unit displays only once with NO duplicates in TE, EN, HI', () => {
-  assert.equal(STANDARD_UNITS.length, 4)
-
-  // Telugu
-  const teLabels = STANDARD_UNITS.map((u) => translateUnit(tTe, u))
-  assert.deepEqual(teLabels, ['కిలో', 'క్వింటాల్', 'టన్ను', 'బస్తా'])
-  const uniqueTe = new Set(teLabels)
-  assert.equal(uniqueTe.size, 4, 'Telugu unit labels must all be unique (no duplicate టన్ను)')
-
-  // English
-  const enLabels = STANDARD_UNITS.map((u) => translateUnit(tEn, u))
-  assert.deepEqual(enLabels, ['Kg', 'Quintal', 'Ton', 'Bag'])
-  const uniqueEn = new Set(enLabels)
-  assert.equal(uniqueEn.size, 4, 'English unit labels must all be unique')
-
-  // Hindi
-  const hiLabels = STANDARD_UNITS.map((u) => translateUnit(tHi, u))
-  assert.deepEqual(hiLabels, ['किलो', 'क्विंटल', 'टन', 'बोरी'])
-  const uniqueHi = new Set(hiLabels)
-  assert.equal(uniqueHi.size, 4, 'Hindi unit labels must all be unique')
-})
-
-test('3. Unit selection highlighting and legacy Tonne compatibility', () => {
-  let form = { unit: 'Quintal' }
-
-  function isUnitSelected(formUnit, u) {
-    return formUnit === u || (u === 'Ton' && (formUnit === 'Tonne' || formUnit === 'Tonnes'))
+  function update(field, val) {
+    form[field] = val
   }
 
-  // Active Quintal
-  assert.ok(isUnitSelected(form.unit, 'Quintal'))
-  assert.ok(!isUnitSelected(form.unit, 'Kg'))
-  assert.ok(!isUnitSelected(form.unit, 'Ton'))
-  assert.ok(!isUnitSelected(form.unit, 'Bag'))
-
-  // Select Ton
-  form.unit = 'Ton'
-  assert.ok(isUnitSelected(form.unit, 'Ton'))
-  assert.ok(!isUnitSelected(form.unit, 'Quintal'))
-
-  // Legacy draft with Tonne maps cleanly to Ton
-  form.unit = 'Tonne'
-  assert.ok(isUnitSelected(form.unit, 'Ton'))
-})
-
-test('4. Quick quantities presets are role-dependent and highlight selected option', () => {
-  const farmerPresets = ['5', '10', '25', '50', '100', '200']
-  const buyerPresets = ['50', '100', '250', '500', '1000']
-
-  assert.equal(farmerPresets.length, 6)
-  assert.equal(buyerPresets.length, 5)
-
-  let form = { quantity_num: '50' }
-
-  function checkMatch(quantityNum, preset) {
-    const currentNum = parseFloat(quantityNum)
-    return !isNaN(currentNum) && currentNum === parseFloat(preset)
+  function handleKeypadDigit(digit) {
+    if (step === 2) {
+      if (digit === '.') {
+        const cur = String(form.quantity_num || '')
+        if (!cur || cur === '0') {
+          update('quantity_num', '0.')
+          errors.quantity_num = null
+          return
+        }
+        if (cur.includes('.')) return
+        update('quantity_num', `${cur}.`)
+        errors.quantity_num = null
+        return
+      }
+      const cur = String(form.quantity_num || '')
+      const next = cur === '0' || !cur ? String(digit) : `${cur}${digit}`
+      update('quantity_num', next)
+      errors.quantity_num = null
+    } else if (step === 3) {
+      if (form.is_price_optional) {
+        form.is_price_optional = false
+        form.price = String(digit)
+        errors.price = null
+        return
+      }
+      if (digit === '.') {
+        const cur = String(form.price || '')
+        if (!cur || cur === '0') {
+          update('price', '0.')
+          errors.price = null
+          return
+        }
+        if (cur.includes('.')) return
+        update('price', `${cur}.`)
+        errors.price = null
+        return
+      }
+      const cur = String(form.price || '')
+      const next = cur === '0' || !cur ? String(digit) : `${cur}${digit}`
+      update('price', next)
+      errors.price = null
+    }
   }
 
-  assert.ok(checkMatch(form.quantity_num, '50'))
-  assert.ok(!checkMatch(form.quantity_num, '25'))
-
-  // Typing decimal matching preset
-  form.quantity_num = '50.0'
-  assert.ok(checkMatch(form.quantity_num, '50'))
-
-  // Custom quantity doesn't match
-  form.quantity_num = '37'
-  assert.ok(!checkMatch(form.quantity_num, '25'))
-  assert.ok(!checkMatch(form.quantity_num, '50'))
-})
-
-test('5. Adjustment controls work with exact supported values and non-negative clamping', () => {
-  const farmerAdjustments = ['-5', '-1', '+1', '+5', '+10', '+50']
-  const buyerAdjustments = ['-50', '-10', '+10', '+50', '+100', '+500']
-
-  let form = { quantity_num: '25' }
-
-  function adjustQuantity(delta) {
-    const current = parseFloat(form.quantity_num) || 0
-    const nextVal = Math.max(0.1, Math.round((current + delta) * 100) / 100)
-    form.quantity_num = String(nextVal)
+  function handleKeypadBackspace() {
+    if (step === 2) {
+      const cur = String(form.quantity_num || '')
+      const next = cur.length > 1 ? cur.slice(0, -1) : ''
+      update('quantity_num', next)
+      errors.quantity_num = null
+    } else if (step === 3) {
+      if (form.is_price_optional) return
+      const cur = String(form.price || '')
+      const next = cur.length > 1 ? cur.slice(0, -1) : ''
+      update('price', next)
+      errors.price = null
+    }
   }
 
-  // Farmer adjustments
-  adjustQuantity(5)
-  assert.equal(form.quantity_num, '30')
+  function validateAndNext(currentStep) {
+    if (currentStep === 2) {
+      const q = parseFloat(form.quantity_num)
+      if (isNaN(q) || q <= 0) {
+        errors.quantity_num = 'Please enter a valid quantity greater than 0'
+        return false
+      }
+      errors = {}
+      step = 3
+      return true
+    } else if (currentStep === 3) {
+      const p = parseFloat(form.price)
+      if (isNaN(p) || p <= 0) {
+        errors.price = 'Please enter a valid price'
+        return false
+      }
+      errors = {}
+      step = 4
+      return true
+    }
+  }
 
-  adjustQuantity(-1)
-  assert.equal(form.quantity_num, '29')
+  // --- Step 2: Select 'Ton' unit ---
+  update('unit', 'Ton')
+  update('price_unit', 'Ton')
+  assert.equal(form.unit, 'Ton')
 
-  adjustQuantity(-50) // Clamps to 0.1
-  assert.equal(form.quantity_num, '0.1')
+  // --- Step 2: Enter 50 using keypad digits ---
+  handleKeypadDigit('5')
+  assert.equal(form.quantity_num, '5')
+  handleKeypadDigit('0')
+  assert.equal(form.quantity_num, '50')
 
-  adjustQuantity(0.9)
+  // --- Step 2: Validate and Proceed to Step 3 ---
+  const valid2 = validateAndNext(2)
+  assert.equal(valid2, true)
+  assert.equal(step, 3)
+
+  // --- Step 3: Verify Quantity is NOT in Step 3 code / text ---
+  // Read CreatePost.jsx source code to verify Step 3 does NOT render form.quantity_num or quantity badges
+  const createPostSrc = fs.readFileSync(path.join(__dirname, 'src/pages/CreatePost.jsx'), 'utf-8')
+  const step3BlockMatch = createPostSrc.match(/step === 3 && \([\s\S]*?step === 4 && \(/)
+  assert.ok(step3BlockMatch, 'Step 3 block must exist in CreatePost.jsx')
+  const step3Block = step3BlockMatch[0]
+
+  assert.ok(
+    !step3Block.includes('{form.quantity_num}'),
+    'Step 3 must NEVER display {form.quantity_num}'
+  )
+  assert.ok(
+    !step3Block.includes('selectedQuantityDisplay'),
+    'Step 3 must NEVER include selectedQuantityDisplay'
+  )
+  assert.ok(
+    !step3Block.includes('howMuchQty'),
+    'Step 3 must NEVER include quantity questions'
+  )
+
+  // --- Step 3: Enter price and select price unit ---
+  update('price_unit', 'Ton')
+  handleKeypadDigit('2')
+  handleKeypadDigit('4')
+  handleKeypadDigit('0')
+  handleKeypadDigit('0')
+  assert.equal(form.price, '2400')
+  assert.equal(form.price_unit, 'Ton')
+
+  // --- Step 3: Go Back to Step 2 ---
+  step = 2
+  assert.equal(step, 2)
+  // Verify quantity 50 and unit Ton are completely preserved!
+  assert.equal(form.quantity_num, '50', 'Quantity 50 must be preserved when going back')
+  assert.equal(form.unit, 'Ton', 'Unit Ton must be preserved when going back')
+
+  // --- Step 2: Forward again to Step 3 ---
+  validateAndNext(2)
+  assert.equal(step, 3)
+  assert.equal(form.price, '2400', 'Price 2400 must be preserved')
+  assert.equal(form.price_unit, 'Ton', 'Price unit Ton must be preserved')
+})
+
+// ---------------------------------------------------------------------------
+// TEST 2: DECIMAL INPUT, BACKSPACE & VALIDATION
+// ---------------------------------------------------------------------------
+test('2. Decimal input, backspace, and validation logic', () => {
+  let form = { quantity_num: '' }
+  let errors = {}
+
+  function handleDigit(digit) {
+    if (digit === '.') {
+      const cur = String(form.quantity_num || '')
+      if (!cur || cur === '0') {
+        form.quantity_num = '0.'
+        return
+      }
+      if (cur.includes('.')) return
+      form.quantity_num = `${cur}.`
+      return
+    }
+    const cur = String(form.quantity_num || '')
+    form.quantity_num = cur === '0' || !cur ? String(digit) : `${cur}${digit}`
+  }
+
+  function handleBackspace() {
+    const cur = String(form.quantity_num || '')
+    form.quantity_num = cur.length > 1 ? cur.slice(0, -1) : ''
+  }
+
+  function validate(val) {
+    const q = parseFloat(val)
+    if (isNaN(q) || q <= 0) return false
+    return true
+  }
+
+  // Type 12.5
+  handleDigit('1')
+  handleDigit('2')
+  handleDigit('.')
+  handleDigit('5')
+  assert.equal(form.quantity_num, '12.5')
+  assert.equal(validate(form.quantity_num), true)
+
+  // Extra dot is ignored
+  handleDigit('.')
+  assert.equal(form.quantity_num, '12.5')
+
+  // Backspace once -> 12.
+  handleBackspace()
+  assert.equal(form.quantity_num, '12.')
+  assert.equal(validate(form.quantity_num), true) // parseFloat('12.') is 12
+
+  // Backspace again -> 12
+  handleBackspace()
+  assert.equal(form.quantity_num, '12')
+
+  // Backspace again -> 1
+  handleBackspace()
   assert.equal(form.quantity_num, '1')
+
+  // Backspace again -> ''
+  handleBackspace()
+  assert.equal(form.quantity_num, '')
+  assert.equal(validate(form.quantity_num), false)
+
+  // Direct dot -> 0.
+  handleDigit('.')
+  assert.equal(form.quantity_num, '0.')
+  handleDigit('7')
+  handleDigit('5')
+  assert.equal(form.quantity_num, '0.75')
+  assert.equal(validate(form.quantity_num), true)
+
+  // Rejection of invalid quantities
+  assert.equal(validate('0'), false)
+  assert.equal(validate('-5'), false)
+  assert.equal(validate(''), false)
+  assert.equal(validate('abc'), false)
 })
 
-test('6. Icons: getSafeCropIcon prevents literal "svg" string display', () => {
+// ---------------------------------------------------------------------------
+// TEST 3: LOCALIZATION ACCURACY ACROSS TELUGU, ENGLISH, AND HINDI
+// ---------------------------------------------------------------------------
+test('3. Translations in Telugu, English, and Hindi are accurate and complete', () => {
+  // Step 2 Heading
+  assert.equal(tTe('createPost.howMuchQty'), 'ఎంత పరిమాణం ఉంది?')
+  assert.equal(tEn('createPost.howMuchQty'), 'How much quantity do you have?')
+  assert.equal(tHi('createPost.howMuchQty'), 'कितनी मात्रा उपलब्ध है?')
+
+  // Step 3 Heading
+  assert.equal(tTe('createPost.whatExpectedPrice'), 'మీరు ఆశించే ధర ఎంత?')
+  assert.equal(tEn('createPost.whatExpectedPrice'), 'What is your expected price?')
+  assert.equal(tHi('createPost.whatExpectedPrice'), 'आपकी अपेक्षित कीमत क्या है?')
+
+  // Supported Units
+  assert.deepEqual(
+    STANDARD_UNITS.map((u) => translateUnit(tTe, u)),
+    ['కిలో', 'క్వింటాల్', 'టన్ను', 'బస్తా']
+  )
+  assert.deepEqual(
+    STANDARD_UNITS.map((u) => translateUnit(tEn, u)),
+    ['Kg', 'Quintal', 'Ton', 'Bag']
+  )
+  assert.deepEqual(
+    STANDARD_UNITS.map((u) => translateUnit(tHi, u)),
+    ['किलो', 'क्विंटल', 'टन', 'बोरी']
+  )
+
+  // Keypad Accessibility Labels
+  assert.equal(tTe('createPost.backspace'), 'వెనుకకు తొలగించు')
+  assert.equal(tEn('createPost.backspace'), 'Backspace')
+  assert.equal(tHi('createPost.backspace'), 'हटाएं')
+
+  assert.equal(tTe('createPost.decimalPoint'), 'దశాంశ బిందువు')
+  assert.equal(tEn('createPost.decimalPoint'), 'Decimal point')
+  assert.equal(tHi('createPost.decimalPoint'), 'दशमलव बिंदु')
+
+  // Step 2 & Step 3 Subtitles
+  assert.ok(tTe('createPost.qtyKeypadHelp').includes('కీప్యాడ్'))
+  assert.ok(tEn('createPost.qtyKeypadHelp').toLowerCase().includes('keypad'))
+  assert.ok(tHi('createPost.qtyKeypadHelp').includes('कीपैड'))
+
+  assert.ok(tTe('createPost.priceKeypadHelp').includes('ధరను'))
+  assert.ok(tEn('createPost.priceKeypadHelp').toLowerCase().includes('price'))
+  assert.ok(tHi('createPost.priceKeypadHelp').includes('मूल्य'))
+})
+
+// ---------------------------------------------------------------------------
+// TEST 4: UNIT DEDUPLICATION & ZERO LITERAL 'svg'
+// ---------------------------------------------------------------------------
+test('4. Unit deduplication and safe crop icon rendering (zero literal "svg")', () => {
+  // Exactly 4 unique units
+  assert.equal(STANDARD_UNITS.length, 4)
+  const teSet = new Set(STANDARD_UNITS.map((u) => translateUnit(tTe, u)))
+  assert.equal(teSet.size, 4, 'Must have exactly 4 unique unit names in Telugu')
+
+  // Safe crop icon sanitization
   assert.equal(getSafeCropIcon('🌾'), '🌾')
   assert.equal(getSafeCropIcon('🌶️'), '🌶️')
   assert.equal(getSafeCropIcon('svg'), '🌿')
   assert.equal(getSafeCropIcon('SVG'), '🌿')
-  assert.equal(getSafeCropIcon('paddy.svg'), '🌿')
+  assert.equal(getSafeCropIcon('cotton.svg'), '🌿')
   assert.equal(getSafeCropIcon('<svg width="24">'), '🌿')
   assert.equal(getSafeCropIcon(''), '🌿')
   assert.equal(getSafeCropIcon(null), '🌿')
   assert.equal(getSafeCropIcon(undefined), '🌿')
-})
-
-test('7. Selected quantity display updates immediately in TE, EN, HI', () => {
-  let form = { quantity_num: '50', unit: 'Quintal' }
-
-  const displayTe = tTe('createPost.selectedQuantityDisplay', {
-    qty: form.quantity_num,
-    unit: translateUnit(tTe, form.unit),
-  })
-  assert.equal(displayTe, 'ఎంచుకున్నది: 50 క్వింటాల్')
-
-  const displayEn = tEn('createPost.selectedQuantityDisplay', {
-    qty: form.quantity_num,
-    unit: translateUnit(tEn, form.unit),
-  })
-  assert.equal(displayEn, 'Selected: 50 Quintal')
-
-  const displayHi = tHi('createPost.selectedQuantityDisplay', {
-    qty: form.quantity_num,
-    unit: translateUnit(tHi, form.unit),
-  })
-  assert.equal(displayHi, 'चयनित: 50 क्विंटल')
-
-  // Change quantity and unit
-  form.quantity_num = '12.5'
-  form.unit = 'Kg'
-
-  const updatedTe = tTe('createPost.selectedQuantityDisplay', {
-    qty: form.quantity_num,
-    unit: translateUnit(tTe, form.unit),
-  })
-  assert.equal(updatedTe, 'ఎంచుకున్నది: 12.5 కిలో')
-})
-
-test('8. Navigation & validation preserves valid decimals and rejects <= 0', () => {
-  function validateStep2(quantity_num) {
-    const q = parseFloat(quantity_num)
-    if (isNaN(q) || q <= 0) {
-      return { valid: false, error: 'q2Error' }
-    }
-    return { valid: true }
-  }
-
-  assert.equal(validateStep2('50').valid, true)
-  assert.equal(validateStep2('12.5').valid, true)
-  assert.equal(validateStep2('0.25').valid, true)
-  assert.equal(validateStep2('0').valid, false)
-  assert.equal(validateStep2('-5').valid, false)
-  assert.equal(validateStep2('').valid, false)
-  assert.equal(validateStep2('abc').valid, false)
 })

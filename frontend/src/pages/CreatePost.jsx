@@ -521,29 +521,62 @@ export default function CreatePost() {
     speak(t('createPost.spokenPrice', { price: nextVal }), ttsLang)
   }
 
-  // On-screen numeric keypad input (zero typing on phone keyboard required)
+  // On-screen numeric keypad input for Step 2 (Quantity) and Step 3 (Price)
   function handleKeypadDigit(digit) {
     if (step === 2) {
-      const next = form.quantity_num === '0' ? String(digit) : `${form.quantity_num}${digit}`
+      if (digit === '.') {
+        const cur = String(form.quantity_num || '')
+        if (!cur || cur === '0') {
+          update('quantity_num', '0.')
+          setErrors((prev) => ({ ...prev, quantity_num: null }))
+          return
+        }
+        if (cur.includes('.')) return
+        update('quantity_num', `${cur}.`)
+        setErrors((prev) => ({ ...prev, quantity_num: null }))
+        return
+      }
+      const cur = String(form.quantity_num || '')
+      const next = cur === '0' || !cur ? String(digit) : `${cur}${digit}`
       update('quantity_num', next)
+      setErrors((prev) => ({ ...prev, quantity_num: null }))
     } else if (step === 3) {
       if (form.is_price_optional) {
         setForm((prev) => ({ ...prev, is_price_optional: false, price: String(digit) }))
+        setErrors((prev) => ({ ...prev, price: null }))
         return
       }
-      const next = form.price === '0' ? String(digit) : `${form.price}${digit}`
+      if (digit === '.') {
+        const cur = String(form.price || '')
+        if (!cur || cur === '0') {
+          update('price', '0.')
+          setErrors((prev) => ({ ...prev, price: null }))
+          return
+        }
+        if (cur.includes('.')) return
+        update('price', `${cur}.`)
+        setErrors((prev) => ({ ...prev, price: null }))
+        return
+      }
+      const cur = String(form.price || '')
+      const next = cur === '0' || !cur ? String(digit) : `${cur}${digit}`
       update('price', next)
+      setErrors((prev) => ({ ...prev, price: null }))
     }
   }
 
   function handleKeypadBackspace() {
     if (step === 2) {
-      const next = form.quantity_num.slice(0, -1) || '0'
+      const cur = String(form.quantity_num || '')
+      const next = cur.length > 1 ? cur.slice(0, -1) : ''
       update('quantity_num', next)
+      setErrors((prev) => ({ ...prev, quantity_num: null }))
     } else if (step === 3) {
       if (form.is_price_optional) return
-      const next = form.price.slice(0, -1) || '0'
+      const cur = String(form.price || '')
+      const next = cur.length > 1 ? cur.slice(0, -1) : ''
       update('price', next)
+      setErrors((prev) => ({ ...prev, price: null }))
     }
   }
 
@@ -1320,11 +1353,12 @@ export default function CreatePost() {
         )}
 
         {/* ============================================================ */}
-        {/* STEP 2: QUANTITY WITH LARGE PLUS / MINUS CONTROLS           */}
+        {/* STEP 2: QUANTITY ENTRY (FARMER-FRIENDLY CLEAN WORKFLOW)     */}
         {/* ============================================================ */}
         {step === 2 && (
           <div className="space-y-4 animate-slide-up">
             <div className="bg-white rounded-3xl p-5 sm:p-6 border border-gray-200 shadow-sm text-center">
+              {/* Counter & Crop Indicator */}
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[#1E5E3A] bg-green-100 px-3 py-1 rounded-full">
                   {t('createPost.guidedStepCounter', { current: 2, total: totalQuestions })}
@@ -1334,85 +1368,22 @@ export default function CreatePost() {
                 </span>
               </div>
 
+              {/* 1. Heading */}
               <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight">
                 {isFarmer
                   ? t('createPost.howMuchQty', 'ఎంత పరిమాణం ఉంది?')
                   : t('createPost.buyerStep2Title', 'మీకు ఎంత పరిమాణం అవసరం?')}
               </h1>
               <p className="text-sm text-gray-600 mt-1">
-                {isFarmer
-                  ? t('createPost.qtyTouchHelp', 'పరిమాణాన్ని టైప్ చేయండి లేదా క్రింది బటన్లతో ఎంచుకోండి')
-                  : t('createPost.buyerStep2Sub', 'పరిమాణాన్ని టైప్ చేయండి లేదా క్రింది బటన్లతో ఎంచుకోండి')}
+                {t('createPost.qtyKeypadHelp', 'యూనిట్ ఎంచుకుని, కీప్యాడ్‌తో పరిమాణాన్ని నమోదు చేయండి')}
               </p>
 
-              {/* Selected Quantity Display Badge */}
-              <div className="mt-4 bg-[#E8EFE8] border border-[#C8D9CE] rounded-2xl py-2.5 px-4 inline-flex items-center gap-2 shadow-xs">
-                <CheckCircle2 size={18} className="text-[#1E5E3A] shrink-0" aria-hidden="true" />
-                <span className="text-sm font-extrabold text-[#16472C]">
-                  {t('createPost.selectedQuantityDisplay', {
-                    qty: form.quantity_num || '0',
-                    unit: translateUnit(t, form.unit),
-                  })}
-                </span>
-              </div>
-
-              {/* Large Numeric Display with Editable Input and Plus / Minus Buttons */}
-              <div className="my-5 flex items-center justify-center gap-3 sm:gap-4">
-                <button
-                  type="button"
-                  onClick={() => adjustQuantity(-5)}
-                  className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-900 flex items-center justify-center font-black text-2xl sm:text-3xl shadow-sm border border-gray-300 active:scale-95 cursor-pointer"
-                  title={t('createPost.decrease', 'Decrease')}
-                  aria-label={t('createPost.decrease', 'Decrease')}
-                >
-                  <Minus size={26} strokeWidth={3} aria-hidden="true" />
-                </button>
-
-                <div className="min-w-[150px] max-w-[220px] px-4 py-2.5 rounded-3xl bg-green-50 border-2 border-[#1E5E3A] flex flex-col items-center">
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    pattern="[0-9]*[.]?[0-9]*"
-                    value={form.quantity_num}
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/[^0-9.]/g, '')
-                      const parts = val.split('.')
-                      const sanitized = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : val
-                      update('quantity_num', sanitized)
-                      setErrors((prev) => ({ ...prev, quantity_num: null }))
-                    }}
-                    aria-label={t('createPost.quantityLabel', 'Available Quantity')}
-                    placeholder="0"
-                    className="w-full text-center text-3xl sm:text-5xl font-black text-gray-900 bg-transparent border-0 focus:ring-0 focus:outline-none"
-                  />
-                  <span className="text-xs font-extrabold text-[#1E5E3A] uppercase tracking-wider block mt-1">
-                    {translateUnit(t, form.unit)}
-                  </span>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => adjustQuantity(5)}
-                  className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#1E5E3A] hover:bg-[#16482c] text-white flex items-center justify-center font-black text-2xl sm:text-3xl shadow-md active:scale-95 cursor-pointer"
-                  title={t('createPost.increase', 'Increase')}
-                  aria-label={t('createPost.increase', 'Increase')}
-                >
-                  <Plus size={26} strokeWidth={3} aria-hidden="true" />
-                </button>
-              </div>
-
-              {errors.quantity_num && (
-                <p className="text-xs text-red-600 font-semibold mb-3 bg-red-50 p-2 rounded-xl border border-red-200">
-                  {errors.quantity_num}
-                </p>
-              )}
-
-              {/* Unit Selection Pills: Kg, Quintal, Ton, Bag */}
-              <div className="mt-4 pt-3 border-t border-gray-100">
+              {/* 2. Supported Quantity Units (Exactly once: Kg, Quintal, Ton, Bag) */}
+              <div className="my-4 pt-3 border-t border-gray-100">
                 <span className="text-xs font-extrabold text-[#16472C] block mb-2 text-left sm:text-center">
                   {t('createPost.unitsTitle', 'యూనిట్ ఎంచుకోండి:')}
                 </span>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-w-sm mx-auto">
                   {STANDARD_UNITS.map((u) => {
                     const isSelected = form.unit === u || (u === 'Ton' && (form.unit === 'Tonne' || form.unit === 'Tonnes'))
                     return (
@@ -1441,64 +1412,67 @@ export default function CreatePost() {
                 </div>
               </div>
 
-              {/* Clear Predefined Quantity Options for Quick Direct Selection */}
-              <div className="mt-4 pt-3 border-t border-gray-100">
-                <span className="text-xs font-extrabold text-[#16472C] block mb-2 text-left sm:text-center">
-                  {t('createPost.quickAmountsLabel', 'Quick amounts:')}
+              {/* 3 & 4. Prominent Numeric Display of Entered Value */}
+              <div className="my-3 py-3.5 px-6 rounded-3xl bg-green-50/90 border-2 border-[#1E5E3A] max-w-xs mx-auto flex items-baseline justify-center gap-2 shadow-xs">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  pattern="[0-9]*[.]?[0-9]*"
+                  value={form.quantity_num}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9.]/g, '')
+                    const parts = val.split('.')
+                    const sanitized = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : val
+                    update('quantity_num', sanitized)
+                    setErrors((prev) => ({ ...prev, quantity_num: null }))
+                  }}
+                  aria-label={t('createPost.quantityLabel', 'Quantity')}
+                  placeholder="0"
+                  className="w-full text-center text-4xl sm:text-5xl font-black text-gray-900 bg-transparent border-0 focus:ring-0 focus:outline-none tracking-tight"
+                />
+                <span className="text-base sm:text-lg font-extrabold text-[#1E5E3A] uppercase shrink-0">
+                  {translateUnit(t, form.unit)}
                 </span>
-                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                  {(isFarmer ? ['5', '10', '25', '50', '100', '200'] : ['50', '100', '250', '500', '1000']).map((preset) => {
-                    const currentNum = parseFloat(form.quantity_num)
-                    const isMatch = !isNaN(currentNum) && currentNum === parseFloat(preset)
-                    return (
-                      <button
-                        key={preset}
-                        type="button"
-                        onClick={() => {
-                          update('quantity_num', preset)
-                          setErrors((prev) => ({ ...prev, quantity_num: null }))
-                          speak(`${preset} ${translateUnit(t, form.unit)}`, ttsLang)
-                        }}
-                        className={`min-h-[46px] min-w-[50px] px-2 py-2 rounded-xl font-extrabold text-xs sm:text-sm transition-all active:scale-95 border cursor-pointer ${
-                          isMatch
-                            ? 'bg-[#1E5E3A] text-white border-[#1E5E3A] shadow-sm ring-2 ring-green-300'
-                            : 'bg-white text-gray-800 border-[#C8D9CE] hover:bg-[#E8EFE8]'
-                        }`}
-                        aria-pressed={isMatch}
-                      >
-                        {preset} {translateUnit(t, form.unit)}
-                      </button>
-                    )
-                  })}
-                </div>
               </div>
 
-              {/* Quick Preset Increments (Fine-tune Adjustments) */}
-              <div className="mt-4 pt-3 border-t border-gray-100">
-                <span className="text-xs font-extrabold text-[#16472C] block mb-2 text-left sm:text-center">
-                  {t('createPost.quickAdjustLabel', 'Fine-tune:')}
+              {errors.quantity_num && (
+                <p className="text-xs text-red-600 font-semibold mb-3 bg-red-50 p-2 rounded-xl border border-red-200 max-w-xs mx-auto">
+                  {errors.quantity_num}
+                </p>
+              )}
+
+              {/* 5. Large Numerical Keypad */}
+              <div className="my-3">
+                <span className="text-xs font-bold text-gray-500 block mb-2">
+                  {t('createPost.keypadExact', 'ఖచ్చితమైన సంఖ్యను నొక్కండి:')}
                 </span>
-                <div className="flex flex-wrap justify-center gap-2 items-center">
-                  {(isFarmer ? ['-5', '-1', '+1', '+5', '+10', '+50'] : ['-50', '-10', '+10', '+50', '+100', '+500']).map((preset) => (
+                <div className="grid grid-cols-3 gap-2.5 max-w-xs mx-auto">
+                  {['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫'].map((k) => (
                     <button
-                      key={preset}
+                      key={k}
                       type="button"
-                      onClick={() => adjustQuantity(parseFloat(preset))}
-                      className={`min-h-[46px] min-w-[46px] px-3.5 py-2 rounded-xl text-xs sm:text-sm font-extrabold border transition-all active:scale-95 cursor-pointer flex items-center justify-center ${
-                        preset.startsWith('-')
-                          ? 'bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-200'
-                          : 'bg-[#E8EFE8] hover:bg-green-100 text-[#16472C] border-[#C8D9CE]'
+                      onClick={() => (k === '⌫' ? handleKeypadBackspace() : handleKeypadDigit(k))}
+                      className={`py-3.5 rounded-2xl font-black text-2xl border shadow-xs active:scale-95 min-h-[54px] flex items-center justify-center transition-all cursor-pointer ${
+                        k === '⌫'
+                          ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200'
+                          : 'bg-white hover:bg-gray-50 text-gray-900 border-gray-200 hover:border-gray-300'
                       }`}
-                      aria-label={preset.startsWith('-') ? `${t('createPost.decrease', 'Decrease')} ${preset}` : `${t('createPost.increase', 'Increase')} ${preset}`}
+                      aria-label={
+                        k === '⌫'
+                          ? t('createPost.backspace', 'Backspace')
+                          : k === '.'
+                          ? t('createPost.decimalPoint', 'Decimal point')
+                          : `Digit ${k}`
+                      }
                     >
-                      {preset}
+                      {k}
                     </button>
                   ))}
                 </div>
               </div>
             </div>
 
-            {/* Back & Next Navigation */}
+            {/* 6. Back & Next Navigation */}
             <div className="flex items-center gap-3 pt-2">
               <button
                 type="button"
@@ -1524,84 +1498,99 @@ export default function CreatePost() {
         )}
 
         {/* ============================================================ */}
-        {/* STEP 3: PRICE (EXPECTED PRICE FOR FARMER / TARGET BUDGET FOR BUYER) */}
+        {/* STEP 3: PRICE ENTRY (FOCUSED EXCLUSIVELY ON PRICE)          */}
         {/* ============================================================ */}
         {step === 3 && (
           <div className="space-y-4 animate-slide-up">
             <div className="bg-white rounded-3xl p-5 sm:p-6 border border-gray-200 shadow-sm text-center">
+              {/* Header: Counter & Crop ONLY (ZERO Quantity Info) */}
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[#1E5E3A] bg-green-100 px-3 py-1 rounded-full">
                   {t('createPost.guidedStepCounter', { current: 3, total: totalQuestions })}
                 </span>
-                <span className="text-xs font-bold text-gray-600">
-                  {form.quantity_num} {translateUnit(t, form.unit)}
+                <span className="text-xs font-bold text-gray-600 flex items-center gap-1">
+                  {getSafeCropIcon(activeCropObj?.icon)} {translateCropName(t, form.crop_name)}
                 </span>
               </div>
 
+              {/* 1. Heading */}
               <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight">
                 {isFarmer
                   ? t('createPost.whatExpectedPrice', 'మీరు ఆశించే ధర ఎంత?')
                   : t('createPost.buyerStep3Title', 'మీ లక్ష్య కొనుగోలు ధర ఎంత?')}
               </h1>
               <p className="text-sm text-gray-600 mt-1">
-                {isFarmer
-                  ? t('createPost.priceTouchHelp', '+ మరియు - బటన్లతో లేదా కీప్యాడ్‌తో ధరను నిర్ణయించండి')
-                  : t('createPost.buyerStep3Sub', 'ఎంచుకున్న యూనిట్‌కు లక్ష్య కొనుగోలు ధర (గరిష్ట బడ్జెట్ పరిమితి)')}
+                {t('createPost.priceKeypadHelp', 'ధరను నమోదు చేసి, యూనిట్ ఎంచుకోండి')}
               </p>
 
-              {/* Large Rupee Display with Manual Editable Input */}
-              <div className="my-5 flex items-center justify-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => adjustPrice(-100)}
-                  disabled={form.is_price_optional}
-                  aria-label="Decrease price by 100"
-                  className="w-12 h-12 rounded-2xl bg-gray-100 hover:bg-gray-200 disabled:opacity-40 text-gray-900 flex items-center justify-center font-black text-xl shadow-sm border border-gray-300 active:scale-95 cursor-pointer"
-                >
-                  -100
-                </button>
-
-                <div className={`min-w-[170px] max-w-[240px] px-4 py-2 rounded-3xl border-2 flex flex-col items-center transition-all ${
-                  form.is_price_optional ? 'bg-gray-100 border-gray-300 opacity-70' : 'bg-amber-50 border-[#D9822B]'
-                }`}>
-                  <div className="flex items-center justify-center w-full">
-                    <span className="text-2xl font-bold text-[#D9822B] mr-1">₹</span>
-                    <input
-                      type="number"
-                      step="any"
-                      min="0"
-                      inputMode="decimal"
-                      disabled={form.is_price_optional}
-                      value={form.is_price_optional ? '' : form.price}
-                      onChange={(e) => update('price', e.target.value)}
-                      aria-label="Target price"
-                      placeholder={form.is_price_optional ? 'Negotiable' : '0'}
-                      className="w-full text-center text-3xl sm:text-4xl font-black text-[#D9822B] bg-transparent border-0 focus:ring-0 focus:outline-none disabled:text-gray-500"
-                    />
-                  </div>
-                  <span className="text-xs font-bold text-gray-600 block">
-                    / {translateUnit(t, form.price_unit)}
-                  </span>
+              {/* 2. Price-Per-Unit Options (₹ / Kg, ₹ / Quintal, ₹ / Ton, ₹ / Bag) */}
+              <div className="my-4 pt-3 border-t border-gray-100">
+                <span className="text-xs font-bold text-gray-600 block mb-1.5">
+                  {t('createPost.priceUnitPrompt', 'ధర యూనిట్:')}
+                </span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-w-sm mx-auto">
+                  {STANDARD_UNITS.map((u) => {
+                    const isSelected = form.price_unit === u || (!form.price_unit && form.unit === u)
+                    return (
+                      <button
+                        key={u}
+                        type="button"
+                        disabled={form.is_price_optional}
+                        onClick={() => {
+                          update('price_unit', u)
+                          speak(`₹ / ${translateUnit(t, u)}`, ttsLang)
+                        }}
+                        className={`py-2.5 px-2 rounded-2xl font-bold text-xs sm:text-sm border-2 transition-all min-h-[46px] flex items-center justify-center gap-1 active:scale-95 cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#1E5E3A] text-white border-[#1E5E3A] shadow-md ring-2 ring-green-300'
+                            : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-[#E8EFE8] disabled:opacity-40'
+                        }`}
+                        aria-pressed={isSelected}
+                      >
+                        {isSelected && <Check size={14} strokeWidth={3} className="shrink-0" aria-hidden="true" />}
+                        <span>₹ / {translateUnit(t, u)}</span>
+                      </button>
+                    )
+                  })}
                 </div>
+              </div>
 
-                <button
-                  type="button"
-                  onClick={() => adjustPrice(100)}
+              {/* 3. Prominent Price Value Display */}
+              <div className={`my-3 py-3.5 px-6 rounded-3xl border-2 max-w-xs mx-auto flex items-baseline justify-center gap-1.5 shadow-xs transition-all ${
+                form.is_price_optional ? 'bg-gray-100 border-gray-300 opacity-70' : 'bg-amber-50/90 border-[#D9822B]'
+              }`}>
+                <span className="text-2xl font-bold text-[#D9822B] shrink-0">₹</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  pattern="[0-9]*[.]?[0-9]*"
                   disabled={form.is_price_optional}
-                  aria-label="Increase price by 100"
-                  className="w-12 h-12 rounded-2xl bg-[#D9822B] hover:bg-amber-600 disabled:opacity-40 text-white flex items-center justify-center font-black text-xl shadow-md active:scale-95 cursor-pointer"
-                >
-                  +100
-                </button>
+                  value={form.is_price_optional ? '' : form.price}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9.]/g, '')
+                    const parts = val.split('.')
+                    const sanitized = parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : val
+                    update('price', sanitized)
+                    setErrors((prev) => ({ ...prev, price: null }))
+                  }}
+                  aria-label={t('createPost.priceLabel', 'Price')}
+                  placeholder={form.is_price_optional ? t('createPost.negotiable', 'చర్చించదగినది') : '0'}
+                  className="w-full text-center text-4xl sm:text-5xl font-black text-[#D9822B] bg-transparent border-0 focus:ring-0 focus:outline-none disabled:text-gray-500 tracking-tight"
+                />
+                <span className="text-xs sm:text-sm font-bold text-gray-600 shrink-0">
+                  / {translateUnit(t, form.price_unit)}
+                </span>
               </div>
 
               {errors.price && (
-                <p className="text-xs text-red-600 font-semibold mb-3">{errors.price}</p>
+                <p className="text-xs text-red-600 font-semibold mb-3 bg-red-50 p-2 rounded-xl border border-red-200 max-w-xs mx-auto">
+                  {errors.price}
+                </p>
               )}
 
               {/* Optional Pricing Checkbox for Buyer */}
               {!isFarmer && (
-                <label className="flex items-center justify-center gap-2.5 p-3 rounded-2xl bg-amber-50/70 border border-amber-200 cursor-pointer my-3 max-w-sm mx-auto hover:bg-amber-100/60 transition-colors">
+                <label className="flex items-center justify-center gap-2.5 p-3 rounded-2xl bg-amber-50/70 border border-amber-200 cursor-pointer my-2 max-w-sm mx-auto hover:bg-amber-100/60 transition-colors">
                   <input
                     type="checkbox"
                     checked={Boolean(form.is_price_optional)}
@@ -1623,105 +1612,74 @@ export default function CreatePost() {
                 </label>
               )}
 
-              {/* Separate Price Unit Selector */}
-              <div className="mt-3">
-                <span className="text-xs font-bold text-gray-600 block mb-1.5">
-                  {t('createPost.priceUnitPrompt', 'Price Unit:')}
-                </span>
-                <div className="flex justify-center flex-wrap gap-1.5">
-                  {STANDARD_UNITS.map((u) => (
-                    <button
-                      key={u}
-                      type="button"
-                      disabled={form.is_price_optional}
-                      onClick={() => update('price_unit', u)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                        form.price_unit === u
-                          ? 'bg-[#1E5E3A] text-white border-[#1E5E3A]'
-                          : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50 disabled:opacity-40'
-                      }`}
-                    >
-                      ₹ / {translateUnit(t, u)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Clear Budget Ceiling Notice for Buyer */}
-              {!isFarmer && (
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-2xl text-left my-3 shadow-xs">
-                  <p className="text-xs text-blue-900 font-semibold leading-relaxed">
-                    {t('createPost.buyerStep3Notice', '💡 బడ్జెట్ పరిమితి: ఈ ధర లోపల లేదా దగ్గరగా ఉన్న రైతుల పంటలు సరిపోల్చబడతాయి.')}
-                  </p>
-                </div>
-              )}
-
-              {/* Mandi Benchmark Price Card */}
-              {priceGuidance && (
-                <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-3.5 my-3 text-left">
-                  <p className="text-xs text-amber-950 font-medium">
-                    {t('createPost.q3MandiRange', {
-                      market: priceGuidance.market_name,
-                      min: priceGuidance.min_price,
-                      max: priceGuidance.max_price,
-                      unit: form.price_unit,
-                      defaultValue: `మండీ మార్కెట్ ధర: ₹${priceGuidance.min_price} – ₹${priceGuidance.max_price} (${priceGuidance.market_name})`,
-                    })}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      update('price', String(priceGuidance.modal_price))
-                      speak(t('createPost.mandiRecommendationSelected', { price: priceGuidance.modal_price }), ttsLang)
-                    }}
-                    className="mt-2 bg-white hover:bg-amber-100 text-amber-950 font-bold text-xs py-1.5 px-3 rounded-xl border border-amber-300 shadow-xs"
-                  >
-                    💡 {t('createPost.q3UseMandi', { price: priceGuidance.modal_price, defaultValue: `సిఫార్సు ధరను వాడండి: ₹${priceGuidance.modal_price}` })}
-                  </button>
-                </div>
-              )}
-
-              {/* On-Screen Numeric Keypad (No mobile keyboard needed) */}
-              <div className="mt-4 pt-3 border-t border-gray-100">
+              {/* 4. Large Numerical Keypad below Price */}
+              <div className="my-3">
                 <span className="text-xs font-bold text-gray-500 block mb-2">
                   {t('createPost.keypadExact', 'ఖచ్చితమైన సంఖ్యను నొక్కండి:')}
                 </span>
-                <div className="grid grid-cols-3 gap-2 max-w-xs mx-auto">
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, '0', '⌫'].map((k) => (
+                <div className="grid grid-cols-3 gap-2.5 max-w-xs mx-auto">
+                  {['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫'].map((k) => (
                     <button
                       key={k}
                       type="button"
+                      disabled={form.is_price_optional}
                       onClick={() => (k === '⌫' ? handleKeypadBackspace() : handleKeypadDigit(k))}
-                      className={`py-3 rounded-2xl font-extrabold text-lg sm:text-xl border shadow-xs active:scale-95 min-h-[48px] ${
+                      className={`py-3.5 rounded-2xl font-black text-2xl border shadow-xs active:scale-95 min-h-[54px] flex items-center justify-center transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
                         k === '⌫'
-                          ? 'bg-red-50 text-red-700 border-red-200'
-                          : 'bg-white text-gray-800 border-gray-200 hover:bg-gray-50'
+                          ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200'
+                          : 'bg-white hover:bg-gray-50 text-gray-900 border-gray-200 hover:border-gray-300'
                       }`}
+                      aria-label={
+                        k === '⌫'
+                          ? t('createPost.backspace', 'Backspace')
+                          : k === '.'
+                          ? t('createPost.decimalPoint', 'Decimal point')
+                          : `Digit ${k}`
+                      }
                     >
                       {k}
                     </button>
                   ))}
                 </div>
               </div>
+
+              {/* Mandi Benchmark Price Card (Optional Guidance) */}
+              {priceGuidance && !form.is_price_optional && (
+                <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-2.5 my-2 max-w-xs mx-auto text-left">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      update('price', String(priceGuidance.modal_price))
+                      speak(t('createPost.mandiRecommendationSelected', { price: priceGuidance.modal_price }), ttsLang)
+                    }}
+                    className="w-full bg-white hover:bg-amber-100 text-amber-950 font-bold text-xs py-1.5 px-3 rounded-xl border border-amber-300 shadow-xs flex items-center justify-center gap-1 cursor-pointer"
+                  >
+                    <span>💡 {t('createPost.q3UseMandi', { price: priceGuidance.modal_price, defaultValue: `సిఫార్సు ధర: ₹${priceGuidance.modal_price}` })}</span>
+                  </button>
+                </div>
+              )}
             </div>
 
-            {/* Back & Next Navigation */}
-            <div className="flex gap-3">
+            {/* 5. Back & Next Navigation */}
+            <div className="flex items-center gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setStep(2)}
-                className="w-1/3 bg-gray-200 text-gray-800 font-bold py-4 rounded-2xl flex items-center justify-center gap-1 active:scale-98 min-h-[56px]"
+                className="w-1/3 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-4 rounded-2xl flex items-center justify-center gap-1.5 active:scale-98 min-h-[56px] border border-gray-200 cursor-pointer text-base"
+                aria-label={t('createPost.backBtn', '← వెనుకకు')}
               >
-                <ChevronLeft size={20} /> {t('createPost.backBtn', '← వెనుకకు')}
+                <ChevronLeft size={20} aria-hidden="true" />
+                <span>{t('createPost.backBtn', '← వెనుకకు')}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => validateAndNext(3)}
-                className="flex-1 bg-[#1E5E3A] text-white font-extrabold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-98 shadow-md min-h-[56px] text-lg"
+                className="flex-1 bg-[#1E5E3A] hover:bg-[#16482c] text-white font-extrabold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-98 shadow-md min-h-[56px] text-lg cursor-pointer"
+                aria-label={t('createPost.q3NextBtn', 'తర్వాత: డెలివరీ సమయం →')}
               >
                 <span>{t('createPost.q3NextBtn', 'తర్వాత: డెలివరీ సమయం →')}</span>
-                <ChevronRight size={22} />
+                <ChevronRight size={22} aria-hidden="true" />
               </button>
             </div>
           </div>
