@@ -176,10 +176,10 @@
       "verifyBtn": "Verify & Continue",
       "resendBtn": "Resend Code",
       "verifying": "Verifying…",
-      "sentSuccess": "Verification code sent (Test OTP: 1234)",
+      "sentSuccess": "Verification code sent to your mobile number",
       "sendFailed": "Failed to send OTP",
       "success": "Mobile number verified successfully!",
-      "invalidOtp": "Invalid OTP code. Please enter 1234.",
+      "invalidOtp": "Invalid verification code. Please check and try again.",
       "promptActionPublish": "Please verify your mobile number to publish a listing.",
       "promptActionContact": "Please verify your mobile number to view contact details.",
       "verifyMobileBtn": "Verify Mobile"

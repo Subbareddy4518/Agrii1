@@ -11,6 +11,7 @@ export default function OtpVerificationModal({ isOpen, onClose, onVerified, init
   const { user, refreshUser } = useAuth()
   const [mobile, setMobile] = useState(initialMobile || user?.mobile || '')
   const [otp, setOtp] = useState('')
+  const [testOtp, setTestOtp] = useState(null)
   const [loading, setLoading] = useState(false)
   const [resending, setResending] = useState(false)
   const [error, setError] = useState('')
@@ -21,6 +22,7 @@ export default function OtpVerificationModal({ isOpen, onClose, onVerified, init
       const mob = initialMobile || user?.mobile || ''
       setMobile(mob)
       setOtp('')
+      setTestOtp(null)
       setError('')
       setVerifiedSuccess(false)
       // Auto-request OTP on open
@@ -36,8 +38,13 @@ export default function OtpVerificationModal({ isOpen, onClose, onVerified, init
     setResending(true)
     setError('')
     try {
-      await sendOtp({ mobile: target })
-      toast.success(t('auth.otp.sentSuccess', 'Verification code sent (Test OTP: 1234)'))
+      const res = await sendOtp({ mobile: target })
+      if (res.data?.otp) {
+        setTestOtp(res.data.otp)
+      } else {
+        setTestOtp(null)
+      }
+      toast.success(res.data?.message || t('auth.otp.sentSuccess', 'Verification code sent to your mobile number'))
     } catch (err) {
       setError(err.response?.data?.detail || t('auth.otp.sendFailed', 'Failed to send OTP'))
     } finally {
@@ -68,7 +75,7 @@ export default function OtpVerificationModal({ isOpen, onClose, onVerified, init
         }, 1200)
       }
     } catch (err) {
-      setError(err.response?.data?.detail || t('auth.otp.invalidOtp', 'Invalid OTP code. Please enter 1234.'))
+      setError(err.response?.data?.detail || t('auth.otp.invalidOtp', 'Invalid verification code. Please check and try again.'))
     } finally {
       setLoading(false)
     }
@@ -127,12 +134,14 @@ export default function OtpVerificationModal({ isOpen, onClose, onVerified, init
                 </div>
               </div>
 
-              {/* Demo Notice */}
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-2.5 mb-4 text-center">
-                <p className="text-xs font-semibold text-amber-900">
-                  ⚡ {t('auth.otp.testHint', 'Test OTP code: 1234')}
-                </p>
-              </div>
+              {/* Demo Notice (Only shown when server returns a test code in development) */}
+              {testOtp && (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-2.5 mb-4 text-center">
+                  <p className="text-xs font-semibold text-amber-900">
+                    ⚡ {t('auth.otp.testHint', 'Test OTP code:')} {testOtp}
+                  </p>
+                </div>
+              )}
 
               <form onSubmit={handleVerify} className="space-y-4">
                 <div>
@@ -147,7 +156,7 @@ export default function OtpVerificationModal({ isOpen, onClose, onVerified, init
                     maxLength={4}
                     value={otp}
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                    placeholder="1234"
+                    placeholder="••••"
                     autoFocus
                     className="w-full text-center text-2xl tracking-[0.5em] font-mono font-bold py-3 px-4 rounded-2xl border-2 border-cloud-200 focus:border-forest-600 focus:ring-4 focus:ring-forest-100 outline-none transition-all bg-cloud-50 focus:bg-white"
                   />

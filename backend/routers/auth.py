@@ -1,6 +1,7 @@
 """Registration and login endpoints."""
 import os
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 
 import models
@@ -8,6 +9,13 @@ import schemas
 import trust
 from database import get_db
 from auth import hash_password, verify_password, create_access_token
+from services.sms_service import (
+    get_sms_provider,
+    otp_rate_limiter,
+    mask_phone,
+    validate_indian_mobile,
+    extract_client_ip,
+)
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -16,10 +24,14 @@ IS_PRODUCTION = os.getenv("ENVIRONMENT", "").lower() in ("production", "prod") o
 
 def is_sms_provider_configured() -> bool:
     """
-    Checks if an SMS provider (e.g. Twilio, MSG91, Fast2SMS, AWS SNS) is configured
-    via environment variables. Does not mock or assume presence without explicit keys.
+    Checks if an SMS provider (e.g. MSG91, Fast2SMS, Twilio) is configured
+    via environment variables or mock injection. Does not mock without explicit configuration.
     """
+    provider = get_sms_provider(is_production=IS_PRODUCTION)
+    if provider.is_configured():
+        return True
     return bool(
+        os.getenv("MSG91_AUTH_KEY") or
         os.getenv("SMS_PROVIDER_API_KEY") or
         os.getenv("SMS_GATEWAY_URL") or
         os.getenv("TWILIO_ACCOUNT_SID")
@@ -78,62 +90,141 @@ def login(payload: schemas.LoginRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/send-otp", response_model=schemas.OtpResponse)
-def send_otp(payload: schemas.SendOtpRequest):
+def send_otp(payload: schemas.SendOtpRequest, request: Request = None):
     """
-    Mobile OTP dispatch.
+    Mobile OTP dispatch with server-side rate limiting and MSG91 provider integration.
     In testing/development, returns simulated testing OTP '1234'.
-    In production, checks for a configured SMS provider. If none is configured,
-    returns an explicit 503 Service Unavailable error instead of falsely claiming an SMS was sent.
+    In production, checks for configured SMS provider and dispatches real OTP.
+    Fails safely with HTTP 503 if provider is not configured.
     """
-    digits = "".join(filter(str.isdigit, payload.mobile))
-    if len(digits) < 10:
-        raise HTTPException(status_code=400, detail="Please enter a valid 10-digit mobile number")
+    # 1. Validate Indian mobile number (SEC-05)
+    is_valid, national_mobile, err_msg = validate_indian_mobile(payload.mobile)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=err_msg)
+    digits = national_mobile
+
+    provider = get_sms_provider(is_production=IS_PRODUCTION)
 
     if IS_PRODUCTION:
-        if not is_sms_provider_configured():
+        if not is_sms_provider_configured() or not provider.is_configured():
             raise HTTPException(
                 status_code=503,
                 detail="SMS service is currently unavailable. No production SMS provider is configured."
             )
-        # When a production SMS provider is configured, dispatch SMS without exposing OTP in response
+
+        # 2. Extract client IP safely without trusting spoofed forwarding headers (SEC-01)
+        client_ip = extract_client_ip(request)
+
+        # Check 60-second cooldown and 10-minute rate limit
+        allowed, rate_err, retry_after = otp_rate_limiter.check_limit(
+            digits, ip=client_ip, is_production=IS_PRODUCTION
+        )
+        if not allowed:
+            headers = {"Retry-After": str(retry_after)} if retry_after else None
+            raise HTTPException(status_code=429, detail=rate_err, headers=headers)
+
+        res = provider.send_otp(digits)
+        if not res.success:
+            if res.error_code in ("NETWORK_ERROR", "TIMEOUT"):
+                raise HTTPException(status_code=504, detail="SMS provider timed out. Please try again.")
+            elif res.error_code in ("AUTH_ERROR", "INVALID_CREDENTIALS"):
+                raise HTTPException(status_code=503, detail=res.message or "SMS service configuration error.")
+            elif res.error_code == "PROVIDER_RATE_LIMIT":
+                raise HTTPException(status_code=429, detail="SMS provider rate limit exceeded. Please wait.")
+            else:
+                raise HTTPException(
+                    status_code=502,
+                    detail=res.message or "Failed to dispatch verification code via SMS."
+                )
+
+        # Record successful dispatch timestamp for rate limiting & cooldown
+        otp_rate_limiter.record_send(digits, ip=client_ip)
+
         return schemas.OtpResponse(
-            message=f"OTP sent successfully via SMS to {digits[-10:]}",
+            message=res.message or f"OTP sent successfully via SMS to {mask_phone(digits)}",
             otp=None,
             is_verified=False
         )
 
+    # Development / Local Testing Mode
+    res = provider.send_otp(digits)
     return schemas.OtpResponse(
-        message=f"OTP sent successfully to {digits[-10:]}",
-        otp="1234",
+        message=res.message or f"OTP sent successfully to {digits}",
+        otp=res.otp or "1234",
         is_verified=False
     )
 
 
 @router.post("/verify-otp", response_model=schemas.OtpResponse)
-def verify_otp(payload: schemas.VerifyOtpRequest, db: Session = Depends(get_db)):
+def verify_otp(
+    payload: schemas.VerifyOtpRequest,
+    db: Session = Depends(get_db),
+    request: Request = None,
+):
     """
     Verify mobile OTP code and mark account as Mobile Number Verified.
     Rejects hardcoded test code '1234' in production environments.
+    Verifies against MSG91 managed OTP service in production.
+    Enforces maximum 5 verification attempts per mobile/IP within 10 minutes (SEC-03).
     """
-    digits = "".join(filter(str.isdigit, payload.mobile))
-    if len(digits) < 10:
-        raise HTTPException(status_code=400, detail="Please enter a valid 10-digit mobile number")
+    # Support positional argument variations from tests
+    if isinstance(db, Request) and isinstance(request, Session):
+        db, request = request, db
+    elif hasattr(db, "headers") and not hasattr(db, "query"):
+        request = db
+        db = None
+
+    # 1. Validate Indian mobile number (SEC-05)
+    is_valid, national_mobile, err_msg = validate_indian_mobile(payload.mobile)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=err_msg)
+    digits = national_mobile
+
+    clean_otp = payload.otp.strip()
+    if not clean_otp:
+        raise HTTPException(status_code=400, detail="Please enter verification code")
+
+    # 2. Extract client IP safely (SEC-01)
+    client_ip = extract_client_ip(request)
+
+    # 3. Check verification rate limit (SEC-03: max 5 attempts per mobile/IP per 10 minutes)
+    allowed, rate_err, retry_after = otp_rate_limiter.check_verify_limit(
+        digits, ip=client_ip, is_production=IS_PRODUCTION
+    )
+    if not allowed:
+        headers = {"Retry-After": str(retry_after)} if retry_after else None
+        raise HTTPException(status_code=429, detail=rate_err, headers=headers)
+
+    # Record verification attempt
+    otp_rate_limiter.record_verify_attempt(digits, ip=client_ip)
+
+    provider = get_sms_provider(is_production=IS_PRODUCTION)
 
     if IS_PRODUCTION:
-        if payload.otp.strip() == "1234":
+        if clean_otp == "1234":
             raise HTTPException(status_code=400, detail="Simulated test OTP is disabled in production environment")
-        if not is_sms_provider_configured():
+        if not is_sms_provider_configured() or not provider.is_configured():
             raise HTTPException(
                 status_code=503,
                 detail="OTP verification is currently unavailable. No production SMS provider is configured."
             )
-        # In a real environment with SMS provider, verify against SMS store / cache
-        raise HTTPException(status_code=400, detail="Invalid or expired OTP code")
 
-    if payload.otp.strip() != "1234":
-        raise HTTPException(status_code=400, detail="Invalid OTP code. Please enter 1234.")
+        is_valid_otp, verify_msg = provider.verify_otp(digits, clean_otp)
+        if not is_valid_otp:
+            if "configuration error" in (verify_msg or "").lower():
+                raise HTTPException(status_code=503, detail=verify_msg)
+            raise HTTPException(status_code=400, detail=verify_msg or "Invalid or expired OTP code")
 
-    user = db.query(models.User).filter(models.User.mobile == digits[-10:]).first()
+    else:
+        # Development / Testing Mode
+        is_valid_otp, verify_msg = provider.verify_otp(digits, clean_otp)
+        if not is_valid_otp:
+            raise HTTPException(status_code=400, detail=verify_msg or "Invalid OTP code. Please enter 1234.")
+
+    # Verification successful: clear failed attempt history for this mobile
+    otp_rate_limiter.record_verify_success(digits)
+
+    user = db.query(models.User).filter(models.User.mobile == digits).first()
     user_out = None
     if user:
         user.is_verified = True
